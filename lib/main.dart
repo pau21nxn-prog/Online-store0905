@@ -68,7 +68,7 @@ class AnneDFindsApp extends StatelessWidget {
           home: const MainNavigationScreen(),
           debugShowCheckedModeBanner: false,
           routes: {
-            '/': (context) => const MainNavigationScreen(),
+            // REMOVED the conflicting '/' route
             '/login': (context) => const LoginScreen(),
             '/orders': (context) => const OrdersScreen(), // Updated route
             '/notifications': (context) => const NotificationsScreen(),

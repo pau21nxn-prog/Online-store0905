@@ -682,36 +682,44 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             const SizedBox(height: 8),
             Text(
-              '🔔 You\'ll receive notifications about your order status.',
+              '📱 You\'ll receive notifications about your order status.',
               style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor(context)),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Redirecting to home in 3 seconds...',
+              style: TextStyle(
+                fontSize: 12, 
+                color: AppTheme.textSecondaryColor(context),
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-            child: Text(
-              'Continue Shopping',
-              style: TextStyle(color: AppTheme.textSecondaryColor(context)),
-            ),
-          ),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.of(context).pop(); // Close dialog
+              // Navigate to home screen automatically
+              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryOrange,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Done'),
+            child: const Text('Continue Shopping'),
           ),
         ],
       ),
     );
+
+    // Auto-close dialog and redirect after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(); // Close dialog
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    });
   }
 
   void _showErrorDialog(String message) {

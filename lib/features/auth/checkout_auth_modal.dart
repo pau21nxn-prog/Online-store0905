@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../common/theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/cart_service.dart';
@@ -31,16 +32,23 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _codeController = TextEditingController();
   bool _isSignUp = false;
   bool _showAuthForm = false;
+  bool _showPhoneAuth = false;
   bool _obscurePassword = true;
-  UserType _selectedUserType = UserType.buyer; // Default to buyer
+  UserType _selectedUserType = UserType.buyer;
+  String? _verificationId;
+  bool _isPhoneVerificationSent = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _phoneController.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
@@ -113,76 +121,10 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
       }
 
       if (user != null && mounted) {
-        // Success - show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isSignUp ? 'Account created successfully!' : 'Signed in successfully!',
-            ),
-            backgroundColor: AppTheme.primaryOrange,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-
-        // Close modal
-        Navigator.pop(context);
-        
-        if (widget.onAuthenticationSuccess != null) {
-          widget.onAuthenticationSuccess!();
-        } else {
-          // Navigate to authenticated checkout
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CheckoutScreen(
-                cartItems: widget.cartItems.map<CartItem>((item) => CartItem(
-                  productId: item['productId'] ?? '',
-                  productName: item['name'] ?? item['productName'] ?? '',
-                  price: (item['price'] ?? 0.0).toDouble(),
-                  quantity: item['quantity'] ?? 1,
-                  imageUrl: item['imageUrl'] ?? '',
-                  addedAt: DateTime.now(),
-                )).toList(),
-                subtotal: widget.totalAmount,
-                shipping: 0.0, // Free shipping
-                total: widget.totalAmount,
-              ),
-            ),
-          );
-        }
+        _showSuccessAndNavigate(_isSignUp ? 'Account created successfully!' : 'Signed in successfully!');
       }
     } catch (e) {
-      if (mounted) {
-        String message = 'An error occurred';
-        
-        // Parse error messages
-        final errorString = e.toString().toLowerCase();
-        if (errorString.contains('email-already-in-use')) {
-          message = 'An account already exists with this email.';
-        } else if (errorString.contains('weak-password')) {
-          message = 'Password is too weak. Use at least 8 characters.';
-        } else if (errorString.contains('invalid-email')) {
-          message = 'Please enter a valid email address.';
-        } else if (errorString.contains('user-not-found')) {
-          message = 'No account found with this email.';
-        } else if (errorString.contains('wrong-password')) {
-          message = 'Incorrect password.';
-        } else if (errorString.contains('invalid-credential')) {
-          message = 'Invalid email or password.';
-        } else if (errorString.contains('too-many-requests')) {
-          message = 'Too many failed attempts. Please try again later.';
-        } else if (errorString.contains('network-request-failed')) {
-          message = 'Network error. Please check your connection.';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
+      _handleAuthError(e);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -197,39 +139,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
       final user = await AuthService.signInWithGoogle();
       
       if (user != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Signed in with Google successfully!'),
-            backgroundColor: AppTheme.primaryOrange,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        Navigator.pop(context);
-        
-        if (widget.onAuthenticationSuccess != null) {
-          widget.onAuthenticationSuccess!();
-        } else {
-          // Navigate to authenticated checkout
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CheckoutScreen(
-                cartItems: widget.cartItems.map<CartItem>((item) => CartItem(
-                  productId: item['productId'] ?? '',
-                  productName: item['name'] ?? item['productName'] ?? '',
-                  price: (item['price'] ?? 0.0).toDouble(),
-                  quantity: item['quantity'] ?? 1,
-                  imageUrl: item['imageUrl'] ?? '',
-                  addedAt: DateTime.now(),
-                )).toList(),
-                subtotal: widget.totalAmount,
-                shipping: 0.0,
-                total: widget.totalAmount,
-              ),
-            ),
-          );
-        }
+        _showSuccessAndNavigate('Signed in with Google successfully!');
       }
     } catch (e) {
       if (mounted) {
@@ -248,10 +158,209 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
     }
   }
 
+  Future<void> _handlePhoneSignIn() async {
+    if (_phoneController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your phone number'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      String phoneNumber = _phoneController.text.trim();
+      
+      // Clean and format phone number for Philippines
+      // Remove any non-digit characters first
+      phoneNumber = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+      
+      // Format based on length and prefix
+      if (phoneNumber.length == 11 && phoneNumber.startsWith('09')) {
+        // 09123456789 -> +639123456789
+        phoneNumber = '+63${phoneNumber.substring(1)}';
+      } else if (phoneNumber.length == 10 && phoneNumber.startsWith('9')) {
+        // 9123456789 -> +639123456789
+        phoneNumber = '+63$phoneNumber';
+      } else if (phoneNumber.length == 12 && phoneNumber.startsWith('639')) {
+        // 639123456789 -> +639123456789
+        phoneNumber = '+$phoneNumber';
+      } else if (phoneNumber.length == 13 && phoneNumber.startsWith('639')) {
+        // Already has + prefix
+        phoneNumber = '+$phoneNumber';
+      } else {
+        // Invalid format
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a valid Philippine mobile number (e.g., 09123456789)'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      print('Formatted phone number: $phoneNumber'); // Debug log
+
+      await AuthService.signInWithPhone(
+        phoneNumber,
+        (String verificationId) {
+          // onCodeSent callback
+          setState(() {
+            _verificationId = verificationId;
+            _isPhoneVerificationSent = true;
+            _isLoading = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Verification code sent to your phone'),
+              backgroundColor: AppTheme.primaryOrange,
+            ),
+          );
+        },
+        (String error) {
+          // onError callback
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Phone verification failed: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+        (UserModel? user) {
+          // onSignInComplete callback
+          setState(() => _isLoading = false);
+          if (user != null && mounted) {
+            _showSuccessAndNavigate('Phone verification successful!');
+          }
+        },
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Phone sign-in failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _verifyPhoneCode() async {
+    if (_codeController.text.trim().isEmpty || _verificationId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter the verification code'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = await AuthService.verifyPhoneCode(_verificationId!, _codeController.text.trim());
+      
+      if (user != null && mounted) {
+        _showSuccessAndNavigate('Phone verification successful!');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Code verification failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showSuccessAndNavigate(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppTheme.primaryOrange,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    Navigator.pop(context);
+    
+    if (widget.onAuthenticationSuccess != null) {
+      widget.onAuthenticationSuccess!();
+    } else {
+      // Navigate to authenticated checkout
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckoutScreen(
+            cartItems: widget.cartItems.map<CartItem>((item) => CartItem(
+              productId: item['productId'] ?? '',
+              productName: item['name'] ?? item['productName'] ?? '',
+              price: (item['price'] ?? 0.0).toDouble(),
+              quantity: item['quantity'] ?? 1,
+              imageUrl: item['imageUrl'] ?? '',
+              addedAt: DateTime.now(),
+            )).toList(),
+            subtotal: widget.totalAmount,
+            shipping: 0.0,
+            total: widget.totalAmount,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _handleAuthError(dynamic e) {
+    if (mounted) {
+      String message = 'An error occurred';
+      
+      // Parse error messages
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('email-already-in-use')) {
+        message = 'An account already exists with this email.';
+      } else if (errorString.contains('weak-password')) {
+        message = 'Password is too weak. Use at least 8 characters.';
+      } else if (errorString.contains('invalid-email')) {
+        message = 'Please enter a valid email address.';
+      } else if (errorString.contains('user-not-found')) {
+        message = 'No account found with this email.';
+      } else if (errorString.contains('wrong-password')) {
+        message = 'Incorrect password.';
+      } else if (errorString.contains('invalid-credential')) {
+        message = 'Invalid email or password.';
+      } else if (errorString.contains('too-many-requests')) {
+        message = 'Too many failed attempts. Please try again later.';
+      } else if (errorString.contains('network-request-failed')) {
+        message = 'Network error. Please check your connection.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
   void _showSignUp() {
     setState(() {
       _isSignUp = true;
       _showAuthForm = true;
+      _showPhoneAuth = false;
     });
   }
 
@@ -259,6 +368,18 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
     setState(() {
       _isSignUp = false;
       _showAuthForm = true;
+      _showPhoneAuth = false;
+    });
+  }
+
+  void _showPhoneSignIn() {
+    setState(() {
+      _showPhoneAuth = true;
+      _showAuthForm = false;
+      _isPhoneVerificationSent = false;
+      _phoneController.clear();
+      _codeController.clear();
+      _verificationId = null;
     });
   }
 
@@ -403,8 +524,10 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
 
                     const SizedBox(height: 24),
 
-                    // Authentication options or form
-                    if (!_showAuthForm) ...[
+                    // Authentication options, form, or phone auth
+                    if (_showPhoneAuth) ...[
+                      _buildPhoneAuthForm(),
+                    ] else if (!_showAuthForm) ...[
                       // Guest checkout option (prominent)
                       _buildOption(
                         icon: Icons.person_outline,
@@ -451,6 +574,17 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                         title: 'Sign in with Google',
                         subtitle: 'Quick sign-in with your Google account',
                         onTap: _isLoading ? () {} : _handleGoogleSignIn,
+                        isPrimary: false,
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Phone Sign-In Option
+                      _buildOption(
+                        icon: Icons.phone,
+                        title: 'Sign in with Phone',
+                        subtitle: 'Quick sign-in with SMS verification',
+                        onTap: _isLoading ? () {} : _showPhoneSignIn,
                         isPrimary: false,
                       ),
 
@@ -529,6 +663,222 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPhoneAuthForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              onPressed: () => setState(() => _showPhoneAuth = false),
+              icon: const Icon(Icons.arrow_back),
+              color: AppTheme.textSecondaryColor(context),
+            ),
+            Text(
+              'Sign in with Phone',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimaryColor(context),
+              ),
+            ),
+          ],
+        ),
+        
+        const SizedBox(height: 16),
+
+        if (!_isPhoneVerificationSent) ...[
+          // Phone number input
+          Text(
+            'Enter your phone number',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondaryColor(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          
+          TextFormField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10), // Max 10 digits after +63
+            ],
+            decoration: InputDecoration(
+              labelText: 'Phone Number',
+              hintText: '9123456789',
+              prefixIcon: const Icon(Icons.phone),
+              prefixText: '+63 ',
+              helperText: 'Enter 10 digits (e.g., 9123456789)',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.primaryOrange),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          Text(
+            'We\'ll send you a verification code via SMS',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondaryColor(context),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Send Code Button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _handlePhoneSignIn,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Send Verification Code',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
+        ] else ...[
+          // Verification code input
+          Text(
+            'Enter verification code',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondaryColor(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          
+          TextFormField(
+            controller: _codeController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
+            decoration: InputDecoration(
+              labelText: 'Verification Code',
+              hintText: '123456',
+              prefixIcon: const Icon(Icons.sms),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.primaryOrange),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          Text(
+            'Code sent to +63${_phoneController.text}',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondaryColor(context),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Verify Code Button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _verifyPhoneCode,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Verify & Sign In',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Resend code
+          Center(
+            child: TextButton(
+              onPressed: _isLoading ? null : () {
+                setState(() {
+                  _isPhoneVerificationSent = false;
+                  _codeController.clear();
+                });
+              },
+              child: const Text(
+                'Resend code',
+                style: TextStyle(
+                  color: AppTheme.primaryOrange,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 

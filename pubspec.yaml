@@ -20,9 +20,11 @@ dependencies:
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.3
   firebase_storage: ^12.3.2
+  cloud_functions: 5.6.2
   
-  # Authentication providers
-  google_sign_in: ^6.2.1
+  # Authentication providers - Updated versions for better web support
+  google_sign_in: ^6.3.0
+  google_sign_in_web: ^0.12.4+4
   
   # State management and utilities
   shared_preferences: ^2.2.2
@@ -38,6 +40,9 @@ dependencies:
   
   # Utilities
   url_launcher: ^6.2.4
+  
+  # Email service - NEW ADDITION
+  mailer: ^6.0.1
 
 dev_dependencies:
   flutter_test:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/cart_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/email_service.dart';
 import '../../common/theme.dart';
 
 class GuestCheckoutScreen extends StatefulWidget {
@@ -27,8 +28,16 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
   final _cityController = TextEditingController();
   final _postalCodeController = TextEditingController();
   
+  // Payment specific controllers
+  final _gcashNumberController = TextEditingController();
+  final _cardNumberController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _cvvController = TextEditingController();
+  final _accountNumberController = TextEditingController();
+  final _accountNameController = TextEditingController();
+  
   bool _isProcessing = false;
-  String _selectedPaymentMethod = 'cod';
+  String _selectedPaymentMethod = 'gcash';
 
   @override
   void dispose() {
@@ -38,6 +47,12 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
     _addressController.dispose();
     _cityController.dispose();
     _postalCodeController.dispose();
+    _gcashNumberController.dispose();
+    _cardNumberController.dispose();
+    _expiryController.dispose();
+    _cvvController.dispose();
+    _accountNumberController.dispose();
+    _accountNameController.dispose();
     super.dispose();
   }
 
@@ -60,8 +75,13 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    'Processing your order...',
+                    'Processing your payment...',
                     style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Sending email confirmation...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 ],
               ),
@@ -78,12 +98,17 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                     
                     const SizedBox(height: 24),
                     
+                    // Email Notice
+                    _buildEmailNotice(),
+                    
+                    const SizedBox(height: 24),
+                    
                     // Contact Information
                     _buildSectionTitle('Contact Information'),
                     const SizedBox(height: 12),
                     _buildTextField(
                       controller: _nameController,
-                      label: 'Full Name',
+                      label: 'Full Name *',
                       icon: Icons.person,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -99,12 +124,12 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                     const SizedBox(height: 16),
                     _buildTextField(
                       controller: _emailController,
-                      label: 'Email Address',
+                      label: 'Email Address *',
                       icon: Icons.email,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your email address';
+                          return 'Email address is required for order confirmation';
                         }
                         if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                           return 'Please enter a valid email address';
@@ -116,7 +141,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                     const SizedBox(height: 16),
                     _buildTextField(
                       controller: _phoneController,
-                      label: 'Phone Number',
+                      label: 'Phone Number *',
                       icon: Icons.phone,
                       keyboardType: TextInputType.phone,
                       validator: (value) {
@@ -137,7 +162,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                     const SizedBox(height: 12),
                     _buildTextField(
                       controller: _addressController,
-                      label: 'Street Address',
+                      label: 'Street Address *',
                       icon: Icons.location_on,
                       maxLines: 2,
                       validator: (value) {
@@ -155,7 +180,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                           flex: 2,
                           child: _buildTextField(
                             controller: _cityController,
-                            label: 'City',
+                            label: 'City *',
                             icon: Icons.location_city,
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
@@ -169,7 +194,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                         Expanded(
                           child: _buildTextField(
                             controller: _postalCodeController,
-                            label: 'Postal Code',
+                            label: 'Postal Code *',
                             icon: Icons.markunread_mailbox,
                             keyboardType: TextInputType.number,
                             validator: (value) {
@@ -190,6 +215,12 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                     const SizedBox(height: 12),
                     _buildPaymentMethods(),
                     
+                    // Payment Details Form
+                    if (_selectedPaymentMethod != 'gcash') ...[
+                      const SizedBox(height: 16),
+                      _buildPaymentDetailsForm(),
+                    ],
+                    
                     const SizedBox(height: 32),
                     
                     // Place Order Button
@@ -207,7 +238,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                           elevation: 2,
                         ),
                         child: Text(
-                          'Place Order - ₱${widget.totalAmount.toStringAsFixed(2)}',
+                          'Pay Now - ₱${widget.totalAmount.toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -221,7 +252,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                     // Terms and Privacy
                     Text(
                       'By placing this order, you agree to our Terms of Service and Privacy Policy. '
-                      'You can create an account later to track your orders and save your information.',
+                      'Your payment will be processed securely and an email confirmation will be sent to your provided email address.',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -232,6 +263,57 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildEmailNotice() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryOrange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryOrange.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.email_outlined,
+              color: AppTheme.primaryOrange,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Email Confirmation Required',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimaryColor(context),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'We will send your order details and tracking information via email. Please ensure your email address is correct.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.textSecondaryColor(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -353,24 +435,6 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
     return Column(
       children: [
         RadioListTile<String>(
-          value: 'cod',
-          groupValue: _selectedPaymentMethod,
-          onChanged: (value) {
-            setState(() {
-              _selectedPaymentMethod = value!;
-            });
-          },
-          title: const Row(
-            children: [
-              Icon(Icons.money, color: AppTheme.primaryOrange),
-              SizedBox(width: 12),
-              Text('Cash on Delivery'),
-            ],
-          ),
-          subtitle: const Text('Pay when your order arrives'),
-          activeColor: AppTheme.primaryOrange,
-        ),
-        RadioListTile<String>(
           value: 'gcash',
           groupValue: _selectedPaymentMethod,
           onChanged: (value) {
@@ -403,11 +467,179 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
               Text('Bank Transfer'),
             ],
           ),
-          subtitle: const Text('Transfer to our bank account'),
+          subtitle: const Text('Direct bank account transfer'),
+          activeColor: AppTheme.primaryOrange,
+        ),
+        RadioListTile<String>(
+          value: 'card',
+          groupValue: _selectedPaymentMethod,
+          onChanged: (value) {
+            setState(() {
+              _selectedPaymentMethod = value!;
+            });
+          },
+          title: const Row(
+            children: [
+              Icon(Icons.credit_card, color: AppTheme.primaryOrange),
+              SizedBox(width: 12),
+              Text('Credit/Debit Card'),
+            ],
+          ),
+          subtitle: const Text('Visa, Mastercard, and other major cards'),
           activeColor: AppTheme.primaryOrange,
         ),
       ],
     );
+  }
+
+  Widget _buildPaymentDetailsForm() {
+    switch (_selectedPaymentMethod) {
+      case 'gcash':
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'GCash Payment',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('You will be redirected to GCash to complete your payment.'),
+            ],
+          ),
+        );
+
+      case 'bank':
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bank Transfer Details',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              _buildTextField(
+                controller: _accountNameController,
+                label: 'Account Holder Name *',
+                icon: Icons.person,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter account holder name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildTextField(
+                controller: _accountNumberController,
+                label: 'Bank Account Number *',
+                icon: Icons.account_balance,
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter your bank account number';
+                  }
+                  if (value.length < 10) {
+                    return 'Please enter a valid account number';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        );
+
+      case 'card':
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Card Details',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              _buildTextField(
+                controller: _cardNumberController,
+                label: 'Card Number *',
+                icon: Icons.credit_card,
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter your card number';
+                  }
+                  if (value.replaceAll(' ', '').length < 16) {
+                    return 'Please enter a valid card number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _expiryController,
+                      label: 'MM/YY *',
+                      icon: Icons.date_range,
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Required';
+                        }
+                        if (!RegExp(r'^(0[1-9]|1[0-2])\/[0-9]{2}$').hasMatch(value)) {
+                          return 'Invalid format';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _cvvController,
+                      label: 'CVV *',
+                      icon: Icons.lock,
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Required';
+                        }
+                        if (value.length < 3) {
+                          return 'Invalid CVV';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   Future<void> _placeOrder() async {
@@ -420,7 +652,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
     });
 
     try {
-      // Step 1: Simulate payment processing
+      // Step 1: Process payment first
       await _processPayment();
       
       // Step 2: Create anonymous user AFTER successful payment
@@ -440,10 +672,13 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
       // Step 4: Create order with the new anonymous user
       final orderId = await _createOrder(anonymousUser.id);
       
-      // Step 5: Clear cart
+      // Step 5: Send email confirmation
+      await _sendEmailConfirmation(orderId);
+      
+      // Step 6: Clear cart
       await CartService.clearCart();
       
-      // Step 6: Show success and navigate
+      // Step 7: Show success and navigate
       if (mounted) {
         _showSuccessDialog(orderId);
       }
@@ -464,18 +699,17 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
 
   Future<void> _processPayment() async {
     // Simulate payment processing based on selected method
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 3));
     
     switch (_selectedPaymentMethod) {
       case 'gcash':
         // In real implementation, integrate with GCash API
         break;
       case 'bank':
-        // In real implementation, show bank transfer details
+        // In real implementation, verify bank transfer details
         break;
-      case 'cod':
-      default:
-        // Cash on delivery - no payment processing needed
+      case 'card':
+        // In real implementation, process card payment via payment gateway
         break;
     }
     
@@ -494,9 +728,9 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
       'subtotal': widget.totalAmount,
       'shipping': 0.0,
       'tax': 0.0,
-      'status': 'pending',
+      'status': 'confirmed', // Payment processed, so confirmed
       'paymentMethod': _selectedPaymentMethod,
-      'paymentStatus': _selectedPaymentMethod == 'cod' ? 'pending' : 'paid',
+      'paymentStatus': 'paid', // All guest payments are processed immediately
       'createdAt': DateTime.now(),
       'estimatedDelivery': DateTime.now().add(const Duration(days: 3)),
       
@@ -517,6 +751,13 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
         'country': 'Philippines',
         'phoneNumber': _phoneController.text.trim(),
       },
+      
+      // Payment details (without sensitive info)
+      'paymentDetails': {
+        'method': _selectedPaymentMethod,
+        'processedAt': DateTime.now(),
+        'amount': widget.totalAmount,
+      },
     };
 
     await FirebaseFirestore.instance
@@ -525,6 +766,75 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
         .set(orderData);
 
     return orderId;
+  }
+
+  Future<void> _sendEmailConfirmation(String orderId) async {
+    try {
+      // Create email content
+      final emailContent = _buildEmailContent(orderId);
+      
+      // Send email using EmailService
+      await EmailService.sendOrderConfirmationEmail(
+        toEmail: _emailController.text.trim(),
+        customerName: _nameController.text.trim(),
+        orderId: orderId,
+        orderItems: widget.cartItems,
+        totalAmount: widget.totalAmount,
+        paymentMethod: _getPaymentMethodDisplayName(_selectedPaymentMethod),
+        deliveryAddress: {
+          'fullName': _nameController.text.trim(),
+          'address': _addressController.text.trim(),
+          'city': _cityController.text.trim(),
+          'postalCode': _postalCodeController.text.trim(),
+        },
+        estimatedDelivery: DateTime.now().add(const Duration(days: 3)),
+      );
+      
+      print('Email confirmation sent to: ${_emailController.text}');
+    } catch (e) {
+      print('Failed to send email confirmation: $e');
+      // Don't throw error - email failure shouldn't stop the order
+    }
+  }
+
+  String _buildEmailContent(String orderId) {
+    return '''
+    Dear ${_nameController.text},
+    
+    Thank you for your order! Your payment has been successfully processed.
+    
+    Order Details:
+    Order ID: $orderId
+    Total Amount: ₱${widget.totalAmount.toStringAsFixed(2)}
+    Payment Method: ${_getPaymentMethodDisplayName(_selectedPaymentMethod)}
+    
+    Items Ordered:
+    ${widget.cartItems.map((item) => '- ${item['name']} x${item['quantity']} = ₱${((item['price'] ?? 0.0) * (item['quantity'] ?? 1)).toStringAsFixed(2)}').join('\n')}
+    
+    Delivery Address:
+    ${_nameController.text}
+    ${_addressController.text}
+    ${_cityController.text}, ${_postalCodeController.text}
+    
+    Estimated Delivery: ${DateTime.now().add(const Duration(days: 3)).toString().split(' ')[0]}
+    
+    We'll send you tracking information once your order is shipped.
+    
+    Thank you for shopping with AnneDFinds!
+    ''';
+  }
+
+  String _getPaymentMethodDisplayName(String method) {
+    switch (method) {
+      case 'gcash':
+        return 'GCash';
+      case 'bank':
+        return 'Bank Transfer';
+      case 'card':
+        return 'Credit/Debit Card';
+      default:
+        return method;
+    }
   }
 
   void _showSuccessDialog(String orderId) {
@@ -537,31 +847,56 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
           color: Colors.green,
           size: 48,
         ),
-        title: const Text('Order Placed Successfully!'),
+        title: const Text('Payment Successful!'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Your order #$orderId has been placed.'),
+            Text('Your order #$orderId has been confirmed and paid.'),
+            const SizedBox(height: 8),
+            Text(
+              'A confirmation email has been sent to ${_emailController.text}',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
             const SizedBox(height: 8),
             const Text(
-              'We\'ve sent a confirmation email with your order details. '
-              'You can create an account later to track your orders.',
+              'You will receive tracking information via email once your order is shipped.',
               style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Redirecting to home in 3 seconds...',
+              style: TextStyle(
+                fontSize: 12, 
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Go back to previous screen
-              Navigator.of(context).pop(); // Go back to home
+              // Navigate to home screen automatically
+              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryOrange,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Continue Shopping'),
           ),
         ],
       ),
     );
+
+    // Auto-close dialog and redirect after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(); // Close dialog
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    });
   }
 
   void _showErrorDialog(String error) {
@@ -573,9 +908,9 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
           color: Colors.red,
           size: 48,
         ),
-        title: const Text('Order Failed'),
+        title: const Text('Payment Failed'),
         content: Text(
-          'Sorry, we couldn\'t place your order. Please try again.\n\nError: $error',
+          'Sorry, we couldn\'t process your payment. Please check your payment details and try again.\n\nError: $error',
         ),
         actions: [
           TextButton(
