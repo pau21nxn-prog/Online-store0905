@@ -1,0 +1,37 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "annedfinds",
+          "appId": "1:48916413018:android:7d68edd26925ca4af93663",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "annedfinds",
+          "configurations": {
+            "android": "1:48916413018:android:7d68edd26925ca4af93663",
+            "web": "1:48916413018:web:2c7d9f261b186622f93663",
+            "windows": "1:48916413018:web:7f4265c413b57a7ef93663"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

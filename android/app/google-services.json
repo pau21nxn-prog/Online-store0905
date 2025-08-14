@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "48916413018",
+    "project_id": "annedfinds",
+    "storage_bucket": "annedfinds.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:48916413018:android:7d68edd26925ca4af93663",
+        "android_client_info": {
+          "package_name": "com.example.anned_finds"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "48916413018-fu29vn4jmakkuuog9osc5t7gna3cv04j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJ_ziClPtgwJz2wj1XLazsR7-L9uy_OIs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "48916413018-fu29vn4jmakkuuog9osc5t7gna3cv04j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
