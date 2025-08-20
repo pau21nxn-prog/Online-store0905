@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../common/theme.dart';
 import '../../../models/product.dart';
+import '../../../services/storage_service.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -29,17 +30,17 @@ class ProductCard extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: Theme.of(context).cardColor,
                   ),
                   child: product.imageUrls.isNotEmpty
                       ? Image.network(
                           product.imageUrls.first,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
+                            return Icon(
                               Icons.image_not_supported,
                               size: 50,
-                              color: Colors.grey,
+                              color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
                             );
                           },
                           loadingBuilder: (context, child, loadingProgress) {
@@ -49,10 +50,10 @@ class ProductCard extends StatelessWidget {
                             );
                           },
                         )
-                      : const Icon(
+                      : Icon(
                           Icons.shopping_bag,
                           size: 50,
-                          color: Colors.grey,
+                          color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
                         ),
                 ),
               ),

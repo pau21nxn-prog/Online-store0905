@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../features/checkout/qr_payment_checkout.dart';
 
 class EmailService {
   // Firebase Functions instance
@@ -85,12 +86,15 @@ class EmailService {
         'paymentMethod': paymentMethod,
         'deliveryAddress': {
           'fullName': deliveryAddress['fullName'] ?? '',
-          'street': deliveryAddress['address'] ?? '',
-          'city': deliveryAddress['city'] ?? '',
-          'state': deliveryAddress['state'] ?? '',
-          'zipCode': deliveryAddress['postalCode'] ?? deliveryAddress['zipCode'] ?? '',
-          'country': deliveryAddress['country'] ?? 'Philippines',
+          'email': deliveryAddress['email'] ?? '',
           'phone': deliveryAddress['phone'] ?? '',
+          'streetAddress': deliveryAddress['streetAddress'] ?? deliveryAddress['address'] ?? '',
+          'apartmentSuite': deliveryAddress['apartmentSuite'] ?? '',
+          'city': deliveryAddress['city'] ?? '',
+          'province': deliveryAddress['province'] ?? deliveryAddress['state'] ?? '',
+          'postalCode': deliveryAddress['postalCode'] ?? deliveryAddress['zipCode'] ?? '',
+          'country': deliveryAddress['country'] ?? 'Philippines',
+          'deliveryInstructions': deliveryAddress['deliveryInstructions'] ?? '',
         },
         'estimatedDelivery': estimatedDelivery.toIso8601String(),
       };
@@ -116,6 +120,101 @@ class EmailService {
     } catch (e) {
       print('❌ Gmail Firebase Function error: $e');
       print('💡 Make sure your Gmail Firebase Function is deployed');
+      return false;
+    }
+  }
+
+  /// Send admin payment notification for manual verification
+  static Future<bool> sendAdminPaymentNotification({
+    required String orderId,
+    required PaymentMethod paymentMethod,
+    required double amount,
+    required Map<String, dynamic> customerInfo,
+    required Map<String, dynamic> orderDetails,
+  }) async {
+    try {
+      print('📧 Sending admin payment notification for order: $orderId');
+
+      final paymentMethodNames = {
+        PaymentMethod.gcash: 'GCash',
+        PaymentMethod.gotyme: 'GoTyme Bank',
+        PaymentMethod.metrobank: 'Metrobank',
+        PaymentMethod.bpi: 'BPI',
+      };
+
+      final functionData = {
+        'adminEmail': 'annedfinds@gmail.com',
+        'orderId': orderId,
+        'paymentMethod': paymentMethodNames[paymentMethod],
+        'amount': amount,
+        'customerInfo': customerInfo,
+        'orderDetails': orderDetails,
+        'timestamp': DateTime.now().toIso8601String(),
+        'type': 'admin_payment_notification',
+      };
+
+      print('📋 Admin notification data: ${jsonEncode(functionData)}');
+
+      final HttpsCallable callable = _functions.httpsCallable('sendAdminPaymentNotification');
+      final result = await callable.call(functionData);
+
+      print('📬 Admin notification response: ${result.data}');
+
+      if (result.data != null && result.data['success'] == true) {
+        print('✅ Admin payment notification sent successfully');
+        return true;
+      } else {
+        print('❌ Failed to send admin payment notification');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Admin payment notification error: $e');
+      return false;
+    }
+  }
+
+  /// Send customer payment confirmation after admin verifies payment
+  static Future<bool> sendCustomerPaymentConfirmation({
+    required String customerEmail,
+    required String customerName,
+    required String orderId,
+    required double amount,
+    required String paymentMethod,
+  }) async {
+    try {
+      print('📧 Sending customer payment confirmation for order: $orderId');
+
+      if (!_isValidEmail(customerEmail)) {
+        print('❌ Invalid customer email: $customerEmail');
+        return false;
+      }
+
+      final functionData = {
+        'customerEmail': customerEmail,
+        'customerName': customerName,
+        'orderId': orderId,
+        'amount': amount,
+        'paymentMethod': paymentMethod,
+        'timestamp': DateTime.now().toIso8601String(),
+        'type': 'customer_payment_confirmation',
+      };
+
+      print('📋 Customer confirmation data: ${jsonEncode(functionData)}');
+
+      final HttpsCallable callable = _functions.httpsCallable('sendCustomerPaymentConfirmation');
+      final result = await callable.call(functionData);
+
+      print('📬 Customer confirmation response: ${result.data}');
+
+      if (result.data != null && result.data['success'] == true) {
+        print('✅ Customer payment confirmation sent successfully');
+        return true;
+      } else {
+        print('❌ Failed to send customer payment confirmation');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Customer payment confirmation error: $e');
       return false;
     }
   }

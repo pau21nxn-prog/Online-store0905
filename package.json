@@ -1,0 +1,35 @@
+{
+  "name": "anned_finds",
+  "version": "1.0.0",
+  "description": "A new Flutter project.",
+  "main": "test_payment.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "puppeteer": "node test_payment.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pau21nxn-prog/Online-store.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pau21nxn-prog/Online-store/issues"
+  },
+  "homepage": "https://github.com/pau21nxn-prog/Online-store#readme",
+  "dependencies": {
+    "firebase-admin": "^13.4.0",
+    "puppeteer": "^24.16.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

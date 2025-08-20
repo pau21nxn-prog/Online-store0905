@@ -37,12 +37,19 @@ dependencies:
   # Image handling
   cached_network_image: ^3.3.1
   image_picker: ^1.0.7
+  file_picker: ^8.1.2
+  image: ^4.1.3
+  path: ^1.8.3
   
   # Utilities
   url_launcher: ^6.2.4
   
   # Email service - NEW ADDITION
   mailer: ^6.0.1
+  
+  # Payment system dependencies - use context7
+  crypto: ^3.0.3
+  confetti: ^0.7.0
 
 dev_dependencies:
   flutter_test:
@@ -52,10 +59,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Remove assets section if folders don't exist
-  # assets:
-  #   - assets/images/
-  #   - assets/icons/
+  assets:
+    - QR/
+    - images/Logo/
 
   # Remove fonts section if font files don't exist
   # fonts:

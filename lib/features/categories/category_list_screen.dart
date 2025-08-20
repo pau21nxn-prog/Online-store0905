@@ -38,7 +38,7 @@ class CategoryListScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('products')
-            .where('categoryId', isEqualTo: categoryId)
+            .where('primaryCategoryId', isEqualTo: categoryId)
             .where('isActive', isEqualTo: true)
             .snapshots(),
         builder: (context, snapshot) {

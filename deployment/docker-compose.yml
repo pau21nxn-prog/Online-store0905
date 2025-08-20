@@ -1,0 +1,191 @@
+version: '3.8'
+
+services:
+  # Flutter Web App
+  web-app:
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile.web
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+      - FLUTTER_WEB_USE_SKIA=true
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+    networks:
+      - annedfinals-network
+
+  # Firebase Functions Emulator (for local development)
+  firebase-functions:
+    build:
+      context: ../functions
+      dockerfile: ../deployment/Dockerfile.functions
+    ports:
+      - "5001:5001"
+    environment:
+      - GCLOUD_PROJECT=annedfinals-dev
+      - NODE_ENV=development
+    volumes:
+      - ../functions:/app
+      - /app/node_modules
+    command: npm run serve
+    networks:
+      - annedfinals-network
+
+  # Firestore Emulator
+  firestore-emulator:
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:alpine
+    ports:
+      - "8080:8080"
+      - "4000:4000"
+    command: >
+      sh -c "
+        gcloud components install cloud-firestore-emulator --quiet &&
+        gcloud beta emulators firestore start --host-port=0.0.0.0:8080
+      "
+    networks:
+      - annedfinals-network
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - annedfinals-network
+
+  # PostgreSQL for analytics and reporting
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=annedfinals_analytics
+      - POSTGRES_USER=annedfinals
+      - POSTGRES_PASSWORD=secure_password_change_me
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    restart: unless-stopped
+    networks:
+      - annedfinals-network
+
+  # Elasticsearch for advanced search
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    networks:
+      - annedfinals-network
+
+  # Kibana for search analytics
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    networks:
+      - annedfinals-network
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - annedfinals-network
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin_change_me
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - annedfinals-network
+
+  # NGINX Load Balancer
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web-app
+    restart: unless-stopped
+    networks:
+      - annedfinals-network
+
+  # Backup service
+  backup:
+    build:
+      context: ./
+      dockerfile: Dockerfile.backup
+    volumes:
+      - ./backups:/backups
+      - postgres-data:/data/postgres:ro
+      - redis-data:/data/redis:ro
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=annedfinals_analytics
+      - POSTGRES_USER=annedfinals
+      - POSTGRES_PASSWORD=secure_password_change_me
+      - BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
+    restart: unless-stopped
+    networks:
+      - annedfinals-network
+
+networks:
+  annedfinals-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  elasticsearch-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local

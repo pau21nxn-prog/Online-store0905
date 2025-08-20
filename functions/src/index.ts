@@ -144,13 +144,52 @@ export const sendOrderConfirmationEmail = onCall(async (request) => {
                 <!-- Delivery Address -->
                 <div style="background-color: #E3F2FD; border-left: 4px solid #2196F3; padding: 20px; border-radius: 5px; margin: 30px 0;">
                     <h3 style="color: #1976D2; margin: 0 0 15px 0;">🚚 Delivery Address</h3>
-                    <p style="margin: 0; line-height: 1.8;">
-                        <strong>${deliveryAddress.fullName}</strong><br>
-                        ${deliveryAddress.street}<br>
-                        ${deliveryAddress.city}, ${deliveryAddress.state || ""} ${deliveryAddress.zipCode}<br>
-                        ${deliveryAddress.country || "Philippines"}<br>
-                        📞 ${deliveryAddress.phone}
-                    </p>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold; width: 140px;">Full Name:</td>
+                            <td style="padding: 5px 0;">${deliveryAddress.fullName}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold;">Email:</td>
+                            <td style="padding: 5px 0;">${deliveryAddress.email || "Not provided"}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold;">Phone:</td>
+                            <td style="padding: 5px 0;">📞 ${deliveryAddress.phone}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold;">Street Address:</td>
+                            <td style="padding: 5px 0;">${deliveryAddress.streetAddress || deliveryAddress.street}</td>
+                        </tr>
+                        ${deliveryAddress.apartmentSuite ? `
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold;">Apt/Suite:</td>
+                            <td style="padding: 5px 0;">${deliveryAddress.apartmentSuite}</td>
+                        </tr>
+                        ` : ""}
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold;">City:</td>
+                            <td style="padding: 5px 0;">${deliveryAddress.city}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold;">Province:</td>
+                            <td style="padding: 5px 0;">${deliveryAddress.province || deliveryAddress.state || ""}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold;">Postal Code:</td>
+                            <td style="padding: 5px 0;">${deliveryAddress.postalCode || deliveryAddress.zipCode}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold;">Country:</td>
+                            <td style="padding: 5px 0;">${deliveryAddress.country || "Philippines"}</td>
+                        </tr>
+                        ${deliveryAddress.deliveryInstructions ? `
+                        <tr>
+                            <td style="padding: 5px 0; font-weight: bold; vertical-align: top;">Instructions:</td>
+                            <td style="padding: 5px 0; font-style: italic; color: #666;">${deliveryAddress.deliveryInstructions}</td>
+                        </tr>
+                        ` : ""}
+                    </table>
                 </div>
 
                 <!-- What's Next -->
@@ -210,11 +249,16 @@ Total: ₱${totalAmount.toFixed(2)}
 
 DELIVERY ADDRESS
 ═══════════════════════════════════════════════════════════════════════════
-${deliveryAddress.fullName}
-${deliveryAddress.street}
-${deliveryAddress.city}, ${deliveryAddress.state || ""} ${deliveryAddress.zipCode}
-${deliveryAddress.country || "Philippines"}
+Full Name: ${deliveryAddress.fullName}
+Email: ${deliveryAddress.email || "Not provided"}
 Phone: ${deliveryAddress.phone}
+Street Address: ${deliveryAddress.streetAddress || deliveryAddress.street}${deliveryAddress.apartmentSuite ? `
+Apt/Suite: ${deliveryAddress.apartmentSuite}` : ""}
+City: ${deliveryAddress.city}
+Province: ${deliveryAddress.province || deliveryAddress.state || ""}
+Postal Code: ${deliveryAddress.postalCode || deliveryAddress.zipCode}
+Country: ${deliveryAddress.country || "Philippines"}${deliveryAddress.deliveryInstructions ? `
+Delivery Instructions: ${deliveryAddress.deliveryInstructions}` : ""}
 
 WHAT'S NEXT?
 ═══════════════════════════════════════════════════════════════════════════
@@ -272,7 +316,7 @@ We appreciate your trust in us.
 
       // Send admin notification
       try {
-        await sendAdminNotification(orderId, customerName, toEmail, totalAmount, orderItems);
+        await sendAdminNotification(orderId, customerName, toEmail, totalAmount, orderItems, deliveryAddress);
       } catch (adminError) {
         console.warn("⚠️ Admin notification failed:", adminError);
       }
@@ -315,7 +359,8 @@ async function sendAdminNotification(
   customerName: string, 
   customerEmail: string,
   totalAmount: number, 
-  orderItems: any[]
+  orderItems: any[],
+  deliveryAddress?: any
 ) {
   const adminEmail = "annedfinds@gmail.com";
   
@@ -334,6 +379,19 @@ Date: ${new Date().toLocaleString()}
 
 Items Ordered:
 ${itemsList}
+
+CUSTOMER SHIPPING ADDRESS:
+═══════════════════════════════════════════════════════════════════════════
+${deliveryAddress ? `Full Name: ${deliveryAddress.fullName}
+Email: ${deliveryAddress.email || "Not provided"}
+Phone: ${deliveryAddress.phone}
+Street Address: ${deliveryAddress.streetAddress || deliveryAddress.street}${deliveryAddress.apartmentSuite ? `
+Apt/Suite: ${deliveryAddress.apartmentSuite}` : ""}
+City: ${deliveryAddress.city}
+Province: ${deliveryAddress.province || deliveryAddress.state || ""}
+Postal Code: ${deliveryAddress.postalCode || deliveryAddress.zipCode}
+Country: ${deliveryAddress.country || "Philippines"}${deliveryAddress.deliveryInstructions ? `
+Delivery Instructions: ${deliveryAddress.deliveryInstructions}` : ""}` : "Address information not available"}
 
 ⚡ ACTION REQUIRED: Process this order in your admin dashboard
 
@@ -373,6 +431,58 @@ AnneDFinds Admin System
                       ).join("")}
                   </ul>
               </div>
+
+              ${deliveryAddress ? `
+              <div style="background-color: #E3F2FD; border-left: 4px solid #2196F3; padding: 20px; margin: 20px 0; border-radius: 5px;">
+                  <h3 style="color: #1976D2; margin: 0 0 15px 0;">📍 Customer Shipping Address</h3>
+                  <table style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold; width: 140px;">Full Name:</td>
+                          <td style="padding: 3px 0;">${deliveryAddress.fullName}</td>
+                      </tr>
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold;">Email:</td>
+                          <td style="padding: 3px 0;">${deliveryAddress.email || "Not provided"}</td>
+                      </tr>
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold;">Phone:</td>
+                          <td style="padding: 3px 0;">📞 ${deliveryAddress.phone}</td>
+                      </tr>
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold;">Street Address:</td>
+                          <td style="padding: 3px 0;">${deliveryAddress.streetAddress || deliveryAddress.street}</td>
+                      </tr>
+                      ${deliveryAddress.apartmentSuite ? `
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold;">Apt/Suite:</td>
+                          <td style="padding: 3px 0;">${deliveryAddress.apartmentSuite}</td>
+                      </tr>
+                      ` : ""}
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold;">City:</td>
+                          <td style="padding: 3px 0;">${deliveryAddress.city}</td>
+                      </tr>
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold;">Province:</td>
+                          <td style="padding: 3px 0;">${deliveryAddress.province || deliveryAddress.state || ""}</td>
+                      </tr>
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold;">Postal Code:</td>
+                          <td style="padding: 3px 0;">${deliveryAddress.postalCode || deliveryAddress.zipCode}</td>
+                      </tr>
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold;">Country:</td>
+                          <td style="padding: 3px 0;">${deliveryAddress.country || "Philippines"}</td>
+                      </tr>
+                      ${deliveryAddress.deliveryInstructions ? `
+                      <tr>
+                          <td style="padding: 3px 0; font-weight: bold; vertical-align: top;">Instructions:</td>
+                          <td style="padding: 3px 0; font-style: italic; color: #666;">${deliveryAddress.deliveryInstructions}</td>
+                      </tr>
+                      ` : ""}
+                  </table>
+              </div>
+              ` : ""}
 
               <div style="text-align: center; margin-top: 30px; padding: 20px; background-color: #FEF3C7; border-left: 4px solid #F59E0B; border-radius: 5px;">
                   <p style="margin: 0; color: #92400E; font-weight: bold; font-size: 16px;">

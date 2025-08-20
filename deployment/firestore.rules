@@ -1,0 +1,315 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - users can only access their own data
+    match /users/{userId} {
+      // Read: users can read their own data OR admins can read all users
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || isAdmin());
+      
+      // List: admins can list all users for management
+      allow list: if request.auth != null && isAdmin();
+      
+      // Write: users can write their own data OR admins can manage all users
+      allow write: if request.auth != null && 
+        (request.auth.uid == userId || isAdmin());
+      
+      // Create: users can create their own data OR admins can create any user
+      allow create: if request.auth != null && 
+        ((request.auth.uid == userId && isValidUserData(resource.data)) || 
+         isAdmin());
+      
+      // Addresses subcollection - users can only access their own addresses
+      match /addresses/{addressId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId
+          && isValidAddressData(request.resource.data);
+        allow list: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Search history subcollection - users can only access their own history
+      match /search_history/{historyId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId;
+        allow list: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Admin users collection - only for admin users
+    match /adminUsers/{userId} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // Products collection - public read, admin write
+    match /products/{productId} {
+      allow read: if true; // Public read access for browsing
+      allow write: if request.auth != null && isAdmin()
+        && isValidProductData(resource.data);
+      
+      // Product variants subcollection
+      match /variants/{variantId} {
+        allow read: if true;
+        allow write: if request.auth != null && isAdmin();
+      }
+      
+      // Product media subcollection
+      match /media/{mediaId} {
+        allow read: if true;
+        allow write: if request.auth != null && isAdmin();
+      }
+    }
+
+    // Categories collection - public read, admin write
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Orders collection - supports both authenticated and anonymous users
+    match /orders/{orderId} {
+      // Read: user can read their own orders OR admin can read all
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || 
+         request.auth.uid == resource.data.buyerUid || 
+         isAdmin());
+      
+      // List: admins can list all orders for management
+      allow list: if request.auth != null && isAdmin();
+      
+      // Create: authenticated users (including anonymous) can create orders
+      allow create: if request.auth != null && 
+        (request.auth.uid == request.resource.data.userId || 
+         request.auth.uid == request.resource.data.buyerUid) &&
+        isValidOrderData(request.resource.data);
+      
+      // Update/Delete: only admins or order owner
+      allow update, delete: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || 
+         request.auth.uid == resource.data.buyerUid || 
+         isAdmin());
+    }
+
+    // Payments collection - CRITICAL for order placement
+    match /payments/{paymentId} {
+      // Read: user can read their own payments OR admin can read all
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || isAdmin());
+      
+      // Create: authenticated users (including anonymous) can create payments
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId &&
+        isValidPaymentData(request.resource.data);
+      
+      // Update: only admins or payment owner can update
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || isAdmin());
+      
+      // Delete: only admins can delete payments
+      allow delete: if request.auth != null && isAdmin();
+    }
+
+    // Cart collection - users can only access their own cart (fixed plural)
+    match /cart/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      match /items/{itemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Carts collection (plural) - used by CartService
+    match /carts/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      match /items/{itemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Wishlist collection - users can only access their own wishlist
+    match /wishlist/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      match /items/{itemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Reviews collection - authenticated users can create, read all
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId
+        && isValidReviewData(request.resource.data);
+      allow update, delete: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || isAdmin());
+    }
+
+    // Inventory alerts - admin only
+    match /inventoryAlerts/{alertId} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // Inventory thresholds - admin only
+    match /inventoryThresholds/{thresholdId} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // Inventory movements - admin only
+    match /inventoryMovements/{movementId} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // Product locks - admin only
+    match /productLocks/{lockId} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // Search analytics - read for admins, write for system
+    match /searchAnalytics/{analyticsId} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if request.auth != null;
+    }
+
+    // Performance metrics - admin only
+    match /performanceMetrics/{metricId} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if request.auth != null;
+    }
+
+    // Performance alerts - admin only
+    match /performanceAlerts/{alertId} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // Notifications - flat structure used by NotificationService
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || isAdmin());
+    }
+
+    // Legacy nested notifications structure (keep for compatibility)
+    match /notifications/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && isAdmin();
+      
+      match /items/{notificationId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && isAdmin();
+      }
+    }
+
+    // Payments collection - CRITICAL for order placement
+    match /payments/{paymentId} {
+      // Read: user can read their own payments OR admin can read all
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || isAdmin());
+      
+      // Create: authenticated users (including anonymous) can create payments
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId &&
+        isValidPaymentData(request.resource.data);
+      
+      // Update: only admins or payment owner can update
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || isAdmin());
+      
+      // Delete: only admins can delete payments
+      allow delete: if request.auth != null && isAdmin();
+    }
+
+    // Helper functions
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.role == 'admin'
+        && get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true;
+    }
+
+    function isValidUserData(data) {
+      return data.keys().hasAll(['email', 'displayName', 'createdAt'])
+        && data.email is string
+        && data.displayName is string
+        && data.createdAt is timestamp;
+    }
+
+    function isValidProductData(data) {
+      // Basic required fields for all products (including drafts)
+      return data.keys().hasAll(['title', 'description', 'priceRange', 'workflow'])
+        && data.title is string
+        && data.title.size() > 0
+        && data.description is string
+        && data.priceRange is map
+        && data.priceRange.keys().hasAll(['min', 'max'])
+        && data.priceRange.min is number
+        && data.priceRange.max is number
+        && data.priceRange.min >= 0
+        && data.priceRange.max >= data.priceRange.min
+        && data.workflow is map
+        && data.workflow.stage is string
+        // Optional fields validation - allow if not present or if valid
+        && (!data.keys().hasAll(['slug']) || data.slug is string)
+        && (!data.keys().hasAll(['detailedDescription']) || data.detailedDescription is string)
+        && (!data.keys().hasAll(['primaryCategoryId']) || data.primaryCategoryId is string)
+        && (!data.keys().hasAll(['categoryPath']) || data.categoryPath is list)
+        && (!data.keys().hasAll(['pricing']) || (data.pricing is map && data.pricing.currency is string))
+        && (!data.keys().hasAll(['shipping']) || data.shipping is map)
+        && (!data.keys().hasAll(['media']) || data.media is list)
+        && (!data.keys().hasAll(['imageUrls']) || data.imageUrls is list)
+        && (!data.keys().hasAll(['specs']) || data.specs is map);
+    }
+
+    function isValidOrderData(data) {
+      // Support both userId and buyerUid for backwards compatibility
+      let hasValidUser = (data.keys().hasAny(['userId', 'buyerUid']) && 
+        ((data.keys().hasAll(['userId']) && data.userId is string) ||
+         (data.keys().hasAll(['buyerUid']) && data.buyerUid is string)));
+      
+      return hasValidUser
+        && data.keys().hasAll(['items', 'total', 'status'])
+        && data.items is list
+        && data.items.size() > 0
+        && data.total is number
+        && data.total > 0
+        && data.status in ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+    }
+
+    function isValidReviewData(data) {
+      return data.keys().hasAll(['productId', 'userId', 'rating', 'comment'])
+        && data.productId is string
+        && data.userId is string
+        && data.rating is number
+        && data.rating >= 1
+        && data.rating <= 5
+        && data.comment is string;
+    }
+
+    function isValidAddressData(data) {
+      return data.keys().hasAll(['fullName', 'email', 'phoneNumber', 'streetAddress', 'city', 'province', 'postalCode'])
+        && data.fullName is string
+        && data.email is string
+        && data.phoneNumber is string
+        && data.streetAddress is string
+        && data.city is string
+        && data.province is string
+        && data.postalCode is string
+        && data.isDefault is bool;
+    }
+
+    function isValidPaymentData(data) {
+      return data.keys().hasAll(['orderId', 'userId', 'amount', 'method', 'status'])
+        && data.orderId is string
+        && data.orderId.size() > 0
+        && data.userId is string
+        && data.userId.size() > 0
+        && data.amount is number
+        && data.amount > 0
+        && data.method is string
+        && data.method in ['gcash', 'gotyme', 'metrobank', 'bpi', 'cod']
+        && data.status in ['pending', 'processing', 'completed', 'failed', 'refunded', 'cancelled'];
+    }
+  }
+}

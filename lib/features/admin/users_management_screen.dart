@@ -11,376 +11,244 @@ class UsersManagementScreen extends StatefulWidget {
 }
 
 class _UsersManagementScreenState extends State<UsersManagementScreen> {
-  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Users Management'),
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spacing24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.all(AppTheme.spacing16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search users by name or email...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radius8),
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-            ),
+          // Header
+          Text(
+            'User Management',
+            style: AppTheme.titleStyle.copyWith(fontSize: 28),
           ),
+          const SizedBox(height: AppTheme.spacing24),
           
-          // Users List
+          // Search
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Search users by name or email...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radius8),
+              ),
+            ),
+            onChanged: (value) => setState(() => _searchQuery = value),
+          ),
+          const SizedBox(height: AppTheme.spacing24),
+          
+          // Users Table
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            child: _buildUsersTable(),
+          ),
+        ],
+      ),
+    );
+  }
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                }
+  Widget _buildUsersTable() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _getUsersStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-                final users = snapshot.data?.docs
-                    .map((doc) => UserModel.fromFirestore(doc.id, doc.data() as Map<String, dynamic>))
-                    .where((user) =>
-                        _searchQuery.isEmpty ||
-                        user.name.toLowerCase().contains(_searchQuery) ||
-                        user.email.toLowerCase().contains(_searchQuery))
-                    .toList() ?? [];
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
 
-                if (users.isEmpty) {
-                  return const Center(
-                    child: Text('No users found'),
-                  );
-                }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyState();
+        }
 
-                return ListView.builder(
+        final users = snapshot.data!.docs
+            .map((doc) => UserModel.fromFirestore(doc.id, doc.data() as Map<String, dynamic>))
+            .where((user) => _filterUser(user))
+            .toList();
+
+        if (users.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              // Table Header
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    topRight: Radius.circular(8),
+                  ),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(flex: 3, child: Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 4, child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 2, child: Text('Phone no.', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 2, child: Text('City', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 2, child: Text('CreatedAt', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 2, child: Text('LastSignIn', style: TextStyle(fontWeight: FontWeight.bold))),
+                    ],
+                  ),
+                ),
+              ),
+              // Table Body
+              Expanded(
+                child: ListView.builder(
                   itemCount: users.length,
                   itemBuilder: (context, index) {
                     final user = users[index];
-                    return _buildUserCard(user);
+                    return _buildUserRow(user, index);
                   },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUserCard(UserModel user) {
-    return Card(
-      margin: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing16,
-        vertical: AppTheme.spacing8,
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
-          backgroundImage: user.profileImageUrl != null
-              ? NetworkImage(user.profileImageUrl!)
-              : null,
-          child: user.profileImageUrl == null
-              ? Icon(Icons.person, color: AppTheme.primaryOrange)
-              : null,
-        ),
-        title: Text(
-          user.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(user.email),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  user.isActive ? Icons.check_circle : Icons.cancel,
-                  size: 16,
-                  color: user.isActive ? Colors.green : Colors.red,
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  user.isActive ? 'Active' : 'Inactive',
-                  style: TextStyle(
-                    color: user.isActive ? Colors.green : Colors.red,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Joined: ${_formatDate(user.createdAt)}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) => _handleUserAction(value, user),
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'toggle_status',
-              child: Row(
-                children: [
-                  Icon(
-                    user.isActive ? Icons.block : Icons.check_circle,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(user.isActive ? 'Deactivate' : 'Activate'),
-                ],
               ),
-            ),
-            const PopupMenuItem(
-              value: 'view_orders',
-              child: Row(
-                children: [
-                  Icon(Icons.shopping_bag, size: 16),
-                  SizedBox(width: 8),
-                  Text('View Orders'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'send_message',
-              child: Row(
-                children: [
-                  Icon(Icons.message, size: 16),
-                  SizedBox(width: 8),
-                  Text('Send Message'),
-                ],
-              ),
-            ),
-          ],
-        ),
-        onTap: () => _showUserDetails(user),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  void _handleUserAction(String action, UserModel user) {
-    switch (action) {
-      case 'toggle_status':
-        _toggleUserStatus(user);
-        break;
-      case 'view_orders':
-        _viewUserOrders(user);
-        break;
-      case 'send_message':
-        _sendMessage(user);
-        break;
-    }
+  Stream<QuerySnapshot> _getUsersStream() {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
   }
 
-  Future<void> _toggleUserStatus(UserModel user) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id)
-          .update({'isActive': !user.isActive});
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            user.isActive
-                ? 'User deactivated successfully'
-                : 'User activated successfully',
-          ),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating user status: $e')),
-      );
-    }
-  }
-
-  void _viewUserOrders(UserModel user) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Orders for ${user.name}'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 300,
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('orders')
-                .where('userId', isEqualTo: user.id)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text('No orders found'));
-              }
-
-              return ListView.builder(
-                itemCount: snapshot.data!.docs.length,
-                itemBuilder: (context, index) {
-                  final order = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-                  return ListTile(
-                    title: Text('Order #${order['id'] ?? 'Unknown'}'),
-                    subtitle: Text('Total: ₱${order['total']?.toStringAsFixed(2) ?? '0.00'}'),
-                    trailing: Text(
-                      order['status'] ?? 'Unknown',
-                      style: TextStyle(
-                        color: _getStatusColor(order['status'] ?? 'unknown'),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _sendMessage(UserModel user) {
-    final TextEditingController messageController = TextEditingController();
+  bool _filterUser(UserModel user) {
+    if (_searchQuery.isEmpty) return true;
     
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Send Message to ${user.name}'),
-        content: TextField(
-          controller: messageController,
-          decoration: const InputDecoration(
-            labelText: 'Message',
-            border: OutlineInputBorder(),
-          ),
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // TODO: Implement messaging system
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Messaging feature coming soon!'),
-                ),
-              );
-            },
-            child: const Text('Send'),
-          ),
-        ],
-      ),
-    );
+    final query = _searchQuery.toLowerCase();
+    return (user.name?.toLowerCase().contains(query) ?? false) ||
+           (user.email?.toLowerCase().contains(query) ?? false);
   }
 
-  void _showUserDetails(UserModel user) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(user.name),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildUserRow(UserModel user, int index) {
+    final backgroundColor = index.isEven 
+        ? Colors.grey.shade50 
+        : Colors.white;
+    
+    // Format dates
+    final createdAt = _formatDate(user.createdAt);
+    final lastSignIn = user.lastSignIn != null 
+        ? _formatDate(user.lastSignIn!) 
+        : 'Never';
+    
+    // Get city from address (placeholder since UserModel may not have city directly)
+    final city = 'N/A'; // Would need to extract from address if available
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
-            _buildDetailRow('Email', user.email),
-            if (user.phoneNumber != null)
-              _buildDetailRow('Phone', user.phoneNumber!),
-            _buildDetailRow('Status', user.isActive ? 'Active' : 'Inactive'),
-            _buildDetailRow('Joined', _formatDate(user.createdAt)),
+            Expanded(
+              flex: 3,
+              child: Text(
+                user.name ?? 'N/A',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            Expanded(
+              flex: 4,
+              child: Text(
+                user.email ?? 'N/A',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                user.phoneNumber ?? 'N/A',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                city,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                createdAt,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                lastSignIn,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+          Icon(
+            Icons.people_outline,
+            size: 80,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No users found',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
             ),
           ),
-          Expanded(child: Text(value)),
+          const SizedBox(height: 8),
+          Text(
+            'Active users will appear here',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'confirmed':
-        return Colors.blue;
-      case 'processing':
-        return Colors.purple;
-      case 'shipped':
-        return Colors.teal;
-      case 'delivered':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
   }
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 }

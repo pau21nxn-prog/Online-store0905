@@ -264,8 +264,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Container(
               padding: const EdgeInsets.all(AppTheme.spacing16),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceGray,
+                color: AppTheme.surfaceColor(context),
                 borderRadius: BorderRadius.circular(AppTheme.radius8),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade700
+                      : Colors.grey.shade200,
+                ),
               ),
               child: Row(
                 children: [
@@ -274,14 +279,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Member Since',
-                        style: AppTheme.captionStyle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondaryColor(context),
+                        ),
                       ),
                       Text(
                         _formatDate(_currentUser?.createdAt ?? DateTime.now()),
-                        style: AppTheme.bodyStyle.copyWith(
+                        style: TextStyle(
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimaryColor(context),
                         ),
                       ),
                     ],
@@ -296,8 +306,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Container(
               padding: const EdgeInsets.all(AppTheme.spacing16),
               decoration: BoxDecoration(
-                color: AppTheme.successGreen.withOpacity(0.1),
+                color: AppTheme.successGreen.withOpacity(
+                  Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.1
+                ),
                 borderRadius: BorderRadius.circular(AppTheme.radius8),
+                border: Border.all(
+                  color: AppTheme.successGreen.withOpacity(0.3),
+                ),
               ),
               child: Row(
                 children: [
@@ -309,13 +324,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Account Status',
-                        style: AppTheme.captionStyle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondaryColor(context),
+                        ),
                       ),
                       Text(
                         'Active & Verified',
-                        style: AppTheme.bodyStyle.copyWith(
+                        style: TextStyle(
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: AppTheme.successGreen,
                         ),

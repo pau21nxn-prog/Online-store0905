@@ -1,0 +1,18 @@
+[
+  {
+    "origin": [
+      "https://annedfinds.web.app",
+      "https://annedfinds.firebaseapp.com",
+      "http://localhost:*",
+      "https://localhost:*"
+    ],
+    "method": ["GET", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"]
+  },
+  {
+    "origin": ["*"],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]

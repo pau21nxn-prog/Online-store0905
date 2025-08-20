@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../common/theme.dart';
 import 'products_management_screen.dart';
 import 'orders_management_screen.dart';
 import 'users_management_screen.dart';
-import 'analytics_screen.dart';
+import '../../scripts/initialize_categories.dart';
 
 class AdminMainScreen extends StatefulWidget {
   const AdminMainScreen({super.key});
@@ -17,13 +16,12 @@ class AdminMainScreen extends StatefulWidget {
 class _AdminMainScreenState extends State<AdminMainScreen> {
   int _selectedIndex = 0;
   late PageController _pageController;
+  bool _isSidebarCollapsed = false;
 
   final List<Widget> _pages = [
-    const AdminDashboard(),
     const ProductsManagementScreen(),
     const OrdersManagementScreen(),
     const UsersManagementScreen(),
-    const AnalyticsScreen(),
   ];
 
   @override
@@ -45,7 +43,21 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
         title: const Text('AnneDFinds Admin'),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: Icon(_isSidebarCollapsed ? Icons.menu_open : Icons.menu),
+          onPressed: () {
+            setState(() {
+              _isSidebarCollapsed = !_isSidebarCollapsed;
+            });
+          },
+          tooltip: _isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
+        ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.category),
+            onPressed: _initializeCategories,
+            tooltip: 'Initialize 26 Categories',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => setState(() {}),
@@ -59,8 +71,9 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
       body: Row(
         children: [
           // Sidebar Navigation
-          Container(
-            width: 250,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: _isSidebarCollapsed ? 80 : 250,
             color: AppTheme.surfaceGray,
             child: Column(
               children: [
@@ -75,31 +88,38 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                       ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: AppTheme.primaryOrange,
-                        child: const Icon(Icons.admin_panel_settings, color: Colors.white),
-                      ),
-                      const SizedBox(width: AppTheme.spacing12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  child: _isSidebarCollapsed
+                      ? Center(
+                          child: CircleAvatar(
+                            backgroundColor: AppTheme.primaryOrange,
+                            child: const Icon(Icons.admin_panel_settings, color: Colors.white),
+                          ),
+                        )
+                      : Row(
                           children: [
-                            const Text(
-                              'Admin',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                            CircleAvatar(
+                              backgroundColor: AppTheme.primaryOrange,
+                              child: const Icon(Icons.admin_panel_settings, color: Colors.white),
                             ),
-                            Text(
-                              FirebaseAuth.instance.currentUser?.email ?? '',
-                              style: AppTheme.captionStyle,
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: AppTheme.spacing12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Admin',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    FirebaseAuth.instance.currentUser?.email ?? '',
+                                    style: AppTheme.captionStyle,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
                 
                 // Navigation Items
@@ -107,11 +127,9 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                   child: ListView(
                     padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing8),
                     children: [
-                      _buildNavItem(0, Icons.dashboard, 'Dashboard'),
-                      _buildNavItem(1, Icons.inventory, 'Products'),
-                      _buildNavItem(2, Icons.shopping_bag, 'Orders'),
-                      _buildNavItem(3, Icons.people, 'Users'),
-                      _buildNavItem(4, Icons.analytics, 'Analytics'),
+                      _buildNavItem(0, Icons.inventory, 'Products'),
+                      _buildNavItem(1, Icons.shopping_bag, 'Orders'),
+                      _buildNavItem(2, Icons.people, 'Users'),
                     ],
                   ),
                 ),
@@ -140,33 +158,114 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
         horizontal: AppTheme.spacing8,
         vertical: AppTheme.spacing4,
       ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isSelected ? AppTheme.primaryOrange : Colors.grey,
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: isSelected ? AppTheme.primaryOrange : Colors.grey[700],
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      child: _isSidebarCollapsed
+          ? Tooltip(
+              message: title,
+              child: InkWell(
+                onTap: () {
+                  setState(() => _selectedIndex = index);
+                  _pageController.animateToPage(
+                    index,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                borderRadius: BorderRadius.circular(AppTheme.radius8),
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppTheme.primaryOrange.withOpacity(0.1) : null,
+                    borderRadius: BorderRadius.circular(AppTheme.radius8),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      icon,
+                      color: isSelected ? AppTheme.primaryOrange : Colors.grey,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : ListTile(
+              leading: Icon(
+                icon,
+                color: isSelected ? AppTheme.primaryOrange : Colors.grey,
+              ),
+              title: Text(
+                title,
+                style: TextStyle(
+                  color: isSelected ? AppTheme.primaryOrange : Colors.grey[700],
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              selected: isSelected,
+              selectedTileColor: AppTheme.primaryOrange.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radius8),
+              ),
+              onTap: () {
+                setState(() => _selectedIndex = index);
+                _pageController.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
+            ),
+    );
+  }
+
+  void _initializeCategories() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Initialize Categories'),
+        content: const Text('This will replace all existing categories with the 26 comprehensive categories. Are you sure?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
           ),
-        ),
-        selected: isSelected,
-        selectedTileColor: AppTheme.primaryOrange.withOpacity(0.1),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radius8),
-        ),
-        onTap: () {
-          setState(() => _selectedIndex = index);
-          _pageController.animateToPage(
-            index,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-        },
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryOrange),
+            child: const Text('Initialize'),
+          ),
+        ],
       ),
     );
+
+    if (confirmed == true) {
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Initializing categories...'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+
+        await initializeCategories();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Categories initialized successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error initializing categories: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _showLogoutDialog() {
@@ -194,118 +293,3 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   }
 }
 
-class AdminDashboard extends StatelessWidget {
-  const AdminDashboard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppTheme.spacing24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Dashboard Overview',
-            style: AppTheme.titleStyle.copyWith(fontSize: 28),
-          ),
-          const SizedBox(height: AppTheme.spacing24),
-          
-          // Stats Cards
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: 4,
-              crossAxisSpacing: AppTheme.spacing16,
-              mainAxisSpacing: AppTheme.spacing16,
-              children: [
-                _buildStatCard(
-                  'Total Products',
-                  Icons.inventory,
-                  Colors.blue,
-                  'products',
-                ),
-                _buildStatCard(
-                  'Total Orders',
-                  Icons.shopping_bag,
-                  Colors.green,
-                  'orders',
-                ),
-                _buildStatCard(
-                  'Total Users',
-                  Icons.people,
-                  Colors.purple,
-                  'users',
-                ),
-                _buildStatCard(
-                  'Revenue',
-                  Icons.attach_money,
-                  Colors.orange,
-                  null,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, IconData icon, Color color, String? collection) {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacing20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 48, color: color),
-            const SizedBox(height: AppTheme.spacing12),
-            Text(
-              title,
-              style: AppTheme.bodyStyle.copyWith(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.spacing8),
-            if (collection != null)
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection(collection).snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Text(
-                      '${snapshot.data!.docs.length}',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    );
-                  }
-                  return const CircularProgressIndicator();
-                },
-              )
-            else
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('orders').snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    double totalRevenue = 0;
-                    for (var doc in snapshot.data!.docs) {
-                      totalRevenue += (doc.data() as Map<String, dynamic>)['total'] ?? 0;
-                    }
-                    return Text(
-                      '₱${totalRevenue.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    );
-                  }
-                  return const CircularProgressIndicator();
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}

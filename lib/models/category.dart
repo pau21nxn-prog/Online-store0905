@@ -8,6 +8,14 @@ class Category {
   final Color color;
   final bool isActive;
   final int productCount;
+  final String? parentId;
+  final List<String> childIds;
+  final int level;
+  final int sortOrder;
+  final String slug;
+  final Map<String, String> seo;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Category({
     required this.id,
@@ -17,7 +25,26 @@ class Category {
     required this.color,
     required this.isActive,
     this.productCount = 0,
-  });
+    this.parentId,
+    this.childIds = const [],
+    this.level = 0,
+    this.sortOrder = 0,
+    required this.slug,
+    this.seo = const {},
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
+
+  // Helper getters
+  bool get isTopLevel => parentId == null;
+  bool get hasChildren => childIds.isNotEmpty;
+  String get displayPath => _buildDisplayPath();
+
+  String _buildDisplayPath() {
+    // This would be populated by a service that builds the full path
+    return name;
+  }
 
   factory Category.fromFirestore(String id, Map<String, dynamic> data) {
     return Category(
@@ -28,6 +55,14 @@ class Category {
       color: _getColorFromString(data['colorName'] ?? 'blue'),
       isActive: data['isActive'] ?? true,
       productCount: data['productCount'] ?? 0,
+      parentId: data['parentId'],
+      childIds: List<String>.from(data['childIds'] ?? []),
+      level: data['level'] ?? 0,
+      sortOrder: data['sortOrder'] ?? 0,
+      slug: data['slug'] ?? '',
+      seo: Map<String, String>.from(data['seo'] ?? {}),
+      createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
+      updatedAt: data['updatedAt']?.toDate() ?? DateTime.now(),
     );
   }
 
@@ -39,31 +74,106 @@ class Category {
       'colorName': _getColorName(color),
       'isActive': isActive,
       'productCount': productCount,
+      'parentId': parentId,
+      'childIds': childIds,
+      'level': level,
+      'sortOrder': sortOrder,
+      'slug': slug,
+      'seo': seo,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
     };
+  }
+
+  // Copy with method for updates
+  Category copyWith({
+    String? name,
+    String? description,
+    IconData? icon,
+    Color? color,
+    bool? isActive,
+    int? productCount,
+    String? parentId,
+    List<String>? childIds,
+    int? level,
+    int? sortOrder,
+    String? slug,
+    Map<String, String>? seo,
+    DateTime? updatedAt,
+  }) {
+    return Category(
+      id: id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
+      isActive: isActive ?? this.isActive,
+      productCount: productCount ?? this.productCount,
+      parentId: parentId ?? this.parentId,
+      childIds: childIds ?? this.childIds,
+      level: level ?? this.level,
+      sortOrder: sortOrder ?? this.sortOrder,
+      slug: slug ?? this.slug,
+      seo: seo ?? this.seo,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? DateTime.now(),
+    );
   }
 
   static IconData _getIconFromString(String iconName) {
     switch (iconName) {
-      case 'phone':
-        return Icons.phone_android;
       case 'fashion':
         return Icons.checkroom;
-      case 'home':
-        return Icons.home;
+      case 'shoes':
+        return Icons.sports_soccer;
+      case 'bags':
+        return Icons.luggage;
+      case 'jewelry':
+        return Icons.watch;
       case 'beauty':
         return Icons.face;
+      case 'baby':
+        return Icons.child_care;
+      case 'groceries':
+        return Icons.local_grocery_store;
+      case 'household':
+        return Icons.cleaning_services;
+      case 'home':
+        return Icons.home;
+      case 'furniture':
+        return Icons.chair;
+      case 'kitchen':
+        return Icons.kitchen;
+      case 'electronics':
+        return Icons.phone_android;
+      case 'office':
+        return Icons.computer;
+      case 'gaming':
+        return Icons.games;
       case 'sports':
         return Icons.sports_basketball;
-      case 'books':
-        return Icons.menu_book;
-      case 'electronics':
-        return Icons.devices;
       case 'automotive':
         return Icons.directions_car;
-      case 'food':
-        return Icons.restaurant;
-      case 'health':
-        return Icons.health_and_safety;
+      case 'tools':
+        return Icons.build;
+      case 'garden':
+        return Icons.local_florist;
+      case 'pets':
+        return Icons.pets;
+      case 'books':
+        return Icons.menu_book;
+      case 'hobbies':
+        return Icons.palette;
+      case 'gifts':
+        return Icons.card_giftcard;
+      case 'travel':
+        return Icons.flight;
+      case 'pharmacy':
+        return Icons.medical_services;
+      case 'services':
+        return Icons.room_service;
+      case 'preloved':
+        return Icons.recycling;
       default:
         return Icons.category;
     }
@@ -97,16 +207,32 @@ class Category {
   }
 
   static String _getIconName(IconData icon) {
-    if (icon == Icons.phone_android) return 'phone';
     if (icon == Icons.checkroom) return 'fashion';
-    if (icon == Icons.home) return 'home';
+    if (icon == Icons.sports_soccer) return 'shoes';
+    if (icon == Icons.luggage) return 'bags';
+    if (icon == Icons.watch) return 'jewelry';
     if (icon == Icons.face) return 'beauty';
+    if (icon == Icons.child_care) return 'baby';
+    if (icon == Icons.local_grocery_store) return 'groceries';
+    if (icon == Icons.cleaning_services) return 'household';
+    if (icon == Icons.home) return 'home';
+    if (icon == Icons.chair) return 'furniture';
+    if (icon == Icons.kitchen) return 'kitchen';
+    if (icon == Icons.phone_android) return 'electronics';
+    if (icon == Icons.computer) return 'office';
+    if (icon == Icons.games) return 'gaming';
     if (icon == Icons.sports_basketball) return 'sports';
-    if (icon == Icons.menu_book) return 'books';
-    if (icon == Icons.devices) return 'electronics';
     if (icon == Icons.directions_car) return 'automotive';
-    if (icon == Icons.restaurant) return 'food';
-    if (icon == Icons.health_and_safety) return 'health';
+    if (icon == Icons.build) return 'tools';
+    if (icon == Icons.local_florist) return 'garden';
+    if (icon == Icons.pets) return 'pets';
+    if (icon == Icons.menu_book) return 'books';
+    if (icon == Icons.palette) return 'hobbies';
+    if (icon == Icons.card_giftcard) return 'gifts';
+    if (icon == Icons.flight) return 'travel';
+    if (icon == Icons.medical_services) return 'pharmacy';
+    if (icon == Icons.room_service) return 'services';
+    if (icon == Icons.recycling) return 'preloved';
     return 'category';
   }
 

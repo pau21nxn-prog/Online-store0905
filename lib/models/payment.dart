@@ -3,10 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum PaymentMethodType {
   gcash,
-  cod, // Cash on Delivery
-  bankTransfer,
-  paypal,
-  creditCard,
+  gotyme,
+  metrobank,
+  bpi,
 }
 
 enum PaymentStatus {
@@ -53,7 +52,7 @@ class Payment {
       amount: (data['amount'] ?? 0).toDouble(),
       method: PaymentMethodType.values.firstWhere(
         (e) => e.toString().split('.').last == data['method'],
-        orElse: () => PaymentMethodType.cod,
+        orElse: () => PaymentMethodType.gcash,
       ),
       status: PaymentStatus.values.firstWhere(
         (e) => e.toString().split('.').last == data['status'],
@@ -86,14 +85,12 @@ class Payment {
     switch (method) {
       case PaymentMethodType.gcash:
         return 'GCash';
-      case PaymentMethodType.cod:
-        return 'Cash on Delivery';
-      case PaymentMethodType.bankTransfer:
-        return 'Bank Transfer';
-      case PaymentMethodType.paypal:
-        return 'PayPal';
-      case PaymentMethodType.creditCard:
-        return 'Credit Card';
+      case PaymentMethodType.gotyme:
+        return 'GoTyme Bank';
+      case PaymentMethodType.metrobank:
+        return 'Metrobank';
+      case PaymentMethodType.bpi:
+        return 'BPI';
     }
   }
 
@@ -141,6 +138,7 @@ class ShippingAddress {
   final String province;
   final String postalCode;
   final String country;
+  final String deliveryInstructions;
   final bool isDefault;
 
   ShippingAddress({
@@ -152,6 +150,7 @@ class ShippingAddress {
     required this.province,
     required this.postalCode,
     this.country = 'Philippines',
+    this.deliveryInstructions = '',
     this.isDefault = false,
   });
 
@@ -165,6 +164,7 @@ class ShippingAddress {
       province: data['province'] ?? '',
       postalCode: data['postalCode'] ?? '',
       country: data['country'] ?? 'Philippines',
+      deliveryInstructions: data['deliveryInstructions'] ?? '',
       isDefault: data['isDefault'] ?? false,
     );
   }
@@ -179,6 +179,7 @@ class ShippingAddress {
       'province': province,
       'postalCode': postalCode,
       'country': country,
+      'deliveryInstructions': deliveryInstructions,
       'isDefault': isDefault,
     };
   }

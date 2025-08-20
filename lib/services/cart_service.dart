@@ -14,14 +14,18 @@ class CartService {
 
   // Initialize the service
   static void initialize() {
-    // Listen to auth changes for cart migration
-    _auth.authStateChanges().listen((user) {
+    // Listen to auth changes for cart migration and restoration
+    _auth.authStateChanges().listen((user) async {
       if (user != null && !user.isAnonymous && _memoryCart.isNotEmpty) {
         // User signed in with a real account - migrate memory cart to Firebase
-        _migrateMemoryCartToFirebase();
+        await _migrateMemoryCartToFirebase();
       } else if (user != null && !user.isAnonymous) {
-        // Load existing Firebase cart for authenticated users
-        _loadFirebaseCart();
+        // Load existing Firebase cart for authenticated users (cart persistence across sessions)
+        await _loadFirebaseCart();
+      } else if (user == null) {
+        // User signed out - clear memory cart to ensure fresh start
+        _memoryCart.clear();
+        _cartController.add([]);
       }
     });
 
@@ -98,11 +102,18 @@ class CartService {
 
     // Notify listeners
     _cartController.add(_memoryCart.values.toList());
+    
+    // Sync to Firebase if user is authenticated (for persistence across sessions)
+    _syncCartToFirebase();
   }
 
   // Get cart items stream (always returns memory cart)
-  static Stream<List<CartItem>> getCartItems() {
-    return _cartController.stream;
+  static Stream<List<CartItem>> getCartItems() async* {
+    // Immediately yield current state
+    yield _memoryCart.values.toList();
+    
+    // Then yield all future updates
+    yield* _cartController.stream;
   }
 
   // Update item quantity
@@ -123,6 +134,7 @@ class CartService {
         addedAt: item.addedAt,
       );
       _cartController.add(_memoryCart.values.toList());
+      _syncCartToFirebase();
     }
   }
 
@@ -130,12 +142,14 @@ class CartService {
   static Future<void> removeFromCart(String productId) async {
     _memoryCart.remove(productId);
     _cartController.add(_memoryCart.values.toList());
+    _syncCartToFirebase();
   }
 
   // Clear entire cart
   static Future<void> clearCart() async {
     _memoryCart.clear();
     _cartController.add([]);
+    _syncCartToFirebase();
   }
 
   // Get cart item count
@@ -160,6 +174,33 @@ class CartService {
     return _memoryCart.containsKey(productId);
   }
 
+  // Sync memory cart to Firebase for authenticated users (for persistence across sessions)
+  static Future<void> _syncCartToFirebase() async {
+    final user = _auth.currentUser;
+    if (user == null || user.isAnonymous) return;
+
+    try {
+      final batch = _firestore.batch();
+      final userCartRef = _firestore.collection('carts').doc(user.uid);
+      
+      // First, delete all existing items to ensure clean sync
+      final existingItems = await userCartRef.collection('items').get();
+      for (final doc in existingItems.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      // Add all current memory cart items
+      for (final cartItem in _memoryCart.values) {
+        final itemRef = userCartRef.collection('items').doc(cartItem.productId);
+        batch.set(itemRef, cartItem.toFirestore());
+      }
+
+      await batch.commit();
+    } catch (e) {
+      print('Error syncing cart to Firebase: $e');
+    }
+  }
+
   // Load Firebase cart for authenticated users (when they sign in)
   static Future<void> _loadFirebaseCart() async {
     final user = _auth.currentUser;
@@ -175,9 +216,22 @@ class CartService {
       // Clear memory cart first
       _memoryCart.clear();
 
-      // Load Firebase cart into memory
+      // Load Firebase cart into memory with validation
       for (final doc in cartSnapshot.docs) {
         final item = CartItem.fromFirestore(doc.id, doc.data());
+        
+        // Skip invalid or test items to prevent data corruption
+        if (item.productName.toLowerCase().contains('test') || 
+            item.productName.toLowerCase().contains('sample') ||
+            item.quantity > 10 ||  // Reasonable quantity limit
+            item.quantity <= 0 ||  // Invalid quantities
+            item.productId.isEmpty) {
+          print('Skipping invalid cart item: ${item.productName} (qty: ${item.quantity})');
+          // Optionally delete the invalid item from Firestore
+          doc.reference.delete().catchError((e) => print('Error deleting invalid item: $e'));
+          continue;
+        }
+        
         _memoryCart[item.productId] = item;
       }
 
@@ -276,6 +330,46 @@ class CartService {
       
     } catch (e) {
       print('Error saving cart to Firebase after payment: $e');
+    }
+  }
+
+  // Admin method to clean up invalid cart data
+  static Future<void> cleanupInvalidCartData() async {
+    final user = _auth.currentUser;
+    if (user == null || user.isAnonymous) return;
+
+    try {
+      final cartSnapshot = await _firestore
+          .collection('carts')
+          .doc(user.uid)
+          .collection('items')
+          .get();
+
+      final batch = _firestore.batch();
+      int deletedCount = 0;
+
+      for (final doc in cartSnapshot.docs) {
+        final data = doc.data();
+        final quantity = data['quantity'] ?? 0;
+        final productName = data['productName'] ?? '';
+
+        // Delete items with invalid quantities or test data
+        if (quantity > 10 || quantity <= 0 || 
+            productName.toLowerCase().contains('test') ||
+            productName.toLowerCase().contains('sample')) {
+          batch.delete(doc.reference);
+          deletedCount++;
+        }
+      }
+
+      if (deletedCount > 0) {
+        await batch.commit();
+        print('Cleaned up $deletedCount invalid cart items');
+        // Reload clean cart
+        await _loadFirebaseCart();
+      }
+    } catch (e) {
+      print('Error cleaning up cart data: $e');
     }
   }
 

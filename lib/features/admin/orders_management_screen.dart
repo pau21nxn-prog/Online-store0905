@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../common/theme.dart';
 import '../../models/order.dart';
-import '../../services/notification_service.dart';
 
 class OrdersManagementScreen extends StatefulWidget {
   const OrdersManagementScreen({super.key});
@@ -11,31 +10,12 @@ class OrdersManagementScreen extends StatefulWidget {
   State<OrdersManagementScreen> createState() => _OrdersManagementScreenState();
 }
 
-class _OrdersManagementScreenState extends State<OrdersManagementScreen>
-    with TickerProviderStateMixin {
-  late TabController _tabController;
+class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
   String _searchQuery = '';
-
-  final List<String> _statusTabs = [
-    'All',
-    'Pending',
-    'Confirmed',
-    'Processing',
-    'Shipped',
-    'Delivered',
-    'Cancelled'
-  ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _statusTabs.length, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   @override
@@ -65,32 +45,18 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen>
           ),
           const SizedBox(height: AppTheme.spacing24),
           
-          // Status Tabs
-          TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            labelColor: AppTheme.primaryOrange,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: AppTheme.primaryOrange,
-            tabs: _statusTabs.map((status) => Tab(text: status)).toList(),
-          ),
-          const SizedBox(height: AppTheme.spacing16),
-          
-          // Orders List
+          // Orders Table
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: _statusTabs.map((status) => _buildOrdersList(status)).toList(),
-            ),
+            child: _buildOrdersTable(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildOrdersList(String statusFilter) {
+  Widget _buildOrdersTable() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _getOrdersStream(statusFilter),
+      stream: _getOrdersStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -101,7 +67,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen>
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyState(statusFilter);
+          return _buildEmptyState();
         }
 
         final orders = snapshot.data!.docs
@@ -110,30 +76,62 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen>
             .toList();
 
         if (orders.isEmpty) {
-          return _buildEmptyState(statusFilter);
+          return _buildEmptyState();
         }
 
-        return ListView.builder(
-          itemCount: orders.length,
-          itemBuilder: (context, index) {
-            final order = orders[index];
-            return _buildOrderCard(order);
-          },
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              // Table Header
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    topRight: Radius.circular(8),
+                  ),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(flex: 2, child: Text('Order No.', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 3, child: Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 3, child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 2, child: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 4, child: Text('Item', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 1, child: Text('Quantity', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold))),
+                    ],
+                  ),
+                ),
+              ),
+              // Table Body
+              Expanded(
+                child: ListView.builder(
+                  itemCount: orders.length,
+                  itemBuilder: (context, index) {
+                    final order = orders[index];
+                    return _buildOrderRow(order, index);
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Stream<QuerySnapshot> _getOrdersStream(String statusFilter) {
-    Query query = FirebaseFirestore.instance
+  Stream<QuerySnapshot> _getOrdersStream() {
+    return FirebaseFirestore.instance
         .collection('orders')
-        .orderBy('createdAt', descending: true);
-    
-    if (statusFilter != 'All') {
-      query = query.where('status', isEqualTo: statusFilter.toLowerCase());
-    }
-    
-    return query.snapshots();
+        .orderBy('createdAt', descending: true)
+        .snapshots();
   }
 
   bool _filterOrder(UserOrder order) {
@@ -146,246 +144,92 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen>
            (order.shippingAddress['fullName'] ?? '').toLowerCase().contains(query);
   }
 
-  Widget _buildOrderCard(UserOrder order) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacing12),
-      child: ExpansionTile(
-        title: Row(
+  Widget _buildOrderRow(UserOrder order, int index) {
+    final backgroundColor = index.isEven 
+        ? Colors.grey.shade50 
+        : Colors.white;
+    
+    // Get user email from order (need to fetch from users collection or use a different approach)
+    String userEmail = 'N/A'; // Placeholder since order doesn't directly store email
+    
+    // Create a summary of items
+    final itemsSummary = order.items.length == 1 
+        ? order.items.first.productName
+        : '${order.items.first.productName} + ${order.items.length - 1} more';
+    
+    final totalQuantity = order.items.fold<int>(0, (sum, item) => sum + item.quantity);
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Order #${order.id.substring(0, 8).toUpperCase()}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Customer: ${order.shippingAddress['fullName'] ?? 'N/A'}',
-                    style: AppTheme.captionStyle,
-                  ),
-                ],
+              flex: 2,
+              child: Text(
+                '#${order.id.substring(0, 8).toUpperCase()}',
+                style: const TextStyle(fontSize: 13),
               ),
             ),
-            _buildStatusChip(order.status),
-            const SizedBox(width: AppTheme.spacing8),
-            Text(
-              order.formattedTotal,
-              style: AppTheme.priceStyle.copyWith(fontSize: 16),
+            Expanded(
+              flex: 3,
+              child: Text(
+                order.shippingAddress['fullName'] ?? 'N/A',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(
+                userEmail,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                order.shippingAddress['phoneNumber'] ?? 'N/A',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            Expanded(
+              flex: 4,
+              child: Text(
+                itemsSummary,
+                style: const TextStyle(fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Text(
+                totalQuantity.toString(),
+                style: const TextStyle(fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                order.formattedTotal,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.right,
+              ),
             ),
           ],
         ),
-        subtitle: Text(
-          _formatDate(order.createdAt),
-          style: AppTheme.captionStyle,
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppTheme.spacing16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Order Items
-                Text(
-                  'Items (${order.items.length}):',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: AppTheme.spacing8),
-                ...order.items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppTheme.spacing4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text('${item.productName} x${item.quantity}'),
-                      ),
-                      Text(item.formattedTotal),
-                    ],
-                  ),
-                )),
-                const SizedBox(height: AppTheme.spacing16),
-                
-                // Customer Info
-                Text(
-                  'Customer Information:',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: AppTheme.spacing8),
-                Text('Name: ${order.shippingAddress['fullName'] ?? 'N/A'}'),
-                Text('Phone: ${order.shippingAddress['phoneNumber'] ?? 'N/A'}'),
-                Text('Address: ${order.formattedShippingAddress}'),
-                const SizedBox(height: AppTheme.spacing16),
-                
-                // Payment Info
-                Text(
-                  'Payment Information:',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: AppTheme.spacing8),
-                Text('Method: ${order.paymentMethodDisplayName}'),
-                Text('Status: ${order.isPaid ? 'Paid' : 'Pending'}'),
-                const SizedBox(height: AppTheme.spacing16),
-                
-                // Order Summary
-                Container(
-                  padding: const EdgeInsets.all(AppTheme.spacing12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceGray,
-                    borderRadius: BorderRadius.circular(AppTheme.radius8),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Subtotal:'),
-                          Text(order.formattedSubtotal),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Shipping:'),
-                          Text(order.formattedShippingFee),
-                        ],
-                      ),
-                      const Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total:',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            order.formattedTotal,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryOrange,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spacing16),
-                
-                // Action Buttons
-                Row(
-                  children: [
-                    if (order.status == OrderStatus.pending) ...[
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _updateOrderStatus(order, OrderStatus.confirmed),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Confirm'),
-                        ),
-                      ),
-                      const SizedBox(width: AppTheme.spacing8),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _updateOrderStatus(order, OrderStatus.cancelled),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Cancel'),
-                        ),
-                      ),
-                    ] else if (order.status == OrderStatus.confirmed) ...[
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _updateOrderStatus(order, OrderStatus.processing),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Start Processing'),
-                        ),
-                      ),
-                    ] else if (order.status == OrderStatus.processing) ...[
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _updateOrderStatus(order, OrderStatus.shipped),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Mark as Shipped'),
-                        ),
-                      ),
-                    ] else if (order.status == OrderStatus.shipped) ...[
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _updateOrderStatus(order, OrderStatus.delivered),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.successGreen,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Mark as Delivered'),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildStatusChip(OrderStatus status) {
-    Color color;
-    switch (status) {
-      case OrderStatus.pending:
-        color = Colors.orange;
-        break;
-      case OrderStatus.confirmed:
-        color = Colors.blue;
-        break;
-      case OrderStatus.processing:
-        color = Colors.purple;
-        break;
-      case OrderStatus.shipped:
-        color = Colors.teal;
-        break;
-      case OrderStatus.delivered:
-        color = AppTheme.successGreen;
-        break;
-      case OrderStatus.cancelled:
-        color = AppTheme.errorRed;
-        break;
-      case OrderStatus.refunded:
-        color = Colors.grey;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing8,
-        vertical: AppTheme.spacing4,
-      ),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        status.name.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(String statusFilter) {
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -395,74 +239,26 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen>
             size: 80,
             color: Colors.grey.shade400,
           ),
-          const SizedBox(height: AppTheme.spacing16),
+          const SizedBox(height: 16),
           Text(
-            statusFilter == 'All' ? 'No orders yet' : 'No $statusFilter orders',
-            style: AppTheme.titleStyle.copyWith(color: Colors.grey),
+            'No orders found',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
+            ),
           ),
-          const SizedBox(height: AppTheme.spacing8),
+          const SizedBox(height: 8),
           Text(
-            statusFilter == 'All'
-                ? 'Orders will appear here when customers make purchases'
-                : 'Orders with $statusFilter status will appear here',
-            style: AppTheme.bodyStyle.copyWith(color: Colors.grey),
+            'Orders will appear here once customers place them',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _updateOrderStatus(UserOrder order, OrderStatus newStatus) async {
-    try {
-      // Update order status in Firestore
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .doc(order.id)
-          .update({
-        'status': newStatus.name,
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
-      });
-
-      // 🔔 SEND NOTIFICATION TO CUSTOMER
-      await NotificationService.sendOrderNotification(
-        userId: order.userId,
-        orderId: order.id,
-        status: newStatus.name,
-        orderTotal: order.formattedTotal,
-      );
-
-      // 🔔 SEND ADMIN NOTIFICATION FOR NEW ORDERS (if this was order confirmation)
-      if (newStatus == OrderStatus.confirmed) {
-        await NotificationService.sendAdminNotification(
-          type: 'new_order',
-          data: {
-            'orderId': order.id,
-            'total': order.formattedTotal,
-            'customerName': order.shippingAddress['fullName'] ?? 'N/A',
-            'itemCount': order.items.length,
-          },
-        );
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Order status updated to ${newStatus.name} and customer notified'),
-            backgroundColor: AppTheme.successGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating order: $e')),
-        );
-      }
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }
 }

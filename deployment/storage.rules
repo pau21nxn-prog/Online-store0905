@@ -1,0 +1,97 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Product images - public read, admin write
+    match /products/{productId}/{imageId} {
+      allow read: if true; // Public read for product images
+      allow write: if request.auth != null && isAdmin()
+        && isValidImageFile()
+        && resource.size < 10 * 1024 * 1024; // Max 10MB
+    }
+
+    // Product variant images
+    match /products/{productId}/variants/{variantId}/{imageId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin()
+        && isValidImageFile()
+        && resource.size < 10 * 1024 * 1024;
+    }
+
+    // Category images - public read, admin write
+    match /categories/{categoryId}/{imageId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin()
+        && isValidImageFile()
+        && resource.size < 5 * 1024 * 1024; // Max 5MB
+    }
+
+    // User profile images - users can only access their own
+    match /users/{userId}/profile/{imageId} {
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == userId || isAdmin())
+        && isValidImageFile()
+        && resource.size < 2 * 1024 * 1024; // Max 2MB
+    }
+
+    // Review images - authenticated users can upload
+    match /reviews/{reviewId}/{imageId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && isValidImageFile()
+        && resource.size < 5 * 1024 * 1024; // Max 5MB
+    }
+
+    // Temporary uploads - authenticated users only
+    match /temp/{userId}/{uploadId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId
+        && resource.size < 20 * 1024 * 1024; // Max 20MB
+      // Auto-delete after 24 hours
+      allow delete: if true;
+    }
+
+    // Admin uploads - admin only
+    match /admin/{path=**} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // System backups - admin only
+    match /backups/{path=**} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && 
+        request.auth.token.admin == true;
+    }
+
+    function isValidImageFile() {
+      return request.resource.contentType.matches('image/.*') &&
+        request.resource.contentType in [
+          'image/jpeg', 
+          'image/png', 
+          'image/webp', 
+          'image/gif'
+        ];
+    }
+
+    function isValidVideoFile() {
+      return request.resource.contentType.matches('video/.*') &&
+        request.resource.contentType in [
+          'video/mp4',
+          'video/webm',
+          'video/quicktime'
+        ];
+    }
+
+    function isValidDocumentFile() {
+      return request.resource.contentType in [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'text/csv'
+      ];
+    }
+  }
+}

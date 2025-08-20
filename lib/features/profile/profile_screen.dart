@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../common/theme.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart'; // Our new service
-import '../../services/wishlist_service.dart';
+// Wishlist service import removed
 import '../../services/theme_service.dart';
 import '../auth/login_screen.dart';
 import '../auth/checkout_auth_modal.dart';
@@ -12,7 +12,7 @@ import 'orders_screen.dart';
 import 'addresses_screen.dart';
 import 'settings_screen.dart';
 import '../admin/admin_access_screen.dart';
-import '../wishlist/wishlist_screen.dart';
+// Wishlist screen import removed
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -116,10 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         // Show additional actions only for authenticated users
         if (AuthService.isAuthenticated) ...[
-          IconButton(
-            icon: Icon(Icons.notifications_outlined, color: AppTheme.textPrimaryColor(context)),
-            onPressed: () => _showComingSoon('Notifications'),
-          ),
+          // Notifications icon removed
           IconButton(
             icon: Icon(Icons.edit, color: AppTheme.textPrimaryColor(context)),
             onPressed: _navigateToEditProfile,
@@ -134,24 +131,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildGuestHeader(),
-          const SizedBox(height: 24),
           
           // Quick sign-up section
           _buildGuestAccountCreationSection(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Reduced from 24 to 16
           
-          _buildSectionHeader('Preferences'),
-          const SizedBox(height: 12),
           _buildMenuItem(
             icon: Icons.settings,
             title: 'Settings',
             subtitle: 'App preferences & dark mode',
             onTap: () => _navigateToSettings(),
           ),
-          const SizedBox(height: 24),
-          _buildSectionHeader('Support'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16), // Reduced from 24 to 16
           ..._buildSupportMenuItems(),
         ],
       ),
@@ -168,78 +159,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           _buildProfileHeader(),
-          const SizedBox(height: 24),
-          _buildQuickStats(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Reduced from 24 to 16
           if (_currentUser?.canAccessAdmin ?? false) ...[
             _buildAdminSection(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16), // Reduced from 24 to 16
           ],
-          _buildSectionHeader('Account'),
-          const SizedBox(height: 12),
           ..._buildAccountMenuItems(),
-          const SizedBox(height: 24),
-          _buildSectionHeader('Preferences'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16), // Reduced from 24 to 16
           ..._buildPreferencesMenuItems(),
-          const SizedBox(height: 24),
-          _buildSectionHeader('Support'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16), // Reduced from 24 to 16
           ..._buildSupportMenuItems(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20), // Reduced from 32 to 20
           _buildSignOutButton(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16), // Reduced from 24 to 16
         ],
       ),
     );
   }
 
-  Widget _buildGuestHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.accentBlue.withOpacity(0.1),
-            AppTheme.accentBlue.withOpacity(0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.accentBlue.withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: AppTheme.accentBlue.withOpacity(0.2),
-            child: Icon(Icons.person_outline, size: 40, color: AppTheme.accentBlue),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Welcome, Guest!',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimaryColor(context),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'You\'re browsing as a guest. Your cart is saved for this session.',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppTheme.textSecondaryColor(context),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildGuestAccountCreationSection() {
     return Container(
@@ -417,85 +354,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildQuickStats() {
-    return Row(
-      children: [
-        Expanded(
-          child: StreamBuilder<int>(
-            stream: WishlistService.getWishlistCount(),
-            builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
-              return _buildStatCard(
-                icon: Icons.favorite,
-                label: 'Wishlist',
-                value: count.toString(),
-                color: Colors.red,
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.shopping_cart,
-            label: 'Orders',
-            value: '0', // You can add order count stream here
-            color: Colors.blue,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.star,
-            label: 'Reviews',
-            value: '0', // You can add review count stream here
-            color: Colors.amber,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? color.withOpacity(0.3)
-              : color.withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.textSecondaryColor(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildAdminSection() {
     return Column(
@@ -564,10 +422,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required VoidCallback onTap,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 6), // Reduced from 8 to 6
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8), // Reduced from 12 to 8
         border: Border.all(
           color: Theme.of(context).brightness == Brightness.dark
               ? Colors.grey.shade700
@@ -575,18 +433,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Compressed padding
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(6), // Reduced from 8 to 6
           decoration: BoxDecoration(
             color: AppTheme.primaryOrange.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6), // Reduced from 8 to 6
           ),
-          child: Icon(icon, color: AppTheme.primaryOrange, size: 20),
+          child: Icon(icon, color: AppTheme.primaryOrange, size: 18), // Reduced icon size
         ),
         title: Text(
           title,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 15, // Reduced from 16 to 15
             fontWeight: FontWeight.w600,
             color: AppTheme.textPrimaryColor(context),
           ),
@@ -594,17 +453,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         subtitle: Text(
           subtitle,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 11, // Reduced from 12 to 11
             color: AppTheme.textSecondaryColor(context),
           ),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios,
-          size: 16,
+          size: 14, // Reduced from 16 to 14
           color: AppTheme.textSecondaryColor(context),
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -629,21 +488,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           MaterialPageRoute(builder: (context) => const AddressesScreen()),
         ),
       ),
-      _buildMenuItem(
-        icon: Icons.favorite,
-        title: 'Wishlist',
-        subtitle: 'Your saved items',
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const WishlistScreen()),
-        ),
-      ),
-      _buildMenuItem(
-        icon: Icons.notifications,
-        title: 'Notifications',
-        subtitle: 'View your notifications (Coming Soon)',
-        onTap: () => _showComingSoon('Notifications'),
-      ),
+      // Wishlist menu item removed
+      // Notifications menu item removed
     ];
   }
 
@@ -655,12 +501,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         subtitle: 'App preferences & dark mode',
         onTap: _navigateToSettings,
       ),
-      _buildMenuItem(
-        icon: Icons.notifications_active,
-        title: 'Notification Settings',
-        subtitle: 'Manage notification preferences (Coming Soon)',
-        onTap: () => _showComingSoon('Notification settings'),
-      ),
+      // Notification settings menu item removed
     ];
   }
 
@@ -670,13 +511,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         icon: Icons.help,
         title: 'Help & Support',
         subtitle: 'Get help and contact us',
-        onTap: () => _showComingSoon('Help'),
-      ),
-      _buildMenuItem(
-        icon: Icons.info,
-        title: 'About',
-        subtitle: 'App information',
-        onTap: _showAboutDialog,
+        onTap: _showHelpAndSupport,
       ),
     ];
   }
@@ -725,11 +560,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature feature coming soon!'),
-        backgroundColor: AppTheme.primaryOrange,
+  void _showHelpAndSupport() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor(context),
+        title: Text(
+          'Help & Support',
+          style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Customer Support Contacts:',
+              style: TextStyle(
+                color: AppTheme.textPrimaryColor(context),
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.email, color: AppTheme.primaryOrange, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'annedfinds@gmail.com',
+                    style: TextStyle(
+                      color: AppTheme.textSecondaryColor(context),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.phone, color: AppTheme.primaryOrange, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '09682285496 or 09773257043',
+                    style: TextStyle(
+                      color: AppTheme.textSecondaryColor(context),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryOrange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }
@@ -771,30 +666,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showAboutDialog() {
-    showAboutDialog(
-      context: context,
-      applicationName: 'AnneDFinds',
-      applicationVersion: '1.0.0',
-      applicationIcon: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppTheme.primaryOrange,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Icon(Icons.shopping_bag, color: Colors.white, size: 24),
-      ),
-      children: [
-        Text(
-          'Your trusted online marketplace for quality products at great prices.',
-          style: TextStyle(color: AppTheme.textSecondaryColor(context)),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Built with Flutter and Firebase.',
-          style: TextStyle(color: AppTheme.textSecondaryColor(context)),
-        ),
-      ],
-    );
-  }
 }

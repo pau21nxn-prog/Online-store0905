@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/cart_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/email_service.dart';
 import '../../common/theme.dart';
+import 'qr_payment_checkout.dart';
 
 class GuestCheckoutScreen extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
@@ -25,14 +27,14 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
+  final _apartmentController = TextEditingController();
   final _cityController = TextEditingController();
+  final _provinceController = TextEditingController();
   final _postalCodeController = TextEditingController();
+  final _deliveryInstructionsController = TextEditingController();
   
   // Payment specific controllers
   final _gcashNumberController = TextEditingController();
-  final _cardNumberController = TextEditingController();
-  final _expiryController = TextEditingController();
-  final _cvvController = TextEditingController();
   final _accountNumberController = TextEditingController();
   final _accountNameController = TextEditingController();
   
@@ -45,12 +47,12 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _apartmentController.dispose();
     _cityController.dispose();
+    _provinceController.dispose();
     _postalCodeController.dispose();
+    _deliveryInstructionsController.dispose();
     _gcashNumberController.dispose();
-    _cardNumberController.dispose();
-    _expiryController.dispose();
-    _cvvController.dispose();
     _accountNumberController.dispose();
     _accountNameController.dispose();
     super.dispose();
@@ -146,10 +148,12 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                       keyboardType: TextInputType.phone,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your phone number';
+                          return 'Phone number is required';
                         }
-                        if (value.length < 10) {
-                          return 'Please enter a valid phone number';
+                        // Philippine phone number validation
+                        final cleanNumber = value.replaceAll(RegExp(r'[^0-9+]'), '');
+                        if (!RegExp(r'^(\+63|63|0)?9\d{9}$').hasMatch(cleanNumber)) {
+                          return 'Please enter a valid Philippine phone number';
                         }
                         return null;
                       },
@@ -157,12 +161,12 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                     
                     const SizedBox(height: 24),
                     
-                    // Delivery Address
-                    _buildSectionTitle('Delivery Address'),
+                    // Shipping Address
+                    _buildSectionTitle('Shipping Address'),
                     const SizedBox(height: 12),
                     _buildTextField(
                       controller: _addressController,
-                      label: 'Street Address *',
+                      label: 'Street Address',
                       icon: Icons.location_on,
                       maxLines: 2,
                       validator: (value) {
@@ -174,17 +178,28 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                     ),
                     
                     const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _apartmentController,
+                      label: 'Apartment, Suite, etc. (Optional)',
+                      icon: Icons.apartment,
+                      maxLines: 1,
+                      validator: (value) => null, // Optional field, no validation
+                    ),
+                    
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
-                          flex: 2,
                           child: _buildTextField(
                             controller: _cityController,
-                            label: 'City *',
+                            label: 'City',
                             icon: Icons.location_city,
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Please enter your city';
+                                return 'City is required';
+                              }
+                              if (!_isValidPhilippineCity(value.trim())) {
+                                return 'Please enter a valid Philippine city';
                               }
                               return null;
                             },
@@ -193,19 +208,47 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: _buildTextField(
-                            controller: _postalCodeController,
-                            label: 'Postal Code *',
-                            icon: Icons.markunread_mailbox,
-                            keyboardType: TextInputType.number,
+                            controller: _provinceController,
+                            label: 'Province',
+                            icon: Icons.map,
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Please enter postal code';
+                                return 'Province is required';
+                              }
+                              if (!_isValidPhilippineProvince(value.trim())) {
+                                return 'Please enter a valid Philippine province';
                               }
                               return null;
                             },
                           ),
                         ),
                       ],
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _postalCodeController,
+                      label: 'Postal Code',
+                      icon: Icons.markunread_mailbox,
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Postal code is required';
+                        }
+                        if (!_isValidPhilippinePostalCode(value.trim())) {
+                          return 'Please enter a valid Philippine postal code (4 digits)';
+                        }
+                        return null;
+                      },
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _deliveryInstructionsController,
+                      label: 'Delivery Instructions (Optional)',
+                      icon: Icons.note_add,
+                      maxLines: 3,
+                      validator: (value) => null, // Optional field, no validation
                     ),
                     
                     const SizedBox(height: 24),
@@ -215,11 +258,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                     const SizedBox(height: 12),
                     _buildPaymentMethods(),
                     
-                    // Payment Details Form
-                    if (_selectedPaymentMethod != 'gcash') ...[
-                      const SizedBox(height: 16),
-                      _buildPaymentDetailsForm(),
-                    ],
+                    // Payment Details Form - Removed information boxes as requested
                     
                     const SizedBox(height: 32),
                     
@@ -303,7 +342,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'We will send your order details and tracking information via email. Please ensure your email address is correct.',
+                  'Your email address is required as we will send your order confirmation, payment instructions, and tracking information via email. Please ensure your email address is correct.',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppTheme.textSecondaryColor(context),
@@ -318,21 +357,26 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
   }
 
   Widget _buildOrderSummary() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: isDarkMode ? Colors.grey[850] : Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(
+          color: isDarkMode ? Colors.grey[700]! : Colors.grey[200]!,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Order Summary',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.black,
             ),
           ),
           const SizedBox(height: 12),
@@ -343,28 +387,33 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                 Expanded(
                   child: Text(
                     '${item['name']} x${item['quantity']}',
-                    style: const TextStyle(fontSize: 14),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
                   ),
                 ),
                 Text(
                   '₱${((item['price'] ?? 0.0) * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
+                    color: isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
               ],
             ),
           )).toList(),
-          const Divider(),
+          Divider(color: isDarkMode ? Colors.grey[600] : Colors.grey[400]),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Total',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
               ),
@@ -397,25 +446,37 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    required String? Function(String?) validator,
+    String? Function(String?)? validator,
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
+      style: TextStyle(
+        color: isDarkMode ? Colors.white : Colors.black,
+      ),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(
+          color: isDarkMode ? Colors.white70 : Colors.grey[700],
+        ),
         prefixIcon: Icon(icon, color: AppTheme.primaryOrange),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderSide: BorderSide(
+            color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderSide: BorderSide(
+            color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -426,7 +487,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: isDarkMode ? Colors.grey[850] : Colors.white,
       ),
     );
   }
@@ -449,11 +510,11 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
               Text('GCash'),
             ],
           ),
-          subtitle: const Text('Pay via GCash mobile wallet'),
+          subtitle: const Text('Scan QR code with your GCash app'),
           activeColor: AppTheme.primaryOrange,
         ),
         RadioListTile<String>(
-          value: 'bank',
+          value: 'gotyme',
           groupValue: _selectedPaymentMethod,
           onChanged: (value) {
             setState(() {
@@ -464,14 +525,14 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
             children: [
               Icon(Icons.account_balance, color: AppTheme.primaryOrange),
               SizedBox(width: 12),
-              Text('Bank Transfer'),
+              Text('GoTyme Bank'),
             ],
           ),
-          subtitle: const Text('Direct bank account transfer'),
+          subtitle: const Text('Scan QR code with your GoTyme app'),
           activeColor: AppTheme.primaryOrange,
         ),
         RadioListTile<String>(
-          value: 'card',
+          value: 'metrobank',
           groupValue: _selectedPaymentMethod,
           onChanged: (value) {
             setState(() {
@@ -480,12 +541,30 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
           },
           title: const Row(
             children: [
-              Icon(Icons.credit_card, color: AppTheme.primaryOrange),
+              Icon(Icons.account_balance, color: AppTheme.primaryOrange),
               SizedBox(width: 12),
-              Text('Credit/Debit Card'),
+              Text('Metrobank'),
             ],
           ),
-          subtitle: const Text('Visa, Mastercard, and other major cards'),
+          subtitle: const Text('Use Metrobank online banking or app'),
+          activeColor: AppTheme.primaryOrange,
+        ),
+        RadioListTile<String>(
+          value: 'bpi',
+          groupValue: _selectedPaymentMethod,
+          onChanged: (value) {
+            setState(() {
+              _selectedPaymentMethod = value!;
+            });
+          },
+          title: const Row(
+            children: [
+              Icon(Icons.account_balance, color: AppTheme.primaryOrange),
+              SizedBox(width: 12),
+              Text('BPI'),
+            ],
+          ),
+          subtitle: const Text('Scan QR code with your BPI app'),
           activeColor: AppTheme.primaryOrange,
         ),
       ],
@@ -506,63 +585,16 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'GCash Payment',
+                'GCash QR Payment',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              const Text('You will be redirected to GCash to complete your payment.'),
+              const Text('You will scan a QR code to complete your GCash payment.'),
             ],
           ),
         );
 
-      case 'bank':
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Bank Transfer Details',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              _buildTextField(
-                controller: _accountNameController,
-                label: 'Account Holder Name *',
-                icon: Icons.person,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter account holder name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildTextField(
-                controller: _accountNumberController,
-                label: 'Bank Account Number *',
-                icon: Icons.account_balance,
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your bank account number';
-                  }
-                  if (value.length < 10) {
-                    return 'Please enter a valid account number';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        );
-
-      case 'card':
+      case 'gotyme':
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -574,65 +606,53 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Card Details',
+                'GoTyme Bank QR Payment',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 12),
-              _buildTextField(
-                controller: _cardNumberController,
-                label: 'Card Number *',
-                icon: Icons.credit_card,
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your card number';
-                  }
-                  if (value.replaceAll(' ', '').length < 16) {
-                    return 'Please enter a valid card number';
-                  }
-                  return null;
-                },
+              const SizedBox(height: 8),
+              const Text('You will scan a QR code to complete your GoTyme Bank payment.'),
+            ],
+          ),
+        );
+
+      case 'metrobank':
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.red[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Metrobank QR Payment',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _expiryController,
-                      label: 'MM/YY *',
-                      icon: Icons.date_range,
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Required';
-                        }
-                        if (!RegExp(r'^(0[1-9]|1[0-2])\/[0-9]{2}$').hasMatch(value)) {
-                          return 'Invalid format';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _cvvController,
-                      label: 'CVV *',
-                      icon: Icons.lock,
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Required';
-                        }
-                        if (value.length < 3) {
-                          return 'Invalid CVV';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 8),
+              const Text('You will use Metrobank online banking or scan QR code.'),
+            ],
+          ),
+        );
+
+      case 'bpi':
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.red[100],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red[300]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'BPI QR Payment',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
+              const SizedBox(height: 8),
+              const Text('You will scan a QR code to complete your BPI payment.'),
             ],
           ),
         );
@@ -652,10 +672,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
     });
 
     try {
-      // Step 1: Process payment first
-      await _processPayment();
-      
-      // Step 2: Create anonymous user AFTER successful payment
+      // Create anonymous user first and wait for authentication
       final anonymousUser = await AuthService.createAnonymousUserAfterPayment(
         guestEmail: _emailController.text.trim(),
         guestName: _nameController.text.trim(),
@@ -666,25 +683,57 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
         throw Exception('Failed to create guest account');
       }
 
-      // Step 3: Save cart to Firebase for the new anonymous user
+      // Verify Firebase Auth user exists before proceeding
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null || firebaseUser.uid != anonymousUser.id) {
+        throw Exception('Authentication error. Please try again.');
+      }
+
+      // Save cart to Firebase for the new anonymous user
       await CartService.saveCartToFirebaseAfterPayment(anonymousUser.id);
       
-      // Step 4: Create order with the new anonymous user
+      // Create order with the new anonymous user
       final orderId = await _createOrder(anonymousUser.id);
       
-      // Step 5: Send email confirmation
-      await _sendEmailConfirmation(orderId);
-      
-      // Step 6: Clear cart
-      await CartService.clearCart();
-      
-      // Step 7: Show success and navigate
+      // Redirect to QR payment screen instead of processing payment
       if (mounted) {
-        _showSuccessDialog(orderId);
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => QRPaymentCheckout(
+              totalAmount: widget.totalAmount,
+              orderId: orderId,
+              orderDetails: {
+                'items': widget.cartItems.map((item) => {
+                  'name': item['name'],
+                  'quantity': item['quantity'],
+                  'price': item['price'],
+                }).toList(),
+                'subtotal': widget.totalAmount,
+                'shipping': 0.0,
+                'total': widget.totalAmount,
+                'guestInfo': {
+                  'name': _nameController.text.trim(),
+                  'email': _emailController.text.trim(),
+                  'phone': _phoneController.text.trim(),
+                },
+                'deliveryAddress': {
+                  'fullName': _nameController.text.trim(),
+                  'addressLine1': _addressController.text.trim(),
+                  'addressLine2': _apartmentController.text.trim(),
+                  'city': _cityController.text.trim(),
+                  'province': _provinceController.text.trim(),
+                  'postalCode': _postalCodeController.text.trim(),
+                  'phoneNumber': _phoneController.text.trim(),
+                  'deliveryInstructions': _deliveryInstructionsController.text.trim(),
+                },
+              },
+            ),
+          ),
+        );
       }
       
     } catch (e) {
-      print('Error placing order: $e');
+      print('Error creating order: $e');
       if (mounted) {
         _showErrorDialog(e.toString());
       }
@@ -705,11 +754,14 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
       case 'gcash':
         // In real implementation, integrate with GCash API
         break;
-      case 'bank':
-        // In real implementation, verify bank transfer details
+      case 'gotyme':
+        // In real implementation, integrate with GoTyme Bank API
         break;
-      case 'card':
-        // In real implementation, process card payment via payment gateway
+      case 'metrobank':
+        // In real implementation, integrate with Metrobank API
+        break;
+      case 'bpi':
+        // In real implementation, integrate with BPI API
         break;
     }
     
@@ -746,10 +798,13 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
       'deliveryAddress': {
         'fullName': _nameController.text.trim(),
         'addressLine1': _addressController.text.trim(),
+        'addressLine2': _apartmentController.text.trim(),
         'city': _cityController.text.trim(),
+        'province': _provinceController.text.trim(),
         'postalCode': _postalCodeController.text.trim(),
         'country': 'Philippines',
         'phoneNumber': _phoneController.text.trim(),
+        'deliveryInstructions': _deliveryInstructionsController.text.trim(),
       },
       
       // Payment details (without sensitive info)
@@ -784,8 +839,11 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
         deliveryAddress: {
           'fullName': _nameController.text.trim(),
           'address': _addressController.text.trim(),
+          'apartment': _apartmentController.text.trim(),
           'city': _cityController.text.trim(),
+          'province': _provinceController.text.trim(),
           'postalCode': _postalCodeController.text.trim(),
+          'deliveryInstructions': _deliveryInstructionsController.text.trim(),
         },
         estimatedDelivery: DateTime.now().add(const Duration(days: 3)),
       );
@@ -814,7 +872,8 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
     Delivery Address:
     ${_nameController.text}
     ${_addressController.text}
-    ${_cityController.text}, ${_postalCodeController.text}
+    ${_apartmentController.text.isNotEmpty ? '${_apartmentController.text}\n' : ''}${_cityController.text}, ${_provinceController.text} ${_postalCodeController.text}
+    ${_deliveryInstructionsController.text.isNotEmpty ? '\nDelivery Instructions: ${_deliveryInstructionsController.text}' : ''}
     
     Estimated Delivery: ${DateTime.now().add(const Duration(days: 3)).toString().split(' ')[0]}
     
@@ -828,10 +887,12 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
     switch (method) {
       case 'gcash':
         return 'GCash';
-      case 'bank':
-        return 'Bank Transfer';
-      case 'card':
-        return 'Credit/Debit Card';
+      case 'gotyme':
+        return 'GoTyme Bank';
+      case 'metrobank':
+        return 'Metrobank';
+      case 'bpi':
+        return 'BPI';
       default:
         return method;
     }
@@ -920,5 +981,70 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
         ],
       ),
     );
+  }
+
+  // Philippine address validation methods
+  bool _isValidPhilippineCity(String city) {
+    final validCities = [
+      // Metro Manila
+      'Manila', 'Quezon City', 'Makati', 'Pasig', 'Taguig', 'Paranaque', 'Las Pinas',
+      'Muntinlupa', 'Mandaluyong', 'San Juan', 'Pasay', 'Marikina', 'Caloocan',
+      'Valenzuela', 'Malabon', 'Navotas', 'Pateros',
+      // Major cities
+      'Cebu City', 'Davao City', 'Zamboanga City', 'Cagayan de Oro', 'General Santos',
+      'Iloilo City', 'Bacolod', 'Tacloban', 'Butuan', 'Iligan', 'Cotabato City',
+      'Baguio', 'Dagupan', 'Laoag', 'Vigan', 'San Fernando', 'Angeles', 'Olongapo',
+      'Batangas City', 'Lipa', 'Lucena', 'Antipolo', 'Cainta', 'Taytay', 'Binangonan',
+      'Rodriguez', 'San Mateo', 'Marikina', 'Cabanatuan', 'Gapan', 'Palayan',
+      'Santa Rosa', 'Cabuyao', 'Calamba', 'San Pablo', 'Imus', 'Bacoor', 'Cavite City',
+      'Trece Martires', 'General Trias', 'Dasmarinas', 'Tagaytay', 'Naga',
+      'Legazpi', 'Sorsogon', 'Masbate', 'Catbalogan', 'Borongan', 'Ormoc',
+      'Maasin', 'Dumaguete', 'Tagbilaran', 'Lapu-Lapu', 'Mandaue', 'Toledo',
+      'Carcar', 'Danao', 'Talisay', 'Minglanilla', 'Consolacion', 'Liloan',
+      'Compostela', 'Carmen', 'Catmon', 'Sogod', 'Bantayan', 'Madridejos',
+      'Santa Fe', 'Bogo', 'San Remigio', 'Tabogon', 'Borbon', 'Tabuelan',
+      'Tuburan', 'Asturias', 'Balamban', 'Pinamungajan', 'Aloguinsan', 'Barili',
+      'Dumanjug', 'Ronda', 'Alcantara', 'Moalboal', 'Badian', 'Alegria',
+      'Malabuyoc', 'Ginatilan', 'Samboan', 'Santander', 'Oslob', 'Dalaguete',
+      'Argao', 'Sibonga', 'San Fernando', 'Naga', 'Minglanilla', 'Talisay'
+    ];
+    
+    return validCities.any((validCity) => 
+      city.toLowerCase().contains(validCity.toLowerCase()) ||
+      validCity.toLowerCase().contains(city.toLowerCase())
+    );
+  }
+
+  bool _isValidPhilippineProvince(String province) {
+    final validProvinces = [
+      // Luzon
+      'Metro Manila', 'National Capital Region', 'NCR',
+      'Abra', 'Agusan del Norte', 'Agusan del Sur', 'Aklan', 'Albay', 'Antique',
+      'Apayao', 'Aurora', 'Basilan', 'Bataan', 'Batanes', 'Batangas', 'Benguet',
+      'Biliran', 'Bohol', 'Bukidnon', 'Bulacan', 'Cagayan', 'Camarines Norte',
+      'Camarines Sur', 'Camiguin', 'Capiz', 'Catanduanes', 'Cavite', 'Cebu',
+      'Compostela Valley', 'Davao de Oro', 'Davao del Norte', 'Davao del Sur',
+      'Davao Occidental', 'Davao Oriental', 'Dinagat Islands', 'Eastern Samar',
+      'Guimaras', 'Ifugao', 'Ilocos Norte', 'Ilocos Sur', 'Iloilo', 'Isabela',
+      'Kalinga', 'La Union', 'Laguna', 'Lanao del Norte', 'Lanao del Sur',
+      'Leyte', 'Maguindanao', 'Marinduque', 'Masbate', 'Misamis Occidental',
+      'Misamis Oriental', 'Mountain Province', 'Negros Occidental', 'Negros Oriental',
+      'Northern Samar', 'Nueva Ecija', 'Nueva Vizcaya', 'Occidental Mindoro',
+      'Oriental Mindoro', 'Palawan', 'Pampanga', 'Pangasinan', 'Quezon', 'Quirino',
+      'Rizal', 'Romblon', 'Samar', 'Sarangani', 'Siquijor', 'Sorsogon',
+      'South Cotabato', 'Southern Leyte', 'Sultan Kudarat', 'Sulu', 'Surigao del Norte',
+      'Surigao del Sur', 'Tarlac', 'Tawi-Tawi', 'Zambales', 'Zamboanga del Norte',
+      'Zamboanga del Sur', 'Zamboanga Sibugay'
+    ];
+    
+    return validProvinces.any((validProvince) => 
+      province.toLowerCase().contains(validProvince.toLowerCase()) ||
+      validProvince.toLowerCase().contains(province.toLowerCase())
+    );
+  }
+
+  bool _isValidPhilippinePostalCode(String postalCode) {
+    // Philippine postal codes are 4 digits
+    return RegExp(r'^\d{4}$').hasMatch(postalCode);
   }
 }

@@ -1,3 +1,4 @@
+// Simplified Payment Service for AnnedFinds
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/payment.dart';
@@ -40,39 +41,29 @@ class PaymentService {
     required double amount,
   }) async {
     try {
-      // In a real app, you'd integrate with GCash API here
-      // For demo purposes, we'll simulate the payment process
-      
-      // Update payment status to processing
-      await _firestore.collection('payments').doc(paymentId).update({
-        'status': PaymentStatus.processing.toString().split('.').last,
-        'metadata.gcashNumber': gcashNumber,
-        'transactionId': _generateTransactionId(),
-      });
-
-      // Simulate API call delay
+      // Simulate payment processing
       await Future.delayed(const Duration(seconds: 2));
-
-      // Simulate success/failure (90% success rate for demo)
+      
+      // 90% success rate for demo
       final success = Random().nextDouble() > 0.1;
 
       if (success) {
         await _firestore.collection('payments').doc(paymentId).update({
-          'status': PaymentStatus.completed.toString().split('.').last,
+          'status': 'completed',
           'completedAt': Timestamp.fromDate(DateTime.now()),
           'referenceNumber': _generateReferenceNumber(),
         });
         return true;
       } else {
         await _firestore.collection('payments').doc(paymentId).update({
-          'status': PaymentStatus.failed.toString().split('.').last,
+          'status': 'failed',
           'metadata.failureReason': 'Insufficient balance or network error',
         });
         return false;
       }
     } catch (e) {
       await _firestore.collection('payments').doc(paymentId).update({
-        'status': PaymentStatus.failed.toString().split('.').last,
+        'status': 'failed',
         'metadata.error': e.toString(),
       });
       return false;
@@ -86,7 +77,7 @@ class PaymentService {
   }) async {
     try {
       await _firestore.collection('payments').doc(paymentId).update({
-        'status': PaymentStatus.pending.toString().split('.').last,
+        'status': 'pending',
         'metadata.shippingAddress': address.toMap(),
         'metadata.paymentMethod': 'Cash on Delivery',
         'referenceNumber': _generateReferenceNumber(),
@@ -132,8 +123,6 @@ class PaymentService {
     required double totalWeight,
   }) {
     // Basic shipping calculation for Philippines
-    // In a real app, you'd integrate with shipping APIs like LBC, J&T, etc.
-    
     const baseFee = 99.0;
     
     // Metro Manila
@@ -177,9 +166,9 @@ class PaymentService {
   static List<PaymentMethodType> getAvailablePaymentMethods() {
     return [
       PaymentMethodType.gcash,
-      PaymentMethodType.cod,
-      PaymentMethodType.bankTransfer,
-      // PaymentMethodType.paypal, // Can be enabled for international customers
+      PaymentMethodType.gotyme,
+      PaymentMethodType.metrobank,
+      PaymentMethodType.bpi,
     ];
   }
 

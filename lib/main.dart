@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
+// Firebase configuration
+import 'firebase_options.dart';
+
 // Theme and Services
 import 'common/theme.dart';
 import 'services/cart_service.dart';
@@ -19,22 +22,15 @@ import 'features/cart/cart_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/profile/orders_screen.dart'; // Updated import path
 import 'features/admin/admin_main_screen.dart';
-import 'features/notification/notifications_screen.dart';
+// Notifications import removed
+import 'features/checkout/simple_payment_demo.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase with CORRECT configuration
+  // Initialize Firebase with platform-specific configuration
   await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyB8B1YD9QGVDTVNld9-dXI2HfemNQLUUXs",
-      authDomain: "annedfinds.firebaseapp.com",
-      projectId: "annedfinds",
-      storageBucket: "annedfinds.firebasestorage.app",
-      messagingSenderId: "48916413018",
-      appId: "1:48916413018:web:2c7d9f261b186622f93663",
-      measurementId: "G-HWSG0DXHLQ"
-    ),
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   
   // Initialize services
@@ -70,8 +66,10 @@ class AnneDFindsApp extends StatelessWidget {
           routes: {
             // REMOVED the conflicting '/' route
             '/login': (context) => const LoginScreen(),
+            '/cart': (context) => const CartScreen(),
             '/orders': (context) => const OrdersScreen(), // Updated route
-            '/notifications': (context) => const NotificationsScreen(),
+            // Notifications route removed
+            '/payment-demo': (context) => const SimplePaymentDemo(),
           },
         );
       },

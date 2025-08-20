@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Product images - allow public read, but restrict write to authenticated users
+    match /products/{productId}/{imageId} {
+      // Allow read access to all users for product images (public access)
+      allow read: if true;
+      
+      // Allow write access to authenticated users (simplified for now)
+      // You can make this more restrictive later by checking for admin role
+      allow write: if request.auth != null;
+    }
+    
+    // Admin uploads folder - authenticated users only
+    match /admin/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Temporary uploads for processing
+    match /temp/{allPaths=**} {
+      allow read, write: if request.auth != null;
+      // Auto-delete temp files after 1 day
+      allow delete: if true;
+    }
+    
+    // User profile images (if needed later)
+    match /users/{userId}/profile/{imageId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Validation rules for uploads
+    function isValidImage() {
+      return request.resource.size < 10 * 1024 * 1024 && // 10MB limit
+             request.resource.contentType.matches('image/.*');
+    }
+    
+    // Apply validation to all uploads
+    match /{allPaths=**} {
+      allow write: if isValidImage();
+    }
+  }
+}

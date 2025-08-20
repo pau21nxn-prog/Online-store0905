@@ -55,16 +55,7 @@ class CartScreen extends StatelessWidget {
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return const SizedBox();
             }
-            return TextButton(
-              onPressed: () => _showClearCartDialog(context),
-              child: Text(
-                'Clear All',
-                style: TextStyle(
-                  color: AppTheme.primaryOrange,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            );
+            return SizedBox.shrink(); // Clear All button removed
           },
         ),
       ],
@@ -143,8 +134,17 @@ class CartScreen extends StatelessWidget {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                // Navigate to home tab
-                DefaultTabController.of(context)?.animateTo(0);
+                // Navigate to home screen using MainNavigationScreen
+                // Find the MainNavigationScreen and call its navigation method
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                
+                // Alternative: Use a more direct approach to ensure we get to home
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                }
+                
+                // If we're in a nested navigator, this will ensure we get back to the main app
+                Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
@@ -267,28 +267,7 @@ class CartScreen extends StatelessWidget {
                             : null,
                       ),
                       
-                      Container(
-                        width: 50,
-                        height: 32,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceColor(context),
-                          border: Border.symmetric(
-                            horizontal: BorderSide(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.grey.shade600
-                                  : Colors.grey.shade300,
-                            ),
-                          ),
-                        ),
-                        child: Text(
-                          '${item.quantity}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimaryColor(context),
-                          ),
-                        ),
-                      ),
+                      _buildQuantityTextField(context, item),
                       
                       _buildQuantityButton(
                         context,
@@ -311,6 +290,56 @@ class CartScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildQuantityTextField(BuildContext context, CartItem item) {
+    final controller = TextEditingController(text: '${item.quantity}');
+    
+    return Container(
+      width: 50,
+      height: 32,
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor(context),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey.shade600
+              : Colors.grey.shade300,
+        ),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: AppTheme.textPrimaryColor(context),
+        ),
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 8),
+        ),
+        onFieldSubmitted: (value) {
+          final newQuantity = int.tryParse(value) ?? item.quantity;
+          if (newQuantity > 0 && newQuantity != item.quantity) {
+            CartService.updateQuantity(item.productId, newQuantity);
+          } else if (newQuantity <= 0) {
+            // Reset to original quantity if invalid
+            controller.text = '${item.quantity}';
+          }
+        },
+        onEditingComplete: () {
+          final newQuantity = int.tryParse(controller.text) ?? item.quantity;
+          if (newQuantity > 0 && newQuantity != item.quantity) {
+            CartService.updateQuantity(item.productId, newQuantity);
+          } else if (newQuantity <= 0) {
+            // Reset to original quantity if invalid
+            controller.text = '${item.quantity}';
+          }
+        },
       ),
     );
   }
@@ -572,46 +601,5 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  void _showClearCartDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceColor(context),
-        title: Text(
-          'Clear Cart',
-          style: TextStyle(color: AppTheme.textPrimaryColor(context)),
-        ),
-        content: Text(
-          'Are you sure you want to remove all items from your cart?',
-          style: TextStyle(color: AppTheme.textSecondaryColor(context)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppTheme.textSecondaryColor(context)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              CartService.clearCart();
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Cart cleared'),
-                  backgroundColor: AppTheme.primaryOrange,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Clear All'),
-          ),
-        ],
-      ),
-    );
-  }
+  // Clear cart dialog removed as Clear All button was removed
 }

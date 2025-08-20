@@ -132,37 +132,6 @@ class _AdminAccessScreenState extends State<AdminAccessScreen> {
                 ),
                 const SizedBox(height: AppTheme.spacing24),
                 
-                // Demo Credentials
-                Container(
-                  padding: const EdgeInsets.all(AppTheme.spacing16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(AppTheme.radius8),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Demo Admin Credentials:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: AppTheme.spacing8),
-                      const Text('Email: test@annedfinds.com'),
-                      const Text('Password: admin123'),
-                      const SizedBox(height: AppTheme.spacing8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: _fillDemoCredentials,
-                          child: const Text('Use Demo Credentials'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spacing16),
-                
                 // Current User Info
                 if (FirebaseAuth.instance.currentUser != null)
                   Container(
@@ -193,10 +162,7 @@ class _AdminAccessScreenState extends State<AdminAccessScreen> {
     );
   }
 
-  void _fillDemoCredentials() {
-    _emailController.text = 'test@annedfinds.com';
-    _passwordController.text = 'admin123';
-  }
+  // Demo credentials method removed for production
 
   Future<void> _attemptAdminLogin() async {
     final email = _emailController.text.trim();

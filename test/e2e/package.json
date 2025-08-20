@@ -1,0 +1,32 @@
+{
+  "name": "annedfinals-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end testing for AnnedFinds e-commerce platform using Puppeteer",
+  "main": "puppeteer-tests.js",
+  "scripts": {
+    "test": "node puppeteer-tests.js",
+    "test:headless": "HEADLESS=true node puppeteer-tests.js",
+    "test:mobile": "MOBILE_ONLY=true node puppeteer-tests.js",
+    "install-deps": "npm install"
+  },
+  "keywords": [
+    "puppeteer",
+    "e2e",
+    "testing",
+    "flutter",
+    "ecommerce",
+    "annedfinals"
+  ],
+  "author": "AnnedFinds Development Team",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-puppeteer": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

@@ -23,4 +23,24 @@ android/app/profile
 android/app/release
 
 # iOS
-ios/Runner/GeneratedPluginRegistrant.* 
+ios/Runner/GeneratedPluginRegistrant.*
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Test results
+test-results/
+playwright-report/
+
+# Temporary files
+nul
+*.tmp
+*.temp

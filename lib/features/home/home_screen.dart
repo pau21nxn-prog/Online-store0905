@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import '../../common/theme.dart';
 import '../../models/product.dart';
+import '../../models/category.dart';
 import '../../services/cart_service.dart';
-import '../../widgets/wishlist_button.dart';
+import '../../services/theme_service.dart';
+import '../../services/category_service.dart';
+// Wishlist import removed
 import '../common/widgets/product_card.dart';
 import '../product/product_detail_screen.dart';
 import '../categories/category_list_screen.dart';
 import '../search/search_screen.dart';
+import '../cart/cart_screen.dart';
+// dart:async removed - no longer needed for promotional banners
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,8 +22,36 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  List<Category> _categories = [];
+  bool _categoriesLoading = true;
+  
+  // Promotional banner system removed
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+    // Promotional system initialization removed
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await CategoryService.getTopLevelCategories();
+      setState(() {
+        _categories = categories;
+        _categoriesLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _categoriesLoading = false;
+      });
+    }
+  }
+  
+  // Promotional banner methods removed
   
   @override
   void dispose() {
@@ -28,209 +62,283 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AnneDFinds'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacing16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () => _searchController.clear(),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radius8),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-              ),
-              onSubmitted: (value) {
-                if (value.trim().isNotEmpty) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SearchScreen(initialQuery: value),
-                    ),
-                  );
-                }
-              },
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SearchScreen(),
-                  ),
-                );
-              },
-              readOnly: true, // Make it read-only so it always navigates to search screen
-            ),
-          ),
-        ),
-      ),
+      key: _scaffoldKey,
+      appBar: _buildEnhancedAppBar(context),
+      drawer: _buildCategoryDrawer(context),
       body: Column(
         children: [
-          // Category Pills (Quick Access)
-          Container(
-            height: 100,
-            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing8),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16),
-              children: [
-                _buildCategoryPill('Electronics', Icons.phone_android, Colors.blue, 'electronics'),
-                _buildCategoryPill('Fashion', Icons.checkroom, Colors.pink, 'fashion'),
-                _buildCategoryPill('Home', Icons.home, Colors.green, 'home'),
-                _buildCategoryPill('Beauty', Icons.face, Colors.purple, 'beauty'),
-                _buildCategoryPill('Sports', Icons.sports_basketball, Colors.orange, 'sports'),
-                _buildCategoryPill('Books', Icons.menu_book, Colors.brown, 'books'),
-              ],
-            ),
-          ),
-
-          // Products Grid
+          // Search bar below header
+          _buildSearchBarBelowHeader(context),
+          
+          // Main content
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('products')
-                  .where('isActive', isEqualTo: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error, size: 60, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text('Error: ${snapshot.error}'),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () => setState(() {}),
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                final products = snapshot.data!.docs
-                    .map((doc) => Product.fromFirestore(doc.id, doc.data() as Map<String, dynamic>))
-                    .toList();
-
-                return GridView.builder(
-                  padding: const EdgeInsets.all(AppTheme.spacing16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: _getCrossAxisCount(context),
-                    childAspectRatio: 0.75, // Card height vs width ratio
-                    crossAxisSpacing: AppTheme.spacing12,
-                    mainAxisSpacing: AppTheme.spacing12,
-                  ),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return _buildProductCardWithWishlist(product);
-                  },
-                );
-              },
+            child: CustomScrollView(
+              slivers: [
+                // "Check mo to Mhie" Featured Section
+                _buildCheckMoToMhieSection(),
+                
+                // Footer Section
+                _buildFooterSection(),
+              ],
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addSampleProduct,
-        backgroundColor: AppTheme.primaryOrange,
-        child: const Icon(Icons.add, color: Colors.white),
+    );
+  }
+
+  // Redesigned Header based on Header.png reference
+  PreferredSizeWidget _buildEnhancedAppBar(BuildContext context) {
+    return AppBar(
+      elevation: 0,
+      backgroundColor: AppTheme.primaryOrange, // Changed back to orange
+      foregroundColor: Colors.white,
+      toolbarHeight: 60, // Reduced height for cleaner look
+      automaticallyImplyLeading: false,
+      title: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // 1. Hamburger Menu Button
+          IconButton(
+            icon: Icon(Icons.menu, color: Colors.white, size: 22), // Reduced size
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            tooltip: 'Categories',
+            padding: EdgeInsets.all(6), // Compressed padding
+          ),
+          
+          const SizedBox(width: 6), // Reduced spacing
+          
+          // 2. Logo: "AnneDFinds" text in orange with white rounded rectangle, slightly tilted, 0.8x size
+          Transform.rotate(
+            angle: -0.1, // Slight tilt (about 5.7 degrees)
+            child: Container(
+              height: 40, // Reduced from 50 to 40 (0.8x)
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Compressed padding
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10), // Slightly smaller
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  'AnneDFinds',
+                  style: TextStyle(
+                    color: AppTheme.primaryOrange,
+                    fontSize: 23, // Reduced from 29 to 23 (0.8x)
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          const Spacer(), // Push remaining items to the right
+          
+          // 3. Theme Toggle button - compressed
+          Consumer<ThemeService>(
+            builder: (context, themeService, child) {
+              return IconButton(
+                icon: Icon(
+                  themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                  color: Colors.white,
+                  size: 20, // Reduced from 22 to 20
+                ),
+                onPressed: themeService.toggleTheme,
+                tooltip: themeService.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+                padding: EdgeInsets.all(6), // Compressed padding
+              );
+            },
+          ),
+          
+          const SizedBox(width: 4), // Minimal spacing
+          
+          // 4. Login button (icon only, no text) - moved to rightmost position with minimal spacing
+          IconButton(
+            icon: Icon(Icons.person, color: Colors.white, size: 22), // Slightly reduced
+            onPressed: () {
+              Navigator.pushNamed(context, '/login');
+            },
+            tooltip: 'Sign In',
+            padding: EdgeInsets.all(6), // Compressed padding
+          ),
+        ],
       ),
     );
   }
 
-  // NEW: Enhanced Product Card with Wishlist Button
-  Widget _buildProductCardWithWishlist(Product product) {
-    return Stack(
-      children: [
-        ProductCard(
-          product: product,
-          onTap: () {
+  // Search bar below header
+  Widget _buildSearchBarBelowHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: AppTheme.backgroundColor(context),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search products...',
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.clear, color: Colors.grey),
+            onPressed: () => _searchController.clear(),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: AppTheme.surfaceColor(context),
+          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+        ),
+        onSubmitted: (value) {
+          if (value.trim().isNotEmpty) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => ProductDetailScreen(product: product),
+                builder: (context) => SearchScreen(initialQuery: value),
               ),
             );
-          },
-        ),
-        // Wishlist Button positioned at top-right
-        Positioned(
-          top: 8,
-          right: 8,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: WishlistButton(
-              product: product,
-              size: 20,
-              onWishlistChanged: () {
-                // Optional: Refresh the UI or show feedback
-                setState(() {});
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryPill(String name, IconData icon, Color color, String categoryId) {
-    return Container(
-      margin: const EdgeInsets.only(right: AppTheme.spacing12),
-      child: InkWell(
+          }
+        },
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => CategoryListScreen(
-                categoryId: categoryId,
-                categoryName: name,
-              ),
+              builder: (context) => const SearchScreen(),
             ),
           );
         },
-        borderRadius: BorderRadius.circular(40),
-        child: Column(
+        readOnly: true,
+      ),
+    );
+  }
+
+  // Login button now navigates directly to login screen
+
+  Widget _buildCartIconWithBadge(BuildContext context) {
+    return StreamBuilder<List<dynamic>>(
+      stream: CartService.getCartItems(),
+      builder: (context, snapshot) {
+        final itemCount = snapshot.data?.length ?? 0;
+        return Stack(
           children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: color.withOpacity(0.1),
-              child: Icon(icon, color: color, size: 30),
+            IconButton(
+              icon: Icon(
+                Icons.shopping_cart,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                // Navigate directly to cart screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CartScreen(),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: AppTheme.spacing4),
+            if (itemCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryOrange,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    '$itemCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Search bar now integrated in header layout
+
+  // Wishlist product card removed
+
+  // Promotional banner removed
+
+  // Hero Banner Section removed as requested
+
+  // Removed Quick Access Grid as requested
+
+  // "Check mo to Mhie" Featured Section
+  Widget _buildCheckMoToMhieSection() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              name,
-              style: AppTheme.captionStyle.copyWith(fontSize: 11),
-              textAlign: TextAlign.center,
+              'Check this out',
+              style: AppTheme.sectionHeaderStyle.copyWith(
+                color: AppTheme.textPrimaryColor(context),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              height: 200,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('products')
+                    .where('isActive', isEqualTo: true)
+                    .orderBy('createdAt', descending: true)
+                    .limit(5)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return _buildPromotedPlaceholder();
+                  }
+
+                  final products = snapshot.data!.docs
+                      .map((doc) => Product.fromFirestore(doc.id, doc.data() as Map<String, dynamic>))
+                      .toList();
+
+                  return ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        width: 150,
+                        margin: const EdgeInsets.only(right: 12),
+                        child: ProductCard(
+                          product: products[index],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductDetailScreen(product: products[index]),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -238,261 +346,246 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildPromotedPlaceholder() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.shopping_bag_outlined,
-            size: 80,
-            color: Colors.grey,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No products yet',
-            style: AppTheme.titleStyle,
+          Icon(
+            Icons.star,
+            size: 40,
+            color: AppTheme.secondaryPink,
           ),
           const SizedBox(height: 8),
           Text(
-            'Add some products to get started!',
-            style: AppTheme.bodyStyle.copyWith(color: Colors.grey),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _addSampleProduct,
-            icon: const Icon(Icons.add),
-            label: const Text('Add Sample Product'),
+            'No promoted products yet',
+            style: TextStyle(
+              color: AppTheme.textSecondaryColor(context),
+            ),
           ),
         ],
       ),
     );
   }
 
-  int _getCrossAxisCount(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width > 1024) return 6; // Desktop
-    if (width > 480) return 4;  // Tablet
-    return 2; // Mobile
-  }
+  // Removed Product Section methods as requested
 
-  void _showProductDetail(BuildContext context, Product product) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(product.name),
-        content: SizedBox(
-          width: 300,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (product.imageUrls.isNotEmpty)
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.grey.shade100,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      product.imageUrls.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-                              Text('Image not available', style: TextStyle(color: Colors.grey)),
-                            ],
-                          ),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(child: CircularProgressIndicator());
-                      },
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.grey.shade100,
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.shopping_bag, size: 50, color: Colors.grey),
-                  ),
-                ),
-              const SizedBox(height: 16),
-              Text(product.formattedPrice, style: AppTheme.priceStyle),
-              const SizedBox(height: 8),
-              Text(product.description),
-              const SizedBox(height: 8),
-              Text('Stock: ${product.stockQty}', style: AppTheme.captionStyle),
+  // Reviews and Ratings section removed as requested
+
+  // Footer Section - 1.5x header height (90px)
+  Widget _buildFooterSection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        height: 120, // 2x header height (60px * 2 = 120px)
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppTheme.primaryOrange.withOpacity(0.1),
+              AppTheme.secondaryPink.withOpacity(0.1),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+          border: Border(
+            top: BorderSide(
+              color: AppTheme.primaryOrange.withOpacity(0.3),
+            ),
           ),
-          ElevatedButton.icon(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                // FIXED: Added quantity parameter
-                await CartService.addToCart(product, quantity: 1);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.name} added to cart!'),
-                      backgroundColor: AppTheme.successGreen,
-                      action: SnackBarAction(
-                        label: 'View Cart',
-                        textColor: Colors.white,
-                        onPressed: () {
-                          // Navigate to cart tab (index 2)
-                          DefaultTabController.of(context)?.animateTo(2);
-                        },
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Left Section: Contact info vertically stacked with reasonable margins
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16), // Reasonable left margin
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start, // Left-aligned
+                  children: [
+                    Text(
+                      '📧 annedfinds@gmail.com',
+                      style: TextStyle(
+                        color: AppTheme.textSecondaryColor(context),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error adding to cart: $e')),
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.shopping_cart),
-            label: const Text('Add to Cart'),
+                    const SizedBox(height: 6), // Reasonable vertical spacing
+                    Text(
+                      '📱 09682285496 / 09773257043',
+                      style: TextStyle(
+                        color: AppTheme.textSecondaryColor(context),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '⏰ Open 24/7!',
+                      style: TextStyle(
+                        color: AppTheme.textSecondaryColor(context),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '🚚 NCR and parts of Luzon',
+                      style: TextStyle(
+                        color: AppTheme.textSecondaryColor(context),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Right Section: App download buttons vertically stacked, right-aligned
+            Expanded(
+              flex: 1,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end, // Right-aligned
+                children: [
+                  _buildCompactAppButton('Android', Icons.android), // Android on top
+                  const SizedBox(height: 8), // Spacing between buttons
+                  _buildCompactAppButton('iOS', Icons.phone_iphone),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactAppButton(String name, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor(context),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: AppTheme.primaryOrange.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: AppTheme.textPrimaryColor(context),
+            size: 16,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            name,
+            style: TextStyle(
+              color: AppTheme.textPrimaryColor(context),
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _addSampleProduct() async {
-    final sampleProducts = [
-      {
-        'name': 'iPhone 15 Pro',
-        'description': 'Latest iPhone with titanium design and Action Button',
-        'price': 65999.0,
-        'categoryId': 'electronics', // Make sure this matches category ID
-        'imageUrls': ['https://picsum.photos/400/400?random=1'],
-        'stockQty': 25,
-        'isActive': true,
-        'createdAt': DateTime.now(),
-        'sellerId': 'admin',
-      },
-      {
-        'name': 'Samsung Galaxy Buds',
-        'description': 'Wireless earbuds with noise cancellation',
-        'price': 4999.0,
-        'categoryId': 'electronics', // Electronics category
-        'imageUrls': ['https://picsum.photos/400/400?random=2'],
-        'stockQty': 50,
-        'isActive': true,
-        'createdAt': DateTime.now(),
-        'sellerId': 'admin',
-      },
-      {
-        'name': 'Nike Air Force 1',
-        'description': 'Classic white sneakers for everyday wear',
-        'price': 5995.0,
-        'categoryId': 'fashion', // Fashion category
-        'imageUrls': ['https://picsum.photos/400/400?random=3'],
-        'stockQty': 30,
-        'isActive': true,
-        'createdAt': DateTime.now(),
-        'sellerId': 'admin',
-      },
-      {
-        'name': 'Wireless Mouse',
-        'description': 'Ergonomic wireless mouse with long battery life',
-        'price': 1299.0,
-        'categoryId': 'electronics', // Electronics category
-        'imageUrls': ['https://picsum.photos/400/400?random=4'],
-        'stockQty': 75,
-        'isActive': true,
-        'createdAt': DateTime.now(),
-        'sellerId': 'admin',
-      },
-      {
-        'name': 'Coffee Mug',
-        'description': 'Ceramic coffee mug with beautiful design',
-        'price': 299.0,
-        'categoryId': 'home', // Home category
-        'imageUrls': ['https://picsum.photos/400/400?random=5'],
-        'stockQty': 100,
-        'isActive': true,
-        'createdAt': DateTime.now(),
-        'sellerId': 'admin',
-      },
-      {
-        'name': 'Yoga Mat',
-        'description': 'Non-slip yoga mat for comfortable workouts',
-        'price': 899.0,
-        'categoryId': 'sports', // Sports category
-        'imageUrls': ['https://picsum.photos/400/400?random=6'],
-        'stockQty': 40,
-        'isActive': true,
-        'createdAt': DateTime.now(),
-        'sellerId': 'admin',
-      },
-      {
-        'name': 'Face Cream',
-        'description': 'Moisturizing face cream for all skin types',
-        'price': 1599.0,
-        'categoryId': 'beauty', // Beauty category
-        'imageUrls': ['https://picsum.photos/400/400?random=7'],
-        'stockQty': 60,
-        'isActive': true,
-        'createdAt': DateTime.now(),
-        'sellerId': 'admin',
-      },
-      {
-        'name': 'Programming Book',
-        'description': 'Learn Flutter development step by step',
-        'price': 2199.0,
-        'categoryId': 'books', // Books category
-        'imageUrls': ['https://picsum.photos/400/400?random=8'],
-        'stockQty': 15,
-        'isActive': true,
-        'createdAt': DateTime.now(),
-        'sellerId': 'admin',
-      },
-    ];
+  // Category Drawer
+  Widget _buildCategoryDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: AppTheme.backgroundColor(context),
+      child: Column(
+        children: [
+          Container(
+            height: 80, // Reduced height
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppTheme.primaryOrange, AppTheme.secondaryPink],
+              ),
+            ),
+            padding: const EdgeInsets.all(16),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Categories',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: _buildCategoryList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    try {
-      for (final productData in sampleProducts) {
-        await FirebaseFirestore.instance.collection('products').add(productData);
-      }
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sample products with categories added!'),
-            backgroundColor: AppTheme.successGreen,
+  List<Widget> _buildCategoryList() {
+    if (_categoriesLoading) {
+      return [
+        const ListTile(
+          leading: CircularProgressIndicator(),
+          title: Text('Loading categories...'),
+        ),
+      ];
+    }
+
+    if (_categories.isEmpty) {
+      return [
+        ListTile(
+          leading: Icon(Icons.warning, color: Colors.orange),
+          title: const Text('No categories available'),
+          subtitle: const Text('Categories are being set up'),
+        ),
+      ];
+    }
+
+    return _categories.map((category) => _buildCategoryTile(
+      category.name,
+      category.icon,
+      category.id,
+    )).toList();
+  }
+
+  Widget _buildCategoryTile(String name, IconData icon, String categoryId) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: AppTheme.primaryOrange,
+        size: 20,
+      ),
+      title: Text(
+        name,
+        style: TextStyle(
+          color: AppTheme.textPrimaryColor(context),
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryListScreen(
+              categoryId: categoryId,
+              categoryName: name,
+            ),
           ),
         );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error adding products: $e')),
-        );
-      }
-    }
+      },
+      dense: true,
+    );
   }
+
+  // Removed old methods - replaced with comprehensive new design
 }

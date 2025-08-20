@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// Firebase imports removed - not directly used in this file
 import '../../common/theme.dart';
 import '../../services/auth_service.dart';
 import '../../models/user.dart';
@@ -28,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _showPhoneAuth = false;
   bool _isPhoneVerificationSent = false;
   String? _verificationId;
-  UserType _selectedUserType = UserType.buyer;
+  final UserType _selectedUserType = UserType.buyer; // Always default to buyer
 
   @override
   void dispose() {
@@ -41,6 +40,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleEmailAuth() async {
+    // Prevent double-clicks
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -216,16 +217,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showSuccessAndNavigate(String message) {
+    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: AppTheme.primaryOrange,
-        duration: const Duration(seconds: 1),
+        duration: const Duration(milliseconds: 800),
       ),
     );
 
     // Immediately navigate to home screen after successful authentication
-    Future.delayed(const Duration(milliseconds: 300), () {
+    // Use WidgetsBinding to ensure the widget tree is built before navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
@@ -272,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surfaceGray,
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -290,6 +293,7 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.all(AppTheme.spacing24),
             child: Card(
               elevation: 8,
+              color: AppTheme.surfaceColor(context),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -876,51 +880,7 @@ class _LoginScreenState extends State<LoginScreen> {
             },
           ),
 
-          // User type selection (sign up only)
-          if (!_isLogin) ...[
-            const SizedBox(height: 16),
-            Text(
-              'Account Type',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimaryColor(context),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceGray,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppTheme.textSecondaryColor(context).withOpacity(0.2),
-                ),
-              ),
-              child: Column(
-                children: [
-                  RadioListTile<UserType>(
-                    title: const Text('Buyer Account'),
-                    subtitle: const Text('For purchasing products'),
-                    value: UserType.buyer,
-                    groupValue: _selectedUserType,
-                    onChanged: (value) => setState(() => _selectedUserType = value!),
-                    activeColor: AppTheme.primaryOrange,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  RadioListTile<UserType>(
-                    title: const Text('Seller Account'),
-                    subtitle: const Text('For selling products (coming soon)'),
-                    value: UserType.seller,
-                    groupValue: _selectedUserType,
-                    onChanged: null, // Disabled for now
-                    activeColor: AppTheme.primaryOrange,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ],
-              ),
-            ),
-          ],
+          // Account type removed - all users default to buyer account
 
           const SizedBox(height: AppTheme.spacing24),
 
@@ -968,7 +928,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   _nameController.clear();
                   _emailController.clear();
                   _passwordController.clear();
-                  _selectedUserType = UserType.buyer;
+                  // _selectedUserType always remains UserType.buyer
                 });
                 _formKey.currentState?.reset();
               },

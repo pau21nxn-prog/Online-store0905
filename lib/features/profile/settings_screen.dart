@@ -42,36 +42,6 @@ class SettingsScreen extends StatelessWidget {
               _buildThemeSelector(context, themeService),
               
               const SizedBox(height: 32),
-              
-              // About Section
-              _buildSectionHeader(context, 'About'),
-              const SizedBox(height: 12),
-              
-              _buildSettingsTile(
-                context,
-                icon: Icons.info_outline,
-                title: 'App Version',
-                subtitle: '1.0.0',
-                onTap: () {},
-              ),
-              
-              _buildSettingsTile(
-                context,
-                icon: Icons.privacy_tip_outlined,
-                title: 'Privacy Policy',
-                onTap: () {
-                  // Navigate to privacy policy
-                },
-              ),
-              
-              _buildSettingsTile(
-                context,
-                icon: Icons.description_outlined,
-                title: 'Terms of Service',
-                onTap: () {
-                  // Navigate to terms of service
-                },
-              ),
             ],
           );
         },

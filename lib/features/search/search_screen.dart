@@ -3,7 +3,7 @@ import '../../common/theme.dart';
 import '../../models/product.dart';
 import '../../models/search_filter.dart';
 import '../../services/search_service.dart';
-import '../../widgets/wishlist_button.dart';
+// Wishlist import removed
 import '../product/product_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -614,10 +614,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ],
             ),
-            child: WishlistButton(
-              product: product,
-              size: 18,
-            ),
+            child: SizedBox.shrink(), // Wishlist button removed
           ),
         ),
       ],

@@ -1,0 +1,214 @@
+{
+  "conditions": [
+    {
+      "name": "platform_android",
+      "expression": "device.os == 'android'"
+    },
+    {
+      "name": "platform_ios",
+      "expression": "device.os == 'ios'"
+    },
+    {
+      "name": "platform_web",
+      "expression": "device.os == 'web'"
+    },
+    {
+      "name": "user_segment_premium",
+      "expression": "user.userProperty['user_type'] == 'premium'"
+    },
+    {
+      "name": "app_version_latest",
+      "expression": "app.version >= '1.0.0'"
+    }
+  ],
+  "parameters": {
+    "app_maintenance_mode": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "Enable maintenance mode to show maintenance screen"
+    },
+    "app_maintenance_message": {
+      "defaultValue": {
+        "value": "We're currently performing maintenance. Please try again later."
+      },
+      "description": "Message to show during maintenance mode"
+    },
+    "feature_search_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Enable/disable search functionality"
+    },
+    "feature_wishlist_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Enable/disable wishlist functionality"
+    },
+    "feature_reviews_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Enable/disable product reviews"
+    },
+    "feature_chat_support": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Enable/disable chat support"
+    },
+    "performance_monitoring_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Enable/disable performance monitoring"
+    },
+    "performance_monitoring_sample_rate": {
+      "defaultValue": {
+        "value": "0.1"
+      },
+      "description": "Sample rate for performance monitoring (0.0 to 1.0)"
+    },
+    "search_max_results": {
+      "defaultValue": {
+        "value": "50"
+      },
+      "description": "Maximum number of search results per page"
+    },
+    "products_per_page": {
+      "defaultValue": {
+        "value": "20"
+      },
+      "description": "Number of products to show per page"
+    },
+    "cache_ttl_minutes": {
+      "defaultValue": {
+        "value": "60"
+      },
+      "description": "Cache time-to-live in minutes"
+    },
+    "image_compression_quality": {
+      "defaultValue": {
+        "value": "80"
+      },
+      "description": "Image compression quality (0-100)"
+    },
+    "max_cart_items": {
+      "defaultValue": {
+        "value": "100"
+      },
+      "description": "Maximum number of items allowed in cart"
+    },
+    "free_shipping_threshold": {
+      "defaultValue": {
+        "value": "500"
+      },
+      "description": "Minimum order amount for free shipping"
+    },
+    "promotional_banner_enabled": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "Show promotional banner on home screen"
+    },
+    "promotional_banner_text": {
+      "defaultValue": {
+        "value": "Special offer! Get 20% off on your first order!"
+      },
+      "description": "Promotional banner text"
+    },
+    "promotional_banner_action_url": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "URL to navigate when banner is tapped"
+    },
+    "api_timeout_seconds": {
+      "defaultValue": {
+        "value": "30"
+      },
+      "description": "API request timeout in seconds"
+    },
+    "retry_max_attempts": {
+      "defaultValue": {
+        "value": "3"
+      },
+      "description": "Maximum number of retry attempts for failed requests"
+    },
+    "analytics_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Enable/disable analytics tracking"
+    },
+    "crash_reporting_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Enable/disable crash reporting"
+    },
+    "debug_mode_enabled": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "conditionalValues": {
+        "app_version_latest": {
+          "value": "true"
+        }
+      },
+      "description": "Enable debug mode for development"
+    },
+    "admin_contact_email": {
+      "defaultValue": {
+        "value": "admin@annedfinds.com"
+      },
+      "description": "Admin contact email for support"
+    },
+    "customer_support_phone": {
+      "defaultValue": {
+        "value": "+63-123-456-7890"
+      },
+      "description": "Customer support phone number"
+    },
+    "business_hours": {
+      "defaultValue": {
+        "value": "Mon-Fri 9AM-6PM, Sat 10AM-4PM"
+      },
+      "description": "Business hours for customer support"
+    },
+    "minimum_app_version": {
+      "defaultValue": {
+        "value": "1.0.0"
+      },
+      "description": "Minimum required app version"
+    },
+    "force_update_enabled": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "Force users to update to latest app version"
+    },
+    "a_b_test_new_checkout": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "A/B test for new checkout flow"
+    },
+    "a_b_test_product_recommendations": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "A/B test for AI-powered product recommendations"
+    }
+  },
+  "version": {
+    "versionNumber": "1",
+    "updateTime": "2024-01-01T00:00:00Z",
+    "updateUser": {
+      "email": "admin@annedfinds.com"
+    },
+    "updateOrigin": "CONSOLE",
+    "updateType": "INCREMENTAL_UPDATE"
+  }
+}

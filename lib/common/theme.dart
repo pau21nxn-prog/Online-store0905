@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Colors
+  // Brand Colors - AnnedFinds
   static const Color primaryOrange = Color(0xFFFF6B35);
   static const Color secondaryOrange = Color(0xFFF7931E);
+  static const Color secondaryPink = Color(0xFFE91E63); // New brand color
   static const Color primaryColor = primaryOrange;
-  static const Color accentBlue = Color(0xFF2196F3); // Added missing color
+  
+  // Social Media Brand Colors
+  static const Color facebookBlue = Color(0xFF1877F2);
+  static const Color instagramPink = Color(0xFFE4405F);
+  static const Color tiktokBlack = Color(0xFF000000);
+  
+  // System Colors
+  static const Color accentBlue = Color(0xFF2196F3);
   static const Color successGreen = Color(0xFF4CAF50);
   static const Color errorRed = Color(0xFFF44336);
   static const Color warningYellow = Color(0xFFFF9800);
@@ -255,6 +263,33 @@ class AppTheme {
 
   static const TextStyle priceStyle = TextStyle(
     fontSize: 18,
+    fontWeight: FontWeight.bold,
+    color: primaryOrange,
+  );
+
+  // Brand-specific text styles for AnnedFinds
+  static const TextStyle brandLogoStyle = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    color: primaryOrange,
+    letterSpacing: 0.5,
+  );
+
+  static const TextStyle brandTaglineStyle = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: secondaryPink,
+    fontStyle: FontStyle.italic,
+  );
+
+  static const TextStyle promoMessageStyle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: Colors.white,
+  );
+
+  static const TextStyle sectionHeaderStyle = TextStyle(
+    fontSize: 20,
     fontWeight: FontWeight.bold,
     color: primaryOrange,
   );

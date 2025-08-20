@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter build:*)",
+      "Bash(mv:*)",
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "WebSearch",
+      "WebFetch(domain:pub.dev)",
+      "Bash(flutter run:*)",
+      "Bash(move:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(npm --version)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "Bash(powershell:*)",
+      "Bash(taskkill:*)",
+      "Bash(flutter clean:*)",
+      "Bash(flutter:*)",
+      "Bash(pkill:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npm run test:headed:*)",
+      "Bash(firebase --version)",
+      "Bash(claude mcp add:*)",
+      "Bash(firebase deploy:*)",
+      "mcp__context7__get-library-docs",
+      "Bash(firebase projects:list:*)",
+      "Bash(claude mcp:*)",
+      "Bash(dart run:*)",
+      "Bash(git add:*)",
+      "Bash(del nul)",
+      "Bash(rm:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}

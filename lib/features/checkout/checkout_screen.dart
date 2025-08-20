@@ -4,10 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/cart_item.dart';
 import '../../models/payment.dart';
 import '../../models/order.dart';
+import '../../models/address.dart' as addr;
 import '../../services/payment_service.dart';
 import '../../services/cart_service.dart';
-import '../../services/notification_service.dart';
+// Notification service import removed
+import '../../services/address_service.dart';
 import '../../common/theme.dart';
+import 'qr_payment_checkout.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final List<CartItem> cartItems;
@@ -28,35 +31,194 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  PaymentMethodType? selectedPaymentMethod;
+  // Removed selectedPaymentMethod - no longer needed
   final _addressFormKey = GlobalKey<FormState>();
-  final _gcashFormKey = GlobalKey<FormState>();
   
   // Address controllers
   final _fullNameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressLine1Controller = TextEditingController();
   final _addressLine2Controller = TextEditingController();
   final _cityController = TextEditingController();
   final _provinceController = TextEditingController();
   final _postalCodeController = TextEditingController();
+  final _deliveryInstructionsController = TextEditingController();
   
-  // GCash controllers
-  final _gcashNumberController = TextEditingController();
   
   bool _isProcessing = false;
 
   @override
+  void initState() {
+    super.initState();
+    _initializeUserData();
+  }
+
+  Future<void> _initializeUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && user.email != null) {
+      _emailController.text = user.email!;
+      
+      // Load default address if available
+      await _loadDefaultAddress();
+    }
+  }
+
+  Future<void> _loadDefaultAddress() async {
+    try {
+      final defaultAddress = await AddressService.getDefaultAddress();
+      if (defaultAddress != null && mounted) {
+        setState(() {
+          _fullNameController.text = defaultAddress.fullName;
+          _emailController.text = defaultAddress.email;
+          _phoneController.text = defaultAddress.phoneNumber;
+          _addressLine1Controller.text = defaultAddress.streetAddress;
+          _addressLine2Controller.text = defaultAddress.apartmentSuite;
+          _cityController.text = defaultAddress.city;
+          _provinceController.text = defaultAddress.province;
+          _postalCodeController.text = defaultAddress.postalCode;
+          _deliveryInstructionsController.text = defaultAddress.deliveryInstructions;
+        });
+      }
+    } catch (e) {
+      print('Error loading default address: $e');
+      // Don't show error to user, just log it
+    }
+  }
+
+  @override
   void dispose() {
     _fullNameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
     _addressLine1Controller.dispose();
     _addressLine2Controller.dispose();
     _cityController.dispose();
     _provinceController.dispose();
     _postalCodeController.dispose();
-    _gcashNumberController.dispose();
+    _deliveryInstructionsController.dispose();
     super.dispose();
+  }
+
+  void _showAddressBook() async {
+    try {
+      final addresses = await AddressService.getAddresses();
+      
+      if (addresses.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No saved addresses found. Add one from your Profile > My Addresses'),
+            backgroundColor: AppTheme.primaryOrange,
+          ),
+        );
+        return;
+      }
+
+      final selectedAddress = await showDialog<addr.Address>(
+        context: context,
+        builder: (context) => _buildAddressSelectionDialog(addresses),
+      );
+
+      if (selectedAddress != null && mounted) {
+        setState(() {
+          _fullNameController.text = selectedAddress.fullName;
+          _emailController.text = selectedAddress.email;
+          _phoneController.text = selectedAddress.phoneNumber;
+          _addressLine1Controller.text = selectedAddress.streetAddress;
+          _addressLine2Controller.text = selectedAddress.apartmentSuite;
+          _cityController.text = selectedAddress.city;
+          _provinceController.text = selectedAddress.province;
+          _postalCodeController.text = selectedAddress.postalCode;
+          _deliveryInstructionsController.text = selectedAddress.deliveryInstructions;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Address loaded: ${selectedAddress.fullName}'),
+            backgroundColor: AppTheme.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading addresses: $e'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+    }
+  }
+
+  Widget _buildAddressSelectionDialog(List<addr.Address> addresses) {
+    return AlertDialog(
+      backgroundColor: AppTheme.surfaceColor(context),
+      title: Text(
+        'Select Address',
+        style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: addresses.length,
+          itemBuilder: (context, index) {
+            final address = addresses[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: Icon(
+                  address.isDefault ? Icons.star : Icons.location_on,
+                  color: address.isDefault ? AppTheme.primaryOrange : Colors.grey,
+                ),
+                title: Text(
+                  address.fullName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimaryColor(context),
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      address.shortAddress,
+                      style: TextStyle(color: AppTheme.textSecondaryColor(context)),
+                    ),
+                    Text(
+                      address.phoneNumber,
+                      style: TextStyle(
+                        color: AppTheme.textSecondaryColor(context),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                trailing: address.isDefault 
+                    ? const Text(
+                        'DEFAULT',
+                        style: TextStyle(
+                          color: AppTheme.primaryOrange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      )
+                    : null,
+                onTap: () => Navigator.of(context).pop(address),
+              ),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            'Cancel',
+            style: TextStyle(color: AppTheme.textSecondaryColor(context)),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -79,13 +241,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           children: [
             _buildOrderSummary(),
             const SizedBox(height: 24),
-            _buildShippingAddress(),
+            _buildEmailNotice(),
             const SizedBox(height: 24),
-            _buildPaymentMethods(),
-            if (selectedPaymentMethod == PaymentMethodType.gcash) ...[
-              const SizedBox(height: 16),
-              _buildGCashForm(),
-            ],
+            _buildShippingAddress(),
             const SizedBox(height: 32),
             _buildPlaceOrderButton(),
           ],
@@ -200,6 +358,57 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  Widget _buildEmailNotice() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryOrange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryOrange.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.email_outlined,
+              color: AppTheme.primaryOrange,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Email Confirmation Required',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimaryColor(context),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Your email address is required as we will send your order confirmation, payment instructions, and tracking information via email. Please ensure your email address is correct.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.textSecondaryColor(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildShippingAddress() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -215,26 +424,75 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Shipping Address',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimaryColor(context),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Shipping Address',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimaryColor(context),
+                    ),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _showAddressBook,
+                  icon: const Icon(Icons.book, size: 16),
+                  label: const Text('Address Book'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primaryOrange,
+                    side: const BorderSide(color: AppTheme.primaryOrange),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             _buildTextField(
               controller: _fullNameController,
               label: 'Full Name',
-              validator: (value) => value?.isEmpty == true ? 'Required' : null,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your full name';
+                }
+                if (value.trim().length < 2) {
+                  return 'Name must be at least 2 characters';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildTextField(
+              controller: _emailController,
+              label: 'Email Address *',
+              keyboardType: TextInputType.emailAddress,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Email address is required for order confirmation';
+                }
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  return 'Please enter a valid email address';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
             _buildTextField(
               controller: _phoneController,
-              label: 'Phone Number',
+              label: 'Phone Number (Philippines)',
               keyboardType: TextInputType.phone,
-              validator: (value) => value?.isEmpty == true ? 'Required' : null,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Phone number is required';
+                }
+                // Philippine phone number validation
+                final cleanNumber = value.replaceAll(RegExp(r'[^0-9+]'), '');
+                if (!RegExp(r'^(\+63|63|0)?9\d{9}$').hasMatch(cleanNumber)) {
+                  return 'Please enter a valid Philippine phone number';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
             _buildTextField(
@@ -254,7 +512,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: _buildTextField(
                     controller: _cityController,
                     label: 'City',
-                    validator: (value) => value?.isEmpty == true ? 'Required' : null,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'City is required';
+                      }
+                      if (!_isValidPhilippineCity(value.trim())) {
+                        return 'Please enter a valid Philippine city';
+                      }
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -262,7 +528,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: _buildTextField(
                     controller: _provinceController,
                     label: 'Province',
-                    validator: (value) => value?.isEmpty == true ? 'Required' : null,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Province is required';
+                      }
+                      if (!_isValidPhilippineProvince(value.trim())) {
+                        return 'Please enter a valid Philippine province';
+                      }
+                      return null;
+                    },
                   ),
                 ),
               ],
@@ -272,7 +546,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               controller: _postalCodeController,
               label: 'Postal Code',
               keyboardType: TextInputType.number,
-              validator: (value) => value?.isEmpty == true ? 'Required' : null,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Postal code is required';
+                }
+                if (!_isValidPhilippinePostalCode(value.trim())) {
+                  return 'Please enter a valid Philippine postal code (4 digits)';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildTextField(
+              controller: _deliveryInstructionsController,
+              label: 'Delivery Instructions (Optional)',
+              maxLines: 3,
+              validator: (value) => null, // Optional field, no validation
             ),
           ],
         ),
@@ -285,194 +574,55 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     required String label,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    int maxLines = 1,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      maxLines: maxLines,
+      style: TextStyle(
+        color: isDarkMode ? Colors.white : Colors.black,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        labelStyle: TextStyle(
+          color: isDarkMode ? Colors.white70 : Colors.grey[700],
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+          ),
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
-            color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+            color: isDarkMode ? Colors.grey[600]! : AppTheme.textSecondaryColor(context).withOpacity(0.3),
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppTheme.primaryOrange),
         ),
+        filled: true,
+        fillColor: isDarkMode ? Colors.grey[850] : Colors.white,
       ),
       validator: validator,
     );
   }
 
-  Widget _buildPaymentMethods() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.textSecondaryColor(context).withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Payment Method',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimaryColor(context),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...PaymentService.getAvailablePaymentMethods().map((method) {
-            return _buildPaymentMethodTile(method);
-          }),
-        ],
-      ),
-    );
-  }
+  // Payment method selection removed - using QR payment only
 
-  Widget _buildPaymentMethodTile(PaymentMethodType method) {
-    final isSelected = selectedPaymentMethod == method;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: () => setState(() => selectedPaymentMethod = method),
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: isSelected ? AppTheme.primaryOrange : AppTheme.textSecondaryColor(context).withOpacity(0.3),
-              width: isSelected ? 2 : 1,
-            ),
-            borderRadius: BorderRadius.circular(8),
-            color: isSelected ? AppTheme.primaryOrange.withOpacity(0.1) : null,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                _getPaymentMethodIcon(method),
-                color: isSelected ? AppTheme.primaryOrange : AppTheme.textSecondaryColor(context),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _getPaymentMethodTitle(method),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: isSelected ? AppTheme.primaryOrange : AppTheme.textPrimaryColor(context),
-                      ),
-                    ),
-                    Text(
-                      _getPaymentMethodDescription(method),
-                      style: TextStyle(
-                        color: AppTheme.textSecondaryColor(context),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isSelected)
-                const Icon(
-                  Icons.check_circle,
-                  color: AppTheme.primaryOrange,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Payment method tile removed - using QR payment only
 
-  Widget _buildGCashForm() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.textSecondaryColor(context).withOpacity(0.2),
-        ),
-      ),
-      child: Form(
-        key: _gcashFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'GCash Payment Details',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimaryColor(context),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _gcashNumberController,
-              label: 'GCash Mobile Number',
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value?.isEmpty == true) return 'Required';
-                if (value!.length < 10) return 'Invalid mobile number';
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryOrange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Payment Instructions:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimaryColor(context),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('1. Make sure you have sufficient GCash balance', style: TextStyle(color: AppTheme.textPrimaryColor(context))),
-                  Text('2. Keep your phone nearby for SMS verification', style: TextStyle(color: AppTheme.textPrimaryColor(context))),
-                  Text('3. Payment will be processed immediately', style: TextStyle(color: AppTheme.textPrimaryColor(context))),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Amount to pay: ${PaymentService.formatCurrency(widget.total)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryOrange,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildPlaceOrderButton() {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: selectedPaymentMethod != null && !_isProcessing
+        onPressed: !_isProcessing
             ? _placeOrder
             : null,
         style: ElevatedButton.styleFrom(
@@ -498,7 +648,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               )
             : Text(
-                'Place Order - ${PaymentService.formatCurrency(widget.total)}',
+                'Proceed to Payment',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -510,23 +660,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _placeOrder() async {
     if (!_addressFormKey.currentState!.validate()) return;
-    if (selectedPaymentMethod == PaymentMethodType.gcash && 
-        !_gcashFormKey.currentState!.validate()) return;
 
     setState(() => _isProcessing = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser!;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated. Please sign in or refresh the page.');
+      }
       
       // Create shipping address
       final shippingAddress = ShippingAddress(
-        fullName: _fullNameController.text,
-        phoneNumber: _phoneController.text,
-        addressLine1: _addressLine1Controller.text,
-        addressLine2: _addressLine2Controller.text,
-        city: _cityController.text,
-        province: _provinceController.text,
-        postalCode: _postalCodeController.text,
+        fullName: _fullNameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        addressLine1: _addressLine1Controller.text.trim(),
+        addressLine2: _addressLine2Controller.text.trim(),
+        city: _cityController.text.trim(),
+        province: _provinceController.text.trim(),
+        postalCode: _postalCodeController.text.trim(),
+        deliveryInstructions: _deliveryInstructionsController.text.trim(),
       );
 
       // Create order
@@ -545,7 +697,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         shippingFee: widget.shipping,
         total: widget.total,
         status: OrderStatus.pending,
-        paymentMethod: selectedPaymentMethod!.toString().split('.').last,
+        paymentMethod: 'qr_payment', // Default to QR payment
         shippingAddress: shippingAddress.toMap(),
         createdAt: DateTime.now(),
       );
@@ -556,90 +708,44 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           .doc(orderId)
           .set(order.toFirestore());
 
-      // Send order notification if NotificationService exists
-      try {
-        await NotificationService.sendOrderNotification(
-          userId: user.uid,
-          orderId: orderId,
-          status: 'pending',
-          orderTotal: PaymentService.formatCurrency(widget.total),
-        );
-      } catch (e) {
-        // Notification service might not be implemented yet
-        print('Notification error: $e');
-      }
+      // Notification service removed
 
-      // Create payment
+      // Create payment with default QR method
       final paymentId = await PaymentService.createPayment(
         orderId: orderId,
         amount: widget.total,
-        method: selectedPaymentMethod!,
+        method: PaymentMethodType.gcash, // Default to GCash QR
       );
 
-      // Process payment based on method
-      bool paymentSuccess = false;
-      
-      if (selectedPaymentMethod == PaymentMethodType.gcash) {
-        paymentSuccess = await PaymentService.processGCashPayment(
-          paymentId: paymentId,
-          gcashNumber: _gcashNumberController.text,
-          amount: widget.total,
-        );
-      } else if (selectedPaymentMethod == PaymentMethodType.cod) {
-        paymentSuccess = await PaymentService.processCODPayment(
-          paymentId: paymentId,
-          address: shippingAddress,
+      // All payment methods redirect to QR checkout for manual processing
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => QRPaymentCheckout(
+              totalAmount: widget.total,
+              orderId: orderId, // Use the actual order ID we created
+              orderDetails: {
+                'items': widget.cartItems.map((item) => {
+                  'name': item.productName,
+                  'quantity': item.quantity,
+                  'price': item.price,
+                }).toList(),
+                'subtotal': widget.subtotal,
+                'shipping': widget.shipping,
+                'total': widget.total,
+                'customerInfo': {
+                  'name': _fullNameController.text.trim(),
+                  'email': _emailController.text.trim(),
+                  'phone': _phoneController.text.trim(),
+                  'isGuest': false,
+                },
+                'shippingAddress': shippingAddress.toMap(),
+              },
+            ),
+          ),
         );
       }
-
-      if (paymentSuccess || selectedPaymentMethod == PaymentMethodType.cod) {
-        // Clear cart
-        await CartService.clearCart();
-        
-        // Update order status if payment completed
-        if (selectedPaymentMethod == PaymentMethodType.gcash && paymentSuccess) {
-          await FirebaseFirestore.instance
-              .collection('orders')
-              .doc(orderId)
-              .update({'status': OrderStatus.confirmed.toString().split('.').last});
-          
-          try {
-            await NotificationService.sendOrderNotification(
-              userId: user.uid,
-              orderId: orderId,
-              status: 'confirmed',
-              orderTotal: PaymentService.formatCurrency(widget.total),
-            );
-          } catch (e) {
-            print('Notification error: $e');
-          }
-        }
-
-        // Send admin notification if available
-        try {
-          await NotificationService.sendAdminNotification(
-            type: 'new_order',
-            data: {
-              'orderId': orderId,
-              'total': PaymentService.formatCurrency(widget.total),
-              'customerName': _fullNameController.text,
-              'itemCount': widget.cartItems.length,
-              'paymentMethod': _getPaymentMethodTitle(selectedPaymentMethod!),
-            },
-          );
-        } catch (e) {
-          print('Admin notification error: $e');
-        }
-
-        // Show success and navigate
-        if (mounted) {
-          Navigator.of(context).pop(); // Close checkout
-          Navigator.of(context).pop(); // Go back to cart
-          _showSuccessDialog(orderId);
-        }
-      } else {
-        _showErrorDialog('Payment failed. Please try again.');
-      }
+      return; // Exit early - all payments are manual QR now
     } catch (e) {
       _showErrorDialog('Order failed: ${e.toString()}');
     } finally {
@@ -670,16 +776,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               style: TextStyle(color: AppTheme.textPrimaryColor(context)),
             ),
             const SizedBox(height: 8),
-            if (selectedPaymentMethod == PaymentMethodType.gcash)
-              Text(
-                'Payment has been processed via GCash.',
-                style: TextStyle(color: AppTheme.textPrimaryColor(context)),
-              )
-            else if (selectedPaymentMethod == PaymentMethodType.cod)
-              Text(
-                'You will pay cash upon delivery.',
-                style: TextStyle(color: AppTheme.textPrimaryColor(context)),
-              ),
+            Text(
+              'Payment notification sent for admin verification.',
+              style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+            ),
             const SizedBox(height: 8),
             Text(
               '📱 You\'ll receive notifications about your order status.',
@@ -754,48 +854,70 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  IconData _getPaymentMethodIcon(PaymentMethodType method) {
-    switch (method) {
-      case PaymentMethodType.gcash:
-        return Icons.phone_android;
-      case PaymentMethodType.cod:
-        return Icons.money;
-      case PaymentMethodType.bankTransfer:
-        return Icons.account_balance;
-      case PaymentMethodType.paypal:
-        return Icons.paypal;
-      case PaymentMethodType.creditCard:
-        return Icons.credit_card;
-    }
+  // Payment method helper functions removed - using QR payment only
+
+  // Philippine address validation methods
+  bool _isValidPhilippineCity(String city) {
+    final validCities = [
+      // Metro Manila
+      'Manila', 'Quezon City', 'Makati', 'Pasig', 'Taguig', 'Paranaque', 'Las Pinas',
+      'Muntinlupa', 'Mandaluyong', 'San Juan', 'Pasay', 'Marikina', 'Caloocan',
+      'Valenzuela', 'Malabon', 'Navotas', 'Pateros',
+      // Major cities
+      'Cebu City', 'Davao City', 'Zamboanga City', 'Cagayan de Oro', 'General Santos',
+      'Iloilo City', 'Bacolod', 'Tacloban', 'Butuan', 'Iligan', 'Cotabato City',
+      'Baguio', 'Dagupan', 'Laoag', 'Vigan', 'San Fernando', 'Angeles', 'Olongapo',
+      'Batangas City', 'Lipa', 'Lucena', 'Antipolo', 'Cainta', 'Taytay', 'Binangonan',
+      'Rodriguez', 'San Mateo', 'Marikina', 'Cabanatuan', 'Gapan', 'Palayan',
+      'Santa Rosa', 'Cabuyao', 'Calamba', 'San Pablo', 'Imus', 'Bacoor', 'Cavite City',
+      'Trece Martires', 'General Trias', 'Dasmarinas', 'Tagaytay', 'Naga',
+      'Legazpi', 'Sorsogon', 'Masbate', 'Catbalogan', 'Borongan', 'Ormoc',
+      'Maasin', 'Dumaguete', 'Tagbilaran', 'Lapu-Lapu', 'Mandaue', 'Toledo',
+      'Carcar', 'Danao', 'Talisay', 'Minglanilla', 'Consolacion', 'Liloan',
+      'Compostela', 'Carmen', 'Catmon', 'Sogod', 'Bantayan', 'Madridejos',
+      'Santa Fe', 'Bogo', 'San Remigio', 'Tabogon', 'Borbon', 'Tabuelan',
+      'Tuburan', 'Asturias', 'Balamban', 'Pinamungajan', 'Aloguinsan', 'Barili',
+      'Dumanjug', 'Ronda', 'Alcantara', 'Moalboal', 'Badian', 'Alegria',
+      'Malabuyoc', 'Ginatilan', 'Samboan', 'Santander', 'Oslob', 'Dalaguete',
+      'Argao', 'Sibonga', 'San Fernando', 'Naga', 'Minglanilla', 'Talisay'
+    ];
+    
+    return validCities.any((validCity) => 
+      city.toLowerCase().contains(validCity.toLowerCase()) ||
+      validCity.toLowerCase().contains(city.toLowerCase())
+    );
   }
 
-  String _getPaymentMethodTitle(PaymentMethodType method) {
-    switch (method) {
-      case PaymentMethodType.gcash:
-        return 'GCash';
-      case PaymentMethodType.cod:
-        return 'Cash on Delivery';
-      case PaymentMethodType.bankTransfer:
-        return 'Bank Transfer';
-      case PaymentMethodType.paypal:
-        return 'PayPal';
-      case PaymentMethodType.creditCard:
-        return 'Credit Card';
-    }
+  bool _isValidPhilippineProvince(String province) {
+    final validProvinces = [
+      // Luzon
+      'Metro Manila', 'National Capital Region', 'NCR',
+      'Abra', 'Agusan del Norte', 'Agusan del Sur', 'Aklan', 'Albay', 'Antique',
+      'Apayao', 'Aurora', 'Basilan', 'Bataan', 'Batanes', 'Batangas', 'Benguet',
+      'Biliran', 'Bohol', 'Bukidnon', 'Bulacan', 'Cagayan', 'Camarines Norte',
+      'Camarines Sur', 'Camiguin', 'Capiz', 'Catanduanes', 'Cavite', 'Cebu',
+      'Compostela Valley', 'Davao de Oro', 'Davao del Norte', 'Davao del Sur',
+      'Davao Occidental', 'Davao Oriental', 'Dinagat Islands', 'Eastern Samar',
+      'Guimaras', 'Ifugao', 'Ilocos Norte', 'Ilocos Sur', 'Iloilo', 'Isabela',
+      'Kalinga', 'La Union', 'Laguna', 'Lanao del Norte', 'Lanao del Sur',
+      'Leyte', 'Maguindanao', 'Marinduque', 'Masbate', 'Misamis Occidental',
+      'Misamis Oriental', 'Mountain Province', 'Negros Occidental', 'Negros Oriental',
+      'Northern Samar', 'Nueva Ecija', 'Nueva Vizcaya', 'Occidental Mindoro',
+      'Oriental Mindoro', 'Palawan', 'Pampanga', 'Pangasinan', 'Quezon', 'Quirino',
+      'Rizal', 'Romblon', 'Samar', 'Sarangani', 'Siquijor', 'Sorsogon',
+      'South Cotabato', 'Southern Leyte', 'Sultan Kudarat', 'Sulu', 'Surigao del Norte',
+      'Surigao del Sur', 'Tarlac', 'Tawi-Tawi', 'Zambales', 'Zamboanga del Norte',
+      'Zamboanga del Sur', 'Zamboanga Sibugay'
+    ];
+    
+    return validProvinces.any((validProvince) => 
+      province.toLowerCase().contains(validProvince.toLowerCase()) ||
+      validProvince.toLowerCase().contains(province.toLowerCase())
+    );
   }
 
-  String _getPaymentMethodDescription(PaymentMethodType method) {
-    switch (method) {
-      case PaymentMethodType.gcash:
-        return 'Pay instantly using your GCash wallet';
-      case PaymentMethodType.cod:
-        return 'Pay with cash when your order is delivered';
-      case PaymentMethodType.bankTransfer:
-        return 'Transfer payment directly to our bank account';
-      case PaymentMethodType.paypal:
-        return 'Pay securely with your PayPal account';
-      case PaymentMethodType.creditCard:
-        return 'Pay with your credit or debit card';
-    }
+  bool _isValidPhilippinePostalCode(String postalCode) {
+    // Philippine postal codes are 4 digits
+    return RegExp(r'^\d{4}$').hasMatch(postalCode);
   }
 }

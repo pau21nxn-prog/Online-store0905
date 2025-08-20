@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../models/user.dart';
 
@@ -9,7 +10,11 @@ enum SignInProvider { email, google, phone, anonymous }
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final GoogleSignIn _googleSignIn = GoogleSignIn();
+  static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: kIsWeb 
+      ? '48916413018-fu29vn4jmakkuuog9osc5t7gna3cv04j.apps.googleusercontent.com'
+      : null,
+  );
   
   // Stream controllers for user state
   static final StreamController<UserModel?> _userController = 
@@ -150,7 +155,32 @@ class AuthService {
       );
       
       if (credential.user != null) {
-        return _currentUser;
+        // Wait for the user document and create/update UserModel immediately
+        final user = credential.user!;
+        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        
+        UserModel userModel;
+        if (userDoc.exists) {
+          userModel = UserModel.fromFirestore(user.uid, userDoc.data()!);
+        } else {
+          // Create user document if it doesn't exist
+          userModel = UserModel.fromFirebaseUser(
+            user.uid,
+            user.displayName,
+            user.email,
+            user.isAnonymous,
+          );
+          await _createUserDocument(userModel);
+        }
+        
+        // Update last sign-in time
+        await _updateLastSignIn(user.uid);
+        
+        // Update the current user immediately
+        _currentUser = userModel;
+        _userController.add(userModel);
+        
+        return userModel;
       }
       return null;
     } catch (e) {
@@ -159,25 +189,15 @@ class AuthService {
     }
   }
 
-  // Sign in with Google
+  // Sign in with Google using Firebase Auth popup
   static Future<UserModel?> signInWithGoogle() async {
     try {
-      // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // Use Firebase Auth's Google provider directly for web
+      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
       
-      if (googleUser == null) {
-        // User canceled the sign-in
-        return null;
-      }
-
-      // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      // Create a new credential
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+      // Add any additional scopes if needed
+      googleProvider.addScope('email');
+      googleProvider.addScope('profile');
 
       // Check if current user is anonymous and link accounts
       final currentUser = _auth.currentUser;
@@ -185,10 +205,10 @@ class AuthService {
       
       if (currentUser != null && currentUser.isAnonymous) {
         // Link anonymous account with Google
-        userCredential = await currentUser.linkWithCredential(credential);
+        userCredential = await currentUser.linkWithPopup(googleProvider);
       } else {
-        // Sign in with Google
-        userCredential = await _auth.signInWithCredential(credential);
+        // Sign in with Google using popup
+        userCredential = await _auth.signInWithPopup(googleProvider);
       }
 
       if (userCredential.user != null) {
@@ -196,8 +216,9 @@ class AuthService {
         final user = userCredential.user!;
         final userDoc = await _firestore.collection('users').doc(user.uid).get();
         
+        UserModel userModel;
         if (!userDoc.exists) {
-          final userModel = UserModel(
+          userModel = UserModel(
             id: user.uid,
             name: user.displayName ?? 'Google User',
             email: user.email ?? '',
@@ -211,9 +232,18 @@ class AuthService {
           );
           
           await _createUserDocument(userModel);
+        } else {
+          userModel = UserModel.fromFirestore(user.uid, userDoc.data()!);
         }
         
-        return _currentUser;
+        // Update last sign-in time
+        await _updateLastSignIn(user.uid);
+        
+        // Update the current user immediately
+        _currentUser = userModel;
+        _userController.add(userModel);
+        
+        return userModel;
       }
       return null;
     } catch (e) {
@@ -284,8 +314,38 @@ class AuthService {
       }
 
       if (userCredential.user != null) {
-        await _handlePhoneSignInSuccess(userCredential.user!);
-        return _currentUser;
+        // Handle phone sign-in success and update user state immediately
+        final user = userCredential.user!;
+        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        
+        UserModel userModel;
+        if (!userDoc.exists) {
+          userModel = UserModel(
+            id: user.uid,
+            name: 'Phone User',
+            email: '',
+            phoneNumber: user.phoneNumber,
+            createdAt: DateTime.now(),
+            isActive: true,
+            isAdmin: false,
+            userType: UserType.buyer,
+            isAnonymous: false,
+            emailVerified: false,
+          );
+          
+          await _createUserDocument(userModel);
+        } else {
+          userModel = UserModel.fromFirestore(user.uid, userDoc.data()!);
+        }
+        
+        // Update last sign-in time
+        await _updateLastSignIn(user.uid);
+        
+        // Update the current user immediately
+        _currentUser = userModel;
+        _userController.add(userModel);
+        
+        return userModel;
       }
       return null;
     } catch (e) {
@@ -430,12 +490,7 @@ class AuthService {
   // Sign out
   static Future<void> signOut() async {
     try {
-      // Sign out from Google if signed in
-      if (await _googleSignIn.isSignedIn()) {
-        await _googleSignIn.signOut();
-      }
-      
-      // Sign out from Firebase
+      // Sign out from Firebase (this handles Google sign-out automatically)
       await _auth.signOut();
       
       // DON'T automatically sign in anonymously after sign out

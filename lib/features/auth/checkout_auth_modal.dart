@@ -528,12 +528,12 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                     if (_showPhoneAuth) ...[
                       _buildPhoneAuthForm(),
                     ] else if (!_showAuthForm) ...[
-                      // Guest checkout option (prominent)
+                      // Create Account option (highlighted, at the top)
                       _buildOption(
-                        icon: Icons.person_outline,
-                        title: 'Checkout as Guest',
-                        subtitle: 'Quick checkout without creating an account',
-                        onTap: _handleGuestCheckout,
+                        icon: Icons.person_add_outlined,
+                        title: 'Create Account',
+                        subtitle: 'Save cart, track orders & enjoy member benefits',
+                        onTap: _showSignUp,
                         isPrimary: true,
                       ),
 
@@ -550,7 +550,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              'OR',
+                              'OR SIGN IN',
                               style: TextStyle(
                                 color: AppTheme.textSecondaryColor(context),
                                 fontSize: 12,
@@ -590,27 +590,53 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
 
                       const SizedBox(height: 12),
 
-                      // Account options
+                      // Email Sign-In Option
+                      _buildOption(
+                        icon: Icons.email,
+                        title: 'Email Sign In',
+                        subtitle: 'Use email & password to sign in',
+                        onTap: _showSignIn,
+                        isPrimary: false,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Second divider
                       Row(
                         children: [
                           Expanded(
-                            child: _buildSecondaryOption(
-                              icon: Icons.person_add_outlined,
-                              title: 'Create Account',
-                              subtitle: 'Save cart & track orders',
-                              onTap: _showSignUp,
+                            child: Divider(
+                              color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'OR',
+                              style: TextStyle(
+                                color: AppTheme.textSecondaryColor(context),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                           Expanded(
-                            child: _buildSecondaryOption(
-                              icon: Icons.email,
-                              title: 'Email Sign In',
-                              subtitle: 'Use email & password',
-                              onTap: _showSignIn,
+                            child: Divider(
+                              color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
                             ),
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Guest checkout option (moved to bottom)
+                      _buildOption(
+                        icon: Icons.person_outline,
+                        title: 'Checkout as Guest',
+                        subtitle: 'Quick checkout without creating an account',
+                        onTap: _handleGuestCheckout,
+                        isPrimary: false,
                       ),
 
                       // Guest benefits
