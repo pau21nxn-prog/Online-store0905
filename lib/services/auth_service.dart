@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
@@ -10,6 +11,7 @@ enum SignInProvider { email, google, phone, anonymous }
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final FirebaseFunctions _functions = FirebaseFunctions.instance;
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: kIsWeb 
       ? '48916413018-fu29vn4jmakkuuog9osc5t7gna3cv04j.apps.googleusercontent.com'
@@ -511,8 +513,19 @@ class AuthService {
   static bool get isAuthenticated => 
       _currentUser != null && !_currentUser!.isAnonymous;
 
-  // Check if user is admin
+  // Check if user is admin (client-side check)
   static bool get isAdmin => _currentUser?.isAdmin ?? false;
+  
+  // Enhanced admin check with server-side verification
+  static Future<bool> get isAdminVerified async {
+    if (_currentUser?.isAdmin != true) return false;
+    try {
+      return await hasAdminClaim();
+    } catch (e) {
+      print('❌ Admin verification failed: $e');
+      return false;
+    }
+  }
 
   // Check if user is anonymous
   static bool get isAnonymous => _currentUser?.isAnonymous ?? false;
@@ -566,16 +579,58 @@ class AuthService {
     }
   }
 
-  // Set user as admin (would be called by Cloud Function or admin panel)
+  // Set user as admin using Firebase Functions (with custom claims)
   static Future<void> setAdminStatus(String userId, bool isAdmin) async {
     try {
-      await _firestore.collection('users').doc(userId).update({
+      print('🔑 Setting admin status for $userId: $isAdmin');
+      
+      // Call Firebase Function to set custom claims
+      final callable = _functions.httpsCallable('setUserAdminClaim');
+      final result = await callable.call({
+        'uid': userId,
         'isAdmin': isAdmin,
-        'userType': isAdmin ? 'admin' : 'buyer',
       });
+      
+      print('✅ Admin status set successfully: ${result.data}');
+      
+      // Force refresh current user's token if it's the same user
+      if (_auth.currentUser != null && _auth.currentUser!.uid == userId) {
+        print('🔄 Refreshing current user token...');
+        await _auth.currentUser!.getIdToken(true); // Force refresh
+        await reloadUserData(); // Reload user data from Firestore
+        print('✅ Current user token refreshed');
+      }
+      
     } catch (e) {
-      print('Error setting admin status: $e');
+      print('❌ Error setting admin status: $e');
       rethrow;
+    }
+  }
+  
+  // Verify admin claim (for debugging)
+  static Future<Map<String, dynamic>> verifyAdminClaim() async {
+    try {
+      final callable = _functions.httpsCallable('verifyAdminClaim');
+      final result = await callable.call();
+      return result.data as Map<String, dynamic>;
+    } catch (e) {
+      print('❌ Error verifying admin claim: $e');
+      rethrow;
+    }
+  }
+  
+  // Check if user has admin custom claim (server-side verification)
+  static Future<bool> hasAdminClaim() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+      
+      final idTokenResult = await user.getIdTokenResult();
+      final claims = idTokenResult.claims;
+      return claims?['admin'] == true;
+    } catch (e) {
+      print('❌ Error checking admin claim: $e');
+      return false;
     }
   }
 

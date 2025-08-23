@@ -27,6 +27,11 @@ class UserOrder {
   final Map<String, dynamic> shippingAddress; // Changed to Map for compatibility
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final DateTime? confirmedAt;
+  final DateTime? processingAt;
+  final DateTime? shippedAt;
+  final DateTime? deliveredAt;
+  final DateTime? cancelledAt;
   final String? trackingNumber;
   final String? notes;
 
@@ -44,6 +49,11 @@ class UserOrder {
     required this.shippingAddress,
     required this.createdAt,
     this.updatedAt,
+    this.confirmedAt,
+    this.processingAt,
+    this.shippedAt,
+    this.deliveredAt,
+    this.cancelledAt,
     this.trackingNumber,
     this.notes,
   });
@@ -68,6 +78,11 @@ class UserOrder {
       shippingAddress: Map<String, dynamic>.from(data['shippingAddress'] ?? {}),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+      confirmedAt: (data['confirmedAt'] as Timestamp?)?.toDate(),
+      processingAt: (data['processingAt'] as Timestamp?)?.toDate(),
+      shippedAt: (data['shippedAt'] as Timestamp?)?.toDate(),
+      deliveredAt: (data['deliveredAt'] as Timestamp?)?.toDate(),
+      cancelledAt: (data['cancelledAt'] as Timestamp?)?.toDate(),
       trackingNumber: data['trackingNumber'],
       notes: data['notes'],
     );

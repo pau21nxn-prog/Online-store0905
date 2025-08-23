@@ -4,7 +4,7 @@ service firebase.storage {
     // Product images - public read, admin write
     match /products/{productId}/{imageId} {
       allow read: if true; // Public read for product images
-      allow write: if request.auth != null && isAdmin()
+      allow write: if request.auth != null && isAdminVerified()
         && isValidImageFile()
         && resource.size < 10 * 1024 * 1024; // Max 10MB
     }
@@ -12,7 +12,7 @@ service firebase.storage {
     // Product variant images
     match /products/{productId}/variants/{variantId}/{imageId} {
       allow read: if true;
-      allow write: if request.auth != null && isAdmin()
+      allow write: if request.auth != null && isAdminVerified()
         && isValidImageFile()
         && resource.size < 10 * 1024 * 1024;
     }
@@ -20,7 +20,7 @@ service firebase.storage {
     // Category images - public read, admin write
     match /categories/{categoryId}/{imageId} {
       allow read: if true;
-      allow write: if request.auth != null && isAdmin()
+      allow write: if request.auth != null && isAdminVerified()
         && isValidImageFile()
         && resource.size < 5 * 1024 * 1024; // Max 5MB
     }
@@ -28,7 +28,7 @@ service firebase.storage {
     // User profile images - users can only access their own
     match /users/{userId}/profile/{imageId} {
       allow read, write: if request.auth != null && 
-        (request.auth.uid == userId || isAdmin())
+        (request.auth.uid == userId || isAdminVerified())
         && isValidImageFile()
         && resource.size < 2 * 1024 * 1024; // Max 2MB
     }
@@ -51,18 +51,29 @@ service firebase.storage {
 
     // Admin uploads - admin only
     match /admin/{path=**} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if request.auth != null && isAdminVerified();
     }
 
     // System backups - admin only
     match /backups/{path=**} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if request.auth != null && isAdminVerified();
     }
 
     // Helper functions
     function isAdmin() {
       return request.auth != null && 
         request.auth.token.admin == true;
+    }
+    
+    // Fallback admin check using adminUsers collection (for backward compatibility)
+    function isAdminFallback() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
+    }
+    
+    // Combined admin check (custom claims first, fallback to Firestore)
+    function isAdminVerified() {
+      return isAdmin() || isAdminFallback();
     }
 
     function isValidImageFile() {

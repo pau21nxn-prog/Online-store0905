@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:html' as html;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;

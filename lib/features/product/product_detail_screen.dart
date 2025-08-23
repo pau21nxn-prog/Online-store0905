@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../common/theme.dart';
 import '../../models/product.dart';
 import '../../models/cart_item.dart';
+import '../../models/variant_option.dart';
 import '../../services/cart_service.dart';
 // Wishlist import removed
 import '../auth/checkout_auth_modal.dart';
@@ -27,12 +28,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _currentImageIndex = 0;
   late PageController _pageController;
   late TextEditingController _quantityController;
+  
+  // Variant selection state
+  Map<String, String> _selectedVariantOptions = {};
+  VariantConfiguration? _selectedVariantConfiguration;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     _quantityController = TextEditingController(text: _quantity.toString());
+    _initializeVariantSelection();
+  }
+  
+  void _initializeVariantSelection() {
+    if (widget.product.hasCustomizableVariants && widget.product.activeVariantConfigurations.isNotEmpty) {
+      // Select the first available variant configuration by default
+      _selectedVariantConfiguration = widget.product.activeVariantConfigurations.first;
+      _selectedVariantOptions = Map.from(_selectedVariantConfiguration!.attributeValues);
+    }
   }
 
   @override
@@ -255,9 +269,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Row(
                         children: [
                           Text(
-                            widget.product.formattedPrice,
+                            _selectedVariantConfiguration?.formattedPrice ?? widget.product.formattedPrice,
                             style: AppTheme.priceStyle.copyWith(fontSize: 28),
                           ),
+                          if (_selectedVariantConfiguration?.hasDiscount == true) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              _selectedVariantConfiguration!.formattedCompareAtPrice,
+                              style: TextStyle(
+                                decoration: TextDecoration.lineThrough,
+                                color: AppTheme.textSecondary,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ],
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -265,17 +290,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               vertical: AppTheme.spacing4,
                             ),
                             decoration: BoxDecoration(
-                              color: widget.product.stockQty > 0 
+                              color: _getAvailableStock() > 0 
                                   ? AppTheme.successGreen.withOpacity(0.1)
                                   : AppTheme.errorRed.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(AppTheme.radius8),
                             ),
                             child: Text(
-                              widget.product.stockQty > 0 
-                                  ? 'In Stock (${widget.product.stockQty})'
+                              _getAvailableStock() > 0 
+                                  ? 'In Stock (${_getAvailableStock()})'
                                   : 'Out of Stock',
                               style: TextStyle(
-                                color: widget.product.stockQty > 0 
+                                color: _getAvailableStock() > 0 
                                     ? AppTheme.successGreen
                                     : AppTheme.errorRed,
                                 fontWeight: FontWeight.w600,
@@ -287,9 +312,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       
                       const SizedBox(height: AppTheme.spacing24),
                       
-                      // Wishlist section removed
-                      
-                      const SizedBox(height: AppTheme.spacing24),
+                      // Variant Selection
+                      if (widget.product.hasCustomizableVariants) ...[
+                        ..._buildVariantSelectors(),
+                        const SizedBox(height: AppTheme.spacing24),
+                      ],
                       
                       // Description
                       Text(
@@ -342,7 +369,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           _buildQuantityButton(
                             Icons.add,
                             () {
-                              if (_quantity < widget.product.stockQty) {
+                              if (_quantity < _getAvailableStock()) {
                                 setState(() {
                                   _quantity++;
                                   _quantityController.text = _quantity.toString();
@@ -352,7 +379,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                           const Spacer(),
                           Text(
-                            'Total: ₱${(widget.product.price * _quantity).toStringAsFixed(2)}',
+                            'Total: ₱${(_getCurrentPrice() * _quantity).toStringAsFixed(2)}',
                             style: AppTheme.priceStyle.copyWith(fontSize: 20),
                           ),
                         ],
@@ -398,7 +425,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               // Add to Cart Button
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: widget.product.stockQty > 0 && !_isAddingToCart
+                  onPressed: _getAvailableStock() > 0 && !_isAddingToCart
                       ? _addToCart
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -421,7 +448,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   label: Text(
                     _isAddingToCart
                         ? 'Adding...'
-                        : widget.product.stockQty > 0
+                        : _getAvailableStock() > 0
                             ? 'Add to Cart ($_quantity)'
                             : 'Out of Stock',
                     style: const TextStyle(
@@ -438,7 +465,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               // Buy Now Button
               Expanded(
                 child: ElevatedButton(
-                  onPressed: widget.product.stockQty > 0 ? _buyNow : null,
+                  onPressed: _getAvailableStock() > 0 ? _buyNow : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.secondaryOrange,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -507,7 +534,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         onChanged: (value) {
           // Update quantity as user types
           final newQuantity = int.tryParse(value);
-          if (newQuantity != null && newQuantity > 0 && newQuantity <= widget.product.stockQty) {
+          if (newQuantity != null && newQuantity > 0 && newQuantity <= _getAvailableStock()) {
             setState(() => _quantity = newQuantity);
           }
         },
@@ -523,7 +550,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _validateAndUpdateQuantity(String value) {
     final newQuantity = int.tryParse(value) ?? _quantity;
-    if (newQuantity > 0 && newQuantity <= widget.product.stockQty) {
+    final availableStock = _getAvailableStock();
+    if (newQuantity > 0 && newQuantity <= availableStock) {
       setState(() {
         _quantity = newQuantity;
         _quantityController.text = _quantity.toString();
@@ -533,10 +561,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       setState(() {
         _quantityController.text = _quantity.toString();
       });
-      if (newQuantity > widget.product.stockQty) {
+      if (newQuantity > availableStock) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Maximum quantity available: ${widget.product.stockQty}'),
+            content: Text('Maximum quantity available: $availableStock'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -701,5 +729,275 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildVariantSelectors() {
+    if (!widget.product.hasCustomizableVariants || widget.product.activeVariantAttributes.isEmpty) {
+      return [];
+    }
+
+    List<Widget> selectors = [];
+
+    for (final attribute in widget.product.activeVariantAttributes) {
+      selectors.add(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  attribute.type.icon,
+                  size: 18,
+                  color: AppTheme.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  attribute.name,
+                  style: AppTheme.subtitleStyle.copyWith(fontSize: 16),
+                ),
+                if (attribute.isRequired)
+                  const Text(
+                    ' *',
+                    style: TextStyle(color: AppTheme.errorRed),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildVariantAttributeSelector(attribute),
+            const SizedBox(height: 20),
+          ],
+        ),
+      );
+    }
+
+    // Show selected variant info if available
+    if (_selectedVariantConfiguration != null) {
+      selectors.add(
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryOrange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(AppTheme.radius8),
+            border: Border.all(
+              color: AppTheme.primaryOrange.withOpacity(0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: AppTheme.primaryOrange,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Selected Variant',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _selectedVariantConfiguration!.displayName,
+                style: AppTheme.bodyStyle.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(
+                    _selectedVariantConfiguration!.formattedPrice,
+                    style: AppTheme.priceStyle.copyWith(fontSize: 18),
+                  ),
+                  if (_selectedVariantConfiguration!.hasDiscount) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      _selectedVariantConfiguration!.formattedCompareAtPrice,
+                      style: TextStyle(
+                        decoration: TextDecoration.lineThrough,
+                        color: AppTheme.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _selectedVariantConfiguration!.isInStock
+                          ? AppTheme.successGreen.withOpacity(0.1)
+                          : AppTheme.errorRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _selectedVariantConfiguration!.isInStock
+                          ? '${_selectedVariantConfiguration!.quantity} in stock'
+                          : 'Out of stock',
+                      style: TextStyle(
+                        color: _selectedVariantConfiguration!.isInStock
+                            ? AppTheme.successGreen
+                            : AppTheme.errorRed,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return selectors;
+  }
+
+  Widget _buildVariantAttributeSelector(VariantAttribute attribute) {
+    final selectedValue = _selectedVariantOptions[attribute.id];
+
+    if (attribute.type == VariantAttributeType.color) {
+      return _buildColorSelector(attribute, selectedValue);
+    } else {
+      return _buildTextSelector(attribute, selectedValue);
+    }
+  }
+
+  Widget _buildColorSelector(VariantAttribute attribute, String? selectedValue) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: attribute.activeValues.map((value) {
+        final isSelected = selectedValue == value.value;
+        final color = value.color;
+
+        return GestureDetector(
+          onTap: () => _onVariantOptionSelected(attribute.id, value.value),
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color ?? Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? AppTheme.primaryOrange : Colors.grey.shade400,
+                width: isSelected ? 3 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.primaryOrange.withOpacity(0.3),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: color == null
+                ? Center(
+                    child: Text(
+                      value.value.substring(0, 1).toUpperCase(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTextSelector(VariantAttribute attribute, String? selectedValue) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: attribute.activeValues.map((value) {
+        final isSelected = selectedValue == value.value;
+
+        return GestureDetector(
+          onTap: () => _onVariantOptionSelected(attribute.id, value.value),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected ? AppTheme.primaryOrange : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? AppTheme.primaryOrange : Colors.grey.shade400,
+              ),
+            ),
+            child: Text(
+              value.effectiveDisplayName,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyLarge?.color,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _onVariantOptionSelected(String attributeId, String value) {
+    setState(() {
+      _selectedVariantOptions[attributeId] = value;
+      _updateSelectedVariantConfiguration();
+    });
+  }
+
+  void _updateSelectedVariantConfiguration() {
+    // Find the variant configuration that matches all selected options
+    final matchingConfiguration = widget.product.activeVariantConfigurations.firstWhere(
+      (config) {
+        // Check if this configuration matches all selected options
+        for (final entry in _selectedVariantOptions.entries) {
+          if (config.attributeValues[entry.key] != entry.value) {
+            return false;
+          }
+        }
+        return true;
+      },
+      orElse: () => widget.product.activeVariantConfigurations.isNotEmpty
+          ? widget.product.activeVariantConfigurations.first
+          : widget.product.defaultVariantConfiguration!,
+    );
+
+    _selectedVariantConfiguration = matchingConfiguration;
+    
+    // Reset quantity if it exceeds the new stock limit
+    if (_quantity > _getAvailableStock()) {
+      _quantity = 1;
+      _quantityController.text = _quantity.toString();
+    }
+  }
+
+  int _getAvailableStock() {
+    if (_selectedVariantConfiguration != null) {
+      return _selectedVariantConfiguration!.quantity;
+    }
+    return widget.product.stockQty;
+  }
+
+  double _getCurrentPrice() {
+    if (_selectedVariantConfiguration != null) {
+      return _selectedVariantConfiguration!.price;
+    }
+    return widget.product.price;
   }
 }

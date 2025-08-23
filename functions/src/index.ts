@@ -598,3 +598,146 @@ AnneDFinds Email Service
     );
   }
 });
+
+// Custom claims management function for admin roles
+export const setUserAdminClaim = onCall(async (request) => {
+  try {
+    console.log("🔑 Setting user admin claim...", request.data);
+    
+    const { uid, isAdmin } = request.data;
+    
+    // Validate input
+    if (!uid || typeof uid !== 'string') {
+      throw new HttpsError('invalid-argument', 'Valid uid is required');
+    }
+    
+    if (typeof isAdmin !== 'boolean') {
+      throw new HttpsError('invalid-argument', 'isAdmin must be a boolean');
+    }
+    
+    // Verify caller is authenticated
+    const caller = request.auth;
+    if (!caller) {
+      throw new HttpsError('unauthenticated', 'Must be authenticated');
+    }
+    
+    // Verify caller has admin privileges (check existing custom claims)
+    const callerRecord = await admin.auth().getUser(caller.uid);
+    const callerClaims = callerRecord.customClaims || {};
+    
+    if (!callerClaims.admin && caller.uid !== uid) {
+      throw new HttpsError(
+        'permission-denied', 
+        'Only admins can modify admin status of other users'
+      );
+    }
+    
+    // Set custom claims on Firebase Auth token
+    const customClaims: { [key: string]: any } = {
+      admin: isAdmin
+    };
+    
+    await admin.auth().setCustomUserClaims(uid, customClaims);
+    console.log(`✅ Custom claims set for user ${uid}: admin=${isAdmin}`);
+    
+    // Update Firestore user document
+    const userUpdate: { [key: string]: any } = {
+      isAdmin: isAdmin,
+      userType: isAdmin ? 'admin' : 'buyer',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    
+    await admin.firestore().collection('users').doc(uid).update(userUpdate);
+    console.log(`✅ Firestore user document updated for ${uid}`);
+    
+    // Manage adminUsers collection
+    if (isAdmin) {
+      await admin.firestore().collection('adminUsers').doc(uid).set({
+        role: 'admin',
+        isActive: true,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        grantedBy: caller.uid,
+        grantedByEmail: caller.token?.email || 'unknown',
+      });
+      console.log(`✅ Added to adminUsers collection: ${uid}`);
+    } else {
+      await admin.firestore().collection('adminUsers').doc(uid).delete();
+      console.log(`✅ Removed from adminUsers collection: ${uid}`);
+    }
+    
+    // Log audit trail
+    await admin.firestore().collection('auditLogs').add({
+      action: isAdmin ? 'GRANT_ADMIN_ACCESS' : 'REVOKE_ADMIN_ACCESS',
+      targetUserId: uid,
+      performedBy: caller.uid,
+      performedByEmail: caller.token?.email || 'unknown',
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      details: {
+        isAdmin: isAdmin,
+        method: 'setUserAdminClaim',
+      },
+    });
+    
+    return {
+      success: true,
+      message: `User ${uid} admin status ${isAdmin ? 'granted' : 'revoked'} successfully`,
+      customClaims: customClaims,
+    };
+    
+  } catch (error: any) {
+    console.error("❌ Error setting user admin claim:", error);
+    
+    // Log error for audit
+    try {
+      if (request.auth) {
+        await admin.firestore().collection('auditLogs').add({
+          action: 'ADMIN_CLAIM_ERROR',
+          targetUserId: request.data?.uid || 'unknown',
+          performedBy: request.auth.uid,
+          performedByEmail: request.auth.token?.email || 'unknown',
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          error: error.message || String(error),
+        });
+      }
+    } catch (auditError) {
+      console.error("❌ Failed to log audit error:", auditError);
+    }
+    
+    // Re-throw HttpsErrors as-is, wrap others
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    
+    throw new HttpsError(
+      'internal',
+      `Failed to set admin claim: ${error.message || String(error)}`
+    );
+  }
+});
+
+// Verify admin claim function (optional - for debugging)
+export const verifyAdminClaim = onCall(async (request) => {
+  try {
+    const caller = request.auth;
+    if (!caller) {
+      throw new HttpsError('unauthenticated', 'Must be authenticated');
+    }
+    
+    const userRecord = await admin.auth().getUser(caller.uid);
+    const customClaims = userRecord.customClaims || {};
+    
+    return {
+      uid: caller.uid,
+      email: caller.token?.email,
+      customClaims: customClaims,
+      isAdmin: customClaims.admin === true,
+    };
+    
+  } catch (error: any) {
+    console.error("❌ Error verifying admin claim:", error);
+    throw new HttpsError(
+      'internal',
+      `Failed to verify admin claim: ${error.message || String(error)}`
+    );
+  }
+});

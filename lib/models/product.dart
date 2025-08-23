@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'variant_option.dart';
+
 enum ProductStatus { draft, review, approved, published, archived }
 
 class PriceRange {
@@ -153,6 +156,11 @@ class Product {
   final List<String> issues;
   final double qualityScore;
   
+  // New customizable variant system
+  final List<VariantAttribute> variantAttributes;
+  final List<VariantConfiguration> variantConfigurations;
+  final bool hasCustomizableVariants;
+  
   // Image URLs loaded from Firestore
   final List<String> _imageUrls;
 
@@ -191,6 +199,9 @@ class Product {
     this.hasIssues = false,
     this.issues = const [],
     this.qualityScore = 0.0,
+    this.variantAttributes = const [],
+    this.variantConfigurations = const [],
+    this.hasCustomizableVariants = false,
     List<String>? imageUrls,
   }) : _imageUrls = imageUrls ?? [];
 
@@ -233,6 +244,10 @@ class Product {
       hasIssues: data['computed']?['hasIssues'] ?? false,
       issues: List<String>.from(data['computed']?['issues'] ?? []),
       qualityScore: (data['computed']?['qualityScore'] ?? 0).toDouble(),
+      // Parse variant attributes and configurations
+      variantAttributes: _parseVariantAttributes(data['variantAttributes']),
+      variantConfigurations: _parseVariantConfigurations(data['variantConfigurations']),
+      hasCustomizableVariants: data['hasCustomizableVariants'] ?? false,
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
     );
   }
@@ -274,6 +289,10 @@ class Product {
         'issues': issues,
         'qualityScore': qualityScore,
       },
+      // Include variant system data
+      'variantAttributes': variantAttributes.map((attr) => attr.toMap()).toList(),
+      'variantConfigurations': variantConfigurations.map((config) => config.toMap()).toList(),
+      'hasCustomizableVariants': hasCustomizableVariants,
     };
   }
 
@@ -306,6 +325,13 @@ class Product {
   int get stockQty => totalStock;
   bool get isActive => isPublished;
   String? get sellerId => createdBy;
+
+  // Additional getters for mobile product card compatibility
+  bool get hasDiscount => priceRange.max > priceRange.min;
+  double get originalPrice => priceRange.max;
+  double get discountPercent => hasDiscount ? ((originalPrice - price) / originalPrice) * 100 : 0.0;
+  bool get isNew => DateTime.now().difference(createdAt).inDays <= 30;
+  int get ratingCount => reviewCount;
 
   // Compatibility getter for existing code - show only lowest price (sale price) to customers
   String get formattedPrice {
@@ -355,6 +381,9 @@ class Product {
     bool? hasIssues,
     List<String>? issues,
     double? qualityScore,
+    List<VariantAttribute>? variantAttributes,
+    List<VariantConfiguration>? variantConfigurations,
+    bool? hasCustomizableVariants,
     List<String>? imageUrls,
   }) {
     return Product(
@@ -391,7 +420,68 @@ class Product {
       hasIssues: hasIssues ?? this.hasIssues,
       issues: issues ?? this.issues,
       qualityScore: qualityScore ?? this.qualityScore,
+      variantAttributes: variantAttributes ?? this.variantAttributes,
+      variantConfigurations: variantConfigurations ?? this.variantConfigurations,
+      hasCustomizableVariants: hasCustomizableVariants ?? this.hasCustomizableVariants,
       imageUrls: imageUrls ?? this._imageUrls,
     );
+  }
+  
+  // Helper methods for variant system
+  List<VariantAttribute> get activeVariantAttributes => 
+      variantAttributes.where((attr) => attr.isActive).toList();
+      
+  List<VariantConfiguration> get activeVariantConfigurations => 
+      variantConfigurations.where((config) => config.isActive).toList();
+      
+  int get totalVariantStock => 
+      variantConfigurations.fold(0, (sum, config) => sum + config.quantity);
+      
+  bool get hasVariantStock => totalVariantStock > 0;
+  
+  VariantConfiguration? get defaultVariantConfiguration {
+    if (variantConfigurations.isEmpty) return null;
+    return variantConfigurations.isNotEmpty ? variantConfigurations.first : null;
+  }
+  
+  // Get price range from variant configurations
+  PriceRange get variantPriceRange {
+    if (variantConfigurations.isEmpty) return priceRange;
+    
+    final prices = variantConfigurations.map((config) => config.price).toList();
+    prices.sort();
+    
+    return PriceRange(
+      min: prices.first,
+      max: prices.last,
+      currency: priceRange.currency,
+    );
+  }
+  
+  // Static helper methods for parsing Firestore data
+  static List<VariantAttribute> _parseVariantAttributes(dynamic data) {
+    if (data == null) return [];
+    
+    final list = data as List<dynamic>? ?? [];
+    return list.asMap().entries.map((entry) {
+      if (entry.value is Map<String, dynamic>) {
+        return VariantAttribute.fromMap(entry.value, entry.key.toString());
+      } else {
+        throw FormatException('Invalid variant attribute format');
+      }
+    }).toList();
+  }
+  
+  static List<VariantConfiguration> _parseVariantConfigurations(dynamic data) {
+    if (data == null) return [];
+    
+    final list = data as List<dynamic>? ?? [];
+    return list.asMap().entries.map((entry) {
+      if (entry.value is Map<String, dynamic>) {
+        return VariantConfiguration.fromMap(entry.value, entry.key.toString());
+      } else {
+        throw FormatException('Invalid variant configuration format');
+      }
+    }).toList();
   }
 }

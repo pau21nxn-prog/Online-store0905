@@ -9,8 +9,10 @@ import '../../models/product_variant.dart';
 import '../../models/product_media.dart';
 import '../../models/product_lock.dart';
 import '../../models/category.dart';
+import '../../models/variant_option.dart';
 import '../../services/storage_service.dart';
 import '../../services/category_service.dart';
+import '../../widgets/variant_selector_widgets.dart';
 
 class AddEditProductScreen extends StatefulWidget {
   final Product? product;
@@ -55,6 +57,11 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
   List<ProductMedia> _media = [];
   List<ProductOption> _options = [];
   Map<String, String> _specs = {};
+  
+  // New variant system state
+  List<VariantAttribute> _variantAttributes = [];
+  List<VariantConfiguration> _variantConfigurations = [];
+  bool _hasCustomizableVariants = false;
   
   // UI state
   bool _isLoading = false;
@@ -217,6 +224,11 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
         _freeShippingThresholdController.text = shippingData['freeShippingThreshold'].toString();
       }
     }
+    
+    // Load variant system data
+    _variantAttributes = List.from(product.variantAttributes);
+    _variantConfigurations = List.from(product.variantConfigurations);
+    _hasCustomizableVariants = product.hasCustomizableVariants;
     
     // Load media data from product document
     _loadProductMediaFromDocument();
@@ -857,6 +869,74 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
             ),
           ),
         ),
+        
+        const SizedBox(height: AppTheme.spacing16),
+        
+        // Customizable Variants Toggle
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacing16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Product Variants',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: AppTheme.spacing8),
+                CheckboxListTile(
+                  title: const Text('Enable customizable variants'),
+                  subtitle: const Text('Allow customers to select size, color, or other options'),
+                  value: _hasCustomizableVariants,
+                  onChanged: (value) {
+                    setState(() {
+                      _hasCustomizableVariants = value ?? false;
+                      if (!_hasCustomizableVariants) {
+                        _variantAttributes.clear();
+                        _variantConfigurations.clear();
+                      }
+                    });
+                    _onFormChanged();
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        // Variant Attributes Management
+        if (_hasCustomizableVariants) ...[
+          const SizedBox(height: AppTheme.spacing16),
+          VariantAttributeSelector(
+            attributes: _variantAttributes,
+            onAttributesChanged: (attributes) {
+              setState(() {
+                _variantAttributes = attributes;
+                // Clear configurations when attributes change significantly
+                if (_variantConfigurations.isNotEmpty) {
+                  _variantConfigurations.clear();
+                }
+              });
+              _onFormChanged();
+            },
+          ),
+          
+          const SizedBox(height: AppTheme.spacing16),
+          
+          // Variant Configurations Management
+          VariantConfigurationManager(
+            attributes: _variantAttributes,
+            configurations: _variantConfigurations,
+            baseSkuCode: _slugController.text.toUpperCase(),
+            onConfigurationsChanged: (configurations) {
+              setState(() {
+                _variantConfigurations = configurations;
+              });
+              _onFormChanged();
+            },
+          ),
+        ],
       ],
     );
   }
@@ -1699,6 +1779,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
           'currency': 'PHP',
         },
         'imageUrls': _media.map((m) => m.storagePath).toList(),
+        // Variant system data
+        'hasCustomizableVariants': _hasCustomizableVariants,
+        'variantAttributes': _variantAttributes.map((attr) => attr.toMap()).toList(),
+        'variantConfigurations': _variantConfigurations.map((config) => config.toMap()).toList(),
         'updatedAt': Timestamp.now(),
         'updatedBy': 'admin',
       };
@@ -1861,6 +1945,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
         // Add primary image URL for quick access (compatibility with existing code)
         'imageUrls': imageUrls,
         'primaryImageUrl': primaryImageUrl,
+        // Variant system data
+        'hasCustomizableVariants': _hasCustomizableVariants,
+        'variantAttributes': _variantAttributes.map((attr) => attr.toMap()).toList(),
+        'variantConfigurations': _variantConfigurations.map((config) => config.toMap()).toList(),
         'updatedAt': Timestamp.now(),
         'updatedBy': 'current_user_id', // Replace with actual user ID
         if (widget.product == null) ...{

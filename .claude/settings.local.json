@@ -30,7 +30,22 @@
       "Bash(dart run:*)",
       "Bash(git add:*)",
       "Bash(del nul)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(flutter pub deps:*)",
+      "Bash(npm audit:*)",
+      "Bash(flutter test:*)",
+      "Bash(npm test)",
+      "Bash(firebase deploy:*)",
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Bash(flutter build:*)",
+      "Bash(firebase functions:list:*)",
+      "Bash(firebase hosting:sites:list:*)",
+      "Bash(firebase firestore:rules:list:*)",
+      "Bash(firebase firestore:databases:*)",
+      "WebFetch(domain:annedfinds.web.app)",
+      "mcp__context7__resolve-library-id",
+      "Bash(git checkout:*)"
     ],
     "defaultMode": "acceptEdits"
   }

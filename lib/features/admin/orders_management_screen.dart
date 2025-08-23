@@ -12,6 +12,12 @@ class OrdersManagementScreen extends StatefulWidget {
 
 class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
   String _searchQuery = '';
+  String _statusFilter = 'all';
+  String _paymentFilter = 'all';
+  DateTime? _startDate;
+  DateTime? _endDate;
+  bool _isFiltersExpanded = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -32,13 +38,33 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
           ),
           const SizedBox(height: AppTheme.spacing24),
           
-          // Search
+          // Advanced Filters Section
+          _buildFiltersSection(),
+          const SizedBox(height: AppTheme.spacing16),
+          
+          // Search with enhanced styling
           TextField(
             decoration: InputDecoration(
               hintText: 'Search orders by ID, customer, or product...',
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
+              suffixIcon: _searchQuery.isNotEmpty 
+                  ? IconButton(
+                      icon: Icon(Icons.clear, color: Theme.of(context).colorScheme.outline),
+                      onPressed: () => setState(() => _searchQuery = ''),
+                      tooltip: 'Clear search',
+                    )
+                  : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius8),
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radius8),
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radius8),
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
               ),
             ),
             onChanged: (value) => setState(() => _searchQuery = value),
@@ -81,31 +107,39 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
 
         return Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: Theme.of(context).dividerColor),
             borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).shadowColor.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             children: [
               // Table Header
               Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primaryContainer,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(8),
                     topRight: Radius.circular(8),
                   ),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
-                      Expanded(flex: 2, child: Text('Order No.', style: TextStyle(fontWeight: FontWeight.bold))),
-                      Expanded(flex: 3, child: Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                      Expanded(flex: 3, child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
-                      Expanded(flex: 2, child: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold))),
-                      Expanded(flex: 4, child: Text('Item', style: TextStyle(fontWeight: FontWeight.bold))),
-                      Expanded(flex: 1, child: Text('Quantity', style: TextStyle(fontWeight: FontWeight.bold))),
-                      Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 2, child: Text('Order No.', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 3, child: Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 3, child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 2, child: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 4, child: Text('Item', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 1, child: Text('Quantity', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 2, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer), textAlign: TextAlign.center)),
                     ],
                   ),
                 ),
@@ -128,10 +162,28 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
   }
 
   Stream<QuerySnapshot> _getOrdersStream() {
-    return FirebaseFirestore.instance
-        .collection('orders')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    Query query = FirebaseFirestore.instance.collection('orders');
+    
+    // Apply status filter
+    if (_statusFilter != 'all') {
+      query = query.where('status', isEqualTo: _statusFilter);
+    }
+    
+    // Apply payment method filter  
+    if (_paymentFilter != 'all') {
+      query = query.where('paymentMethod', isEqualTo: _paymentFilter);
+    }
+    
+    // Apply date range filter
+    if (_startDate != null) {
+      query = query.where('createdAt', isGreaterThanOrEqualTo: _startDate);
+    }
+    if (_endDate != null) {
+      DateTime endOfDay = DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
+      query = query.where('createdAt', isLessThanOrEqualTo: endOfDay);
+    }
+    
+    return query.orderBy('createdAt', descending: true).snapshots();
   }
 
   bool _filterOrder(UserOrder order) {
@@ -146,8 +198,8 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
 
   Widget _buildOrderRow(UserOrder order, int index) {
     final backgroundColor = index.isEven 
-        ? Colors.grey.shade50 
-        : Colors.white;
+        ? AppTheme.surfaceGrayColor(context)
+        : AppTheme.surfaceColor(context);
     
     // Get user email from order (need to fetch from users collection or use a different approach)
     String userEmail = 'N/A'; // Placeholder since order doesn't directly store email
@@ -163,7 +215,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
       decoration: BoxDecoration(
         color: backgroundColor,
         border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200),
+          bottom: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.5)),
         ),
       ),
       child: Padding(
@@ -174,35 +226,35 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               flex: 2,
               child: Text(
                 '#${order.id.substring(0, 8).toUpperCase()}',
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
               ),
             ),
             Expanded(
               flex: 3,
               child: Text(
                 order.shippingAddress['fullName'] ?? 'N/A',
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
               ),
             ),
             Expanded(
               flex: 3,
               child: Text(
                 userEmail,
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
               ),
             ),
             Expanded(
               flex: 2,
               child: Text(
                 order.shippingAddress['phoneNumber'] ?? 'N/A',
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
               ),
             ),
             Expanded(
               flex: 4,
               child: Text(
                 itemsSummary,
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -211,7 +263,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               flex: 1,
               child: Text(
                 totalQuantity.toString(),
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -219,8 +271,35 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               flex: 2,
               child: Text(
                 order.formattedTotal,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary(context)),
                 textAlign: TextAlign.right,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.edit,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    onPressed: () => _editOrder(order),
+                    tooltip: 'Edit Order',
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: Icon(
+                      Icons.cancel,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    onPressed: () => _cancelOrder(order),
+                    tooltip: 'Cancel Order',
+                  ),
+                ],
               ),
             ),
           ],
@@ -237,7 +316,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
           Icon(
             Icons.shopping_bag_outlined,
             size: 80,
-            color: Colors.grey.shade400,
+            color: AppTheme.textSecondaryColor(context),
           ),
           const SizedBox(height: 16),
           Text(
@@ -258,6 +337,505 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _editOrder(UserOrder order) async {
+    // Simple status update dialog
+    final newStatus = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Update Order Status'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Order #${order.id.substring(0, 8).toUpperCase()}'),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: order.status.name,
+              decoration: const InputDecoration(
+                labelText: 'Status',
+                border: OutlineInputBorder(),
+              ),
+              items: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
+                  .map((status) => DropdownMenuItem(
+                        value: status,
+                        child: Text(status.toUpperCase()),
+                      ))
+                  .toList(),
+              onChanged: (value) => Navigator.of(context).pop(value),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (newStatus != null && newStatus != order.status.name) {
+      setState(() => _isLoading = true);
+      try {
+        await FirebaseFirestore.instance
+            .collection('orders')
+            .doc(order.id)
+            .update({'status': newStatus, 'updatedAt': FieldValue.serverTimestamp()});
+        
+        _showSuccessMessage('Order updated successfully');
+      } catch (e) {
+        _showErrorMessage('Error updating order: $e');
+      } finally {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _cancelOrder(UserOrder order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: Text('Are you sure you want to cancel Order #${order.id.substring(0, 8).toUpperCase()}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Yes, Cancel', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+      try {
+        await FirebaseFirestore.instance
+            .collection('orders')
+            .doc(order.id)
+            .update({
+          'status': 'cancelled',
+          'cancelledAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        
+        _showSuccessMessage('Order cancelled successfully');
+      } catch (e) {
+        _showErrorMessage('Error cancelling order: $e');
+      } finally {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Widget _buildFiltersSection() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          // Filter Header
+          InkWell(
+            onTap: () => setState(() => _isFiltersExpanded = !_isFiltersExpanded),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.filter_list,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Advanced Filters',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_hasActiveFilters())
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${_getActiveFilterCount()}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  Icon(
+                    _isFiltersExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Filter Content
+          if (_isFiltersExpanded)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      // Status Filter
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Order Status',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            DropdownButtonFormField<String>(
+                              value: _statusFilter,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                isDense: true,
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'all', child: Text('All Orders')),
+                                DropdownMenuItem(value: 'pending', child: Text('Pending')),
+                                DropdownMenuItem(value: 'confirmed', child: Text('Confirmed')),
+                                DropdownMenuItem(value: 'processing', child: Text('Processing')),
+                                DropdownMenuItem(value: 'shipped', child: Text('Shipped')),
+                                DropdownMenuItem(value: 'delivered', child: Text('Delivered')),
+                                DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => _statusFilter = value);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      
+                      // Payment Method Filter
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Payment Method',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            DropdownButtonFormField<String>(
+                              value: _paymentFilter,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                isDense: true,
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'all', child: Text('All Methods')),
+                                DropdownMenuItem(value: 'cod', child: Text('Cash on Delivery')),
+                                DropdownMenuItem(value: 'gcash', child: Text('GCash')),
+                                DropdownMenuItem(value: 'card', child: Text('Credit/Debit Card')),
+                                DropdownMenuItem(value: 'bankTransfer', child: Text('Bank Transfer')),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => _paymentFilter = value);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Date Range Filter
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Order From',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            InkWell(
+                              onTap: () => _selectDate(true),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Theme.of(context).colorScheme.outline),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today,
+                                      size: 16,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _startDate != null
+                                          ? _formatDate(_startDate!)
+                                          : 'Select date',
+                                      style: TextStyle(
+                                        color: _startDate != null 
+                                            ? Theme.of(context).colorScheme.onSurface
+                                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    if (_startDate != null)
+                                      InkWell(
+                                        onTap: () => setState(() => _startDate = null),
+                                        child: Icon(
+                                          Icons.clear,
+                                          size: 16,
+                                          color: Theme.of(context).colorScheme.outline,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Order To',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            InkWell(
+                              onTap: () => _selectDate(false),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Theme.of(context).colorScheme.outline),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today,
+                                      size: 16,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _endDate != null
+                                          ? _formatDate(_endDate!)
+                                          : 'Select date',
+                                      style: TextStyle(
+                                        color: _endDate != null 
+                                            ? Theme.of(context).colorScheme.onSurface
+                                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    if (_endDate != null)
+                                      InkWell(
+                                        onTap: () => setState(() => _endDate = null),
+                                        child: Icon(
+                                          Icons.clear,
+                                          size: 16,
+                                          color: Theme.of(context).colorScheme.outline,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Filter Actions
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _clearFilters,
+                        icon: const Icon(Icons.clear_all, size: 16),
+                        label: const Text('Clear Filters'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: () => _showSuccessMessage('Filters applied successfully'),
+                        icon: const Icon(Icons.check, size: 16),
+                        label: const Text('Apply Filters'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  bool _hasActiveFilters() {
+    return _statusFilter != 'all' ||
+           _paymentFilter != 'all' ||
+           _startDate != null ||
+           _endDate != null;
+  }
+
+  int _getActiveFilterCount() {
+    int count = 0;
+    if (_statusFilter != 'all') count++;
+    if (_paymentFilter != 'all') count++;
+    if (_startDate != null) count++;
+    if (_endDate != null) count++;
+    return count;
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _statusFilter = 'all';
+      _paymentFilter = 'all';
+      _startDate = null;
+      _endDate = null;
+      _searchQuery = '';
+    });
+    _showSuccessMessage('Filters cleared');
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Future<void> _selectDate(bool isStartDate) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: isStartDate ? _startDate ?? DateTime.now() : _endDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStartDate) {
+          _startDate = picked;
+        } else {
+          _endDate = picked;
+        }
+      });
+    }
+  }
+
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(message),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              Icons.error,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
