@@ -45,7 +45,9 @@
       "Bash(firebase firestore:databases:*)",
       "WebFetch(domain:annedfinds.web.app)",
       "mcp__context7__resolve-library-id",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(firebase firestore:export:*)"
     ],
     "defaultMode": "acceptEdits"
   }

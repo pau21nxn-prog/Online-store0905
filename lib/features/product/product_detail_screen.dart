@@ -266,8 +266,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                       const SizedBox(height: AppTheme.spacing8),
                       
+                      // Price Display with strikethrough for base price and sale price
                       Row(
                         children: [
+                          // Show original price (striked) if there's a sale price
+                          if (widget.product.hasDiscount && widget.product.originalPrice > widget.product.price) ...[
+                            Text(
+                              '₱${widget.product.originalPrice.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 20,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          // Current selling price (sale price or base price)
                           Text(
                             _selectedVariantConfiguration?.formattedPrice ?? widget.product.formattedPrice,
                             style: AppTheme.priceStyle.copyWith(fontSize: 28),
@@ -283,42 +297,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                             ),
                           ],
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppTheme.spacing12,
-                              vertical: AppTheme.spacing4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getAvailableStock() > 0 
-                                  ? AppTheme.successGreen.withOpacity(0.1)
-                                  : AppTheme.errorRed.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(AppTheme.radius8),
-                            ),
-                            child: Text(
-                              _getAvailableStock() > 0 
-                                  ? 'In Stock (${_getAvailableStock()})'
-                                  : 'Out of Stock',
-                              style: TextStyle(
-                                color: _getAvailableStock() > 0 
-                                    ? AppTheme.successGreen
-                                    : AppTheme.errorRed,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                       
-                      const SizedBox(height: AppTheme.spacing24),
+                      const SizedBox(height: AppTheme.spacing16),
                       
-                      // Variant Selection
-                      if (widget.product.hasCustomizableVariants) ...[
-                        ..._buildVariantSelectors(),
-                        const SizedBox(height: AppTheme.spacing24),
-                      ],
-                      
-                      // Description
+                      // Short Description  
                       Text(
                         'Description',
                         style: AppTheme.subtitleStyle.copyWith(fontSize: 18),
@@ -334,14 +318,56 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       
                       const SizedBox(height: AppTheme.spacing24),
                       
-                      // Features (Mock data for now)
+                      // Variant Selection
+                      if (widget.product.hasCustomizableVariants) ...[
+                        ..._buildVariantSelectors(),
+                        const SizedBox(height: AppTheme.spacing24),
+                      ],
+                      
+                      // Stock Information
                       Text(
-                        'Features',
+                        'Stock',
                         style: AppTheme.subtitleStyle.copyWith(fontSize: 18),
                       ),
-                      const SizedBox(height: AppTheme.spacing12),
-                      
-                      ..._buildFeaturesList(),
+                      const SizedBox(height: AppTheme.spacing8),
+                      Container(
+                        padding: const EdgeInsets.all(AppTheme.spacing12),
+                        decoration: BoxDecoration(
+                          color: _getAvailableStock() > 0 
+                              ? AppTheme.successGreen.withOpacity(0.1)
+                              : AppTheme.errorRed.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radius8),
+                          border: Border.all(
+                            color: _getAvailableStock() > 0 
+                                ? AppTheme.successGreen.withOpacity(0.3)
+                                : AppTheme.errorRed.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _getAvailableStock() > 0 ? Icons.check_circle : Icons.error,
+                              color: _getAvailableStock() > 0 
+                                  ? AppTheme.successGreen
+                                  : AppTheme.errorRed,
+                              size: 20,
+                            ),
+                            const SizedBox(width: AppTheme.spacing8),
+                            Text(
+                              _getAvailableStock() > 0 
+                                  ? '${_getAvailableStock()} units available'
+                                  : 'Out of Stock',
+                              style: TextStyle(
+                                color: _getAvailableStock() > 0 
+                                    ? AppTheme.successGreen
+                                    : AppTheme.errorRed,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       
                       const SizedBox(height: AppTheme.spacing24),
                       
@@ -384,6 +410,63 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ],
                       ),
+                      
+                      const SizedBox(height: AppTheme.spacing24),
+                      
+                      // Brand Information
+                      if (widget.product.brandId != null && widget.product.brandId!.isNotEmpty) ...[
+                        Text(
+                          'Brand',
+                          style: AppTheme.subtitleStyle.copyWith(fontSize: 18),
+                        ),
+                        const SizedBox(height: AppTheme.spacing8),
+                        Container(
+                          padding: const EdgeInsets.all(AppTheme.spacing12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryOrange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(AppTheme.radius8),
+                            border: Border.all(
+                              color: AppTheme.primaryOrange.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.business,
+                                color: AppTheme.primaryOrange,
+                                size: 20,
+                              ),
+                              const SizedBox(width: AppTheme.spacing8),
+                              Text(
+                                widget.product.brandId!,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.primaryOrange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacing24),
+                      ],
+                      
+                      // Detailed Description
+                      if (widget.product.detailedDescription.isNotEmpty) ...[
+                        Text(
+                          'Detailed Information',
+                          style: AppTheme.subtitleStyle.copyWith(fontSize: 18),
+                        ),
+                        const SizedBox(height: AppTheme.spacing8),
+                        Text(
+                          widget.product.detailedDescription,
+                          style: AppTheme.bodyStyle.copyWith(
+                            height: 1.6,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacing24),
+                      ],
                     ],
                   ),
                 ),
@@ -579,40 +662,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-  List<Widget> _buildFeaturesList() {
-    // Mock features based on product category/type
-    List<String> features = [];
-    
-    if (widget.product.name.toLowerCase().contains('phone')) {
-      features = ['Latest processor', 'High-quality camera', '5G connectivity', 'Long battery life'];
-    } else if (widget.product.name.toLowerCase().contains('buds') || 
-               widget.product.name.toLowerCase().contains('earbuds')) {
-      features = ['Noise cancellation', 'Wireless charging', 'Water resistant', 'Long playtime'];
-    } else if (widget.product.name.toLowerCase().contains('shoes') || 
-               widget.product.name.toLowerCase().contains('nike')) {
-      features = ['Comfortable fit', 'Durable materials', 'Stylish design', 'All-day comfort'];
-    } else {
-      features = ['High quality', 'Durable construction', 'Great value', 'Customer favorite'];
-    }
-    
-    return features.map((feature) => Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacing8),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.check_circle,
-            color: AppTheme.successGreen,
-            size: 20,
-          ),
-          const SizedBox(width: AppTheme.spacing8),
-          Text(
-            feature,
-            style: AppTheme.bodyStyle.copyWith(color: AppTheme.textSecondary),
-          ),
-        ],
-      ),
-    )).toList();
-  }
 
   Future<void> _addToCart() async {
     setState(() => _isAddingToCart = true);
@@ -991,7 +1040,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (_selectedVariantConfiguration != null) {
       return _selectedVariantConfiguration!.quantity;
     }
-    return widget.product.stockQty;
+    // Use totalStock from product data, fallback to stockQty for compatibility
+    return widget.product.totalStock > 0 ? widget.product.totalStock : widget.product.stockQty;
   }
 
   double _getCurrentPrice() {

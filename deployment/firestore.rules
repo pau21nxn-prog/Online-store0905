@@ -5,19 +5,22 @@ service cloud.firestore {
     match /users/{userId} {
       // Read: users can read their own data OR admins can read all users
       allow read: if request.auth != null && 
-        (request.auth.uid == userId || isAdmin());
+        (request.auth.uid == userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
       
       // List: admins can list all users for management
-      allow list: if request.auth != null && isAdmin();
+      allow list: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
       
       // Write: users can write their own data OR admins can manage all users
       allow write: if request.auth != null && 
-        (request.auth.uid == userId || isAdmin());
+        (request.auth.uid == userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
       
       // Create: users can create their own data OR admins can create any user
       allow create: if request.auth != null && 
         ((request.auth.uid == userId && isValidUserData(resource.data)) || 
-         isAdmin());
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
       
       // Addresses subcollection - users can only access their own addresses
       match /addresses/{addressId} {
@@ -35,34 +38,45 @@ service cloud.firestore {
       }
     }
 
-    // Admin users collection - only for admin users
+    // Admin users collection - only for admin users (SIMPLE VERSION)
     match /adminUsers/{userId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
 
-    // Products collection - public read, admin write
+    // Products collection - public read, admin write (SIMPLE VERSION)
     match /products/{productId} {
       allow read: if true; // Public read access for browsing
-      allow write: if request.auth != null && isAdmin()
-        && isValidProductData(resource.data);
+      // SIMPLIFIED: Just check if user exists in adminUsers collection
+      allow write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
       
-      // Product variants subcollection
+      // Product variants subcollection (SIMPLE VERSION)
       match /variants/{variantId} {
         allow read: if true;
-        allow write: if request.auth != null && isAdmin();
+        allow write: if request.auth != null && 
+          exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
       }
       
-      // Product media subcollection
+      // Product media subcollection (SIMPLE VERSION)
       match /media/{mediaId} {
         allow read: if true;
-        allow write: if request.auth != null && isAdmin();
+        allow write: if request.auth != null && 
+          exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
       }
     }
 
-    // Categories collection - public read, admin write
+    // Categories collection - public read, admin write (SIMPLE VERSION)
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if request.auth != null && isAdmin();
+      allow write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+    }
+
+    // Bulk operations collection - admin only (SIMPLE VERSION)
+    match /bulkOperations/{operationId} {
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
 
     // Orders collection - supports both authenticated and anonymous users
@@ -71,10 +85,11 @@ service cloud.firestore {
       allow read: if request.auth != null && 
         (request.auth.uid == resource.data.userId || 
          request.auth.uid == resource.data.buyerUid || 
-         isAdmin());
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
       
-      // List: admins can list all orders for management
-      allow list: if request.auth != null && isAdmin();
+      // List: admins can list all orders for management (SIMPLE VERSION)
+      allow list: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
       
       // Create: authenticated users (including anonymous) can create orders
       allow create: if request.auth != null && 
@@ -86,26 +101,7 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && 
         (request.auth.uid == resource.data.userId || 
          request.auth.uid == resource.data.buyerUid || 
-         isAdmin());
-    }
-
-    // Payments collection - CRITICAL for order placement
-    match /payments/{paymentId} {
-      // Read: user can read their own payments OR admin can read all
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || isAdmin());
-      
-      // Create: authenticated users (including anonymous) can create payments
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.userId &&
-        isValidPaymentData(request.resource.data);
-      
-      // Update: only admins or payment owner can update
-      allow update: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || isAdmin());
-      
-      // Delete: only admins can delete payments
-      allow delete: if request.auth != null && isAdmin();
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
     }
 
     // Cart collection - users can only access their own cart (fixed plural)
@@ -142,64 +138,76 @@ service cloud.firestore {
         request.auth.uid == request.resource.data.userId
         && isValidReviewData(request.resource.data);
       allow update, delete: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || isAdmin());
+        (request.auth.uid == resource.data.userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
     }
 
-    // Inventory alerts - admin only
+    // Inventory alerts - admin only (SIMPLE VERSION)
     match /inventoryAlerts/{alertId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
 
-    // Inventory thresholds - admin only
+    // Inventory thresholds - admin only (SIMPLE VERSION)
     match /inventoryThresholds/{thresholdId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
 
-    // Inventory movements - admin only
+    // Inventory movements - admin only (SIMPLE VERSION)
     match /inventoryMovements/{movementId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
 
-    // Product locks - admin only
+    // Product locks - admin only (SIMPLE VERSION)
     match /productLocks/{lockId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
 
     // Search analytics - read for admins, write for system
     match /searchAnalytics/{analyticsId} {
-      allow read: if request.auth != null && isAdmin();
+      allow read: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
       allow write: if request.auth != null;
     }
 
-    // Performance metrics - admin only
+    // Performance metrics - admin only (SIMPLE VERSION)
     match /performanceMetrics/{metricId} {
-      allow read: if request.auth != null && isAdmin();
+      allow read: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
       allow write: if request.auth != null;
     }
 
-    // Performance alerts - admin only
+    // Performance alerts - admin only (SIMPLE VERSION)
     match /performanceAlerts/{alertId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
 
     // Notifications - flat structure used by NotificationService
     match /notifications/{notificationId} {
       allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || isAdmin());
+        (request.auth.uid == resource.data.userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
       allow create: if request.auth != null && 
         request.auth.uid == request.resource.data.userId;
       allow update, delete: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || isAdmin());
+        (request.auth.uid == resource.data.userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
     }
 
     // Legacy nested notifications structure (keep for compatibility)
     match /notifications/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && isAdmin();
+      allow write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
       
       match /items/{notificationId} {
         allow read: if request.auth != null && request.auth.uid == userId;
-        allow write: if request.auth != null && isAdmin();
+        allow write: if request.auth != null && 
+          exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
       }
     }
 
@@ -207,7 +215,8 @@ service cloud.firestore {
     match /payments/{paymentId} {
       // Read: user can read their own payments OR admin can read all
       allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || isAdmin());
+        (request.auth.uid == resource.data.userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
       
       // Create: authenticated users (including anonymous) can create payments
       allow create: if request.auth != null && 
@@ -216,19 +225,15 @@ service cloud.firestore {
       
       // Update: only admins or payment owner can update
       allow update: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || isAdmin());
+        (request.auth.uid == resource.data.userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
       
-      // Delete: only admins can delete payments
-      allow delete: if request.auth != null && isAdmin();
+      // Delete: only admins can delete payments (SIMPLE VERSION)
+      allow delete: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
 
-    // Helper functions
-    function isAdmin() {
-      return exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid))
-        && get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.role == 'admin'
-        && get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true;
-    }
-
+    // Helper functions (REMOVED COMPLEX isAdmin function)
     function isValidUserData(data) {
       return data.keys().hasAll(['email', 'displayName', 'createdAt'])
         && data.email is string

@@ -96,9 +96,12 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
             child: Column(
               children: [
                 _buildImageGallery(),
-                _buildProductInfo(),
-                _buildVariantSelector(),
-                _buildQuantitySelector(),
+                _buildProductInfo(), // Contains: Image, Title, Price, Description
+                _buildVariantSelector(), // Variants
+                _buildStockStatusSection(), // Stock 
+                _buildQuantitySelector(), // Quantity
+                _buildBrandInfo(), // Brand
+                _buildDetailedDescription(), // Detailed Description
                 _buildTabSection(),
                 _buildRelatedProducts(),
               ],
@@ -339,12 +342,7 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
           
           const SizedBox(height: AppTheme.spacing16),
           
-          // Stock status
-          _buildStockStatus(),
-          
-          const SizedBox(height: AppTheme.spacing16),
-          
-          // Description
+          // Description (moved up in order)
           _buildDescription(),
         ],
       ),
@@ -352,7 +350,8 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
   }
 
   Widget _buildStockStatus() {
-    if (widget.product.totalStock <= 0) {
+    final availableStock = widget.product.totalStock > 0 ? widget.product.totalStock : widget.product.stockQty;
+    if (availableStock <= 0) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
@@ -375,7 +374,7 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
           ],
         ),
       );
-    } else if (widget.product.isLowStock) {
+    } else if (widget.product.isLowStock || availableStock <= 5) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
@@ -389,7 +388,7 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
             Icon(Icons.warning_outlined, color: Colors.orange.shade600, size: 16),
             const SizedBox(width: 4),
             Text(
-              'Only ${widget.product.totalStock} left in stock',
+              'Only $availableStock left in stock',
               style: TextStyle(
                 color: Colors.orange.shade600,
                 fontWeight: FontWeight.w500,
@@ -583,7 +582,7 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
                   ),
                 ),
                 IconButton(
-                  onPressed: _quantity < widget.product.totalStock 
+                  onPressed: _quantity < (widget.product.totalStock > 0 ? widget.product.totalStock : widget.product.stockQty) 
                       ? () => setState(() => _quantity++) 
                       : null,
                   icon: const Icon(Icons.add),
@@ -594,7 +593,7 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
           ),
           const Spacer(),
           Text(
-            '${widget.product.totalStock} available',
+            '${widget.product.totalStock > 0 ? widget.product.totalStock : widget.product.stockQty} available',
             style: TextStyle(
               color: Colors.grey.shade600,
               fontSize: 14,
@@ -667,6 +666,105 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
       padding: EdgeInsets.all(AppTheme.spacing16),
       child: Center(
         child: Text('Return policy will be shown here'),
+      ),
+    );
+  }
+
+  Widget _buildBrandInfo() {
+    if (widget.product.brandId == null || widget.product.brandId!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16),
+      padding: const EdgeInsets.all(AppTheme.spacing16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryOrange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppTheme.radius12),
+        border: Border.all(
+          color: AppTheme.primaryOrange.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.business,
+                color: AppTheme.primaryOrange,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Brand',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacing8),
+          Text(
+            widget.product.brandId!,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.primaryOrange,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildDetailedDescription() {
+    if (widget.product.detailedDescription.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spacing16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Detailed Information',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacing8),
+          Text(
+            widget.product.detailedDescription,
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildStockStatusSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Stock',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacing8),
+          _buildStockStatus(),
+        ],
       ),
     );
   }
@@ -768,7 +866,7 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
             // Add to cart button
             Expanded(
               child: ElevatedButton(
-                onPressed: widget.product.totalStock > 0 && !_isAddingToCart
+                onPressed: (widget.product.totalStock > 0 ? widget.product.totalStock : widget.product.stockQty) > 0 && !_isAddingToCart
                     ? _addToCart
                     : null,
                 style: ElevatedButton.styleFrom(
@@ -855,7 +953,8 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
   }
 
   Future<void> _addToCart() async {
-    if (widget.product.totalStock <= 0) return;
+    final availableStock = widget.product.totalStock > 0 ? widget.product.totalStock : widget.product.stockQty;
+    if (availableStock <= 0) return;
     
     setState(() {
       _isAddingToCart = true;

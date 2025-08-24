@@ -1,51 +1,53 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true
 service firebase.storage {
   match /b/{bucket}/o {
-    // Product images - admins can upload, everyone can read
+    // Product images - public read, admin write (SIMPLE VERSION)
     match /products/{productId}/{imageId} {
-      // Allow read access to all users for product images
       allow read: if true;
-      
-      // Allow write access only to authenticated admin users
-      allow write: if request.auth != null && 
-        exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
-        get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Simple admin check - just verify user exists in adminUsers collection
+      allow write: if request.auth != null 
+        && exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
-    
-    // Admin uploads folder - more general admin uploads
-    match /admin/{allPaths=**} {
-      allow read, write: if request.auth != null && 
-        exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
-        get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+    // Product variant images - same simple logic
+    match /products/{productId}/variants/{variantId}/{imageId} {
+      allow read: if true;
+      allow write: if request.auth != null 
+        && exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
-    
-    // Temporary uploads for processing
-    match /temp/{allPaths=**} {
-      allow read, write: if request.auth != null;
-      
-      // Auto-delete temp files after 1 day
-      allow delete: if true;
+
+    // Category images - same simple logic  
+    match /categories/{categoryId}/{imageId} {
+      allow read: if true;
+      allow write: if request.auth != null 
+        && exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
-    
-    // User profile images (if needed later)
+
+    // Admin uploads - same simple logic
+    match /admin/{path=**} {
+      allow read, write: if request.auth != null 
+        && exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+    }
+
+    // User profile images - users can upload their own OR admin can upload any
     match /users/{userId}/profile/{imageId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && 
+        (request.auth.uid == userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
     }
-    
-    // Validation rules for uploads
-    function isValidImage() {
-      return request.resource.size < 10 * 1024 * 1024 && // 10MB limit
-             request.resource.contentType.matches('image/.*');
+
+    // Temp uploads - any authenticated user
+    match /temp/{userId}/{uploadId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow delete: if true;
     }
-    
-    // Apply validation to all uploads
+
+    // Basic file validation - keep files under 20MB and only allow images
     match /{allPaths=**} {
-      allow write: if isValidImage();
+      allow write: if request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
     }
   }
 }

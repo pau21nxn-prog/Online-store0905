@@ -303,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('products')
-                    .where('isActive', isEqualTo: true)
+                    .where('workflow.stage', isEqualTo: 'published')
                     .orderBy('createdAt', descending: true)
                     .limit(5)
                     .snapshots(),

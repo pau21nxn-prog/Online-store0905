@@ -30,7 +30,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
   // Form controllers
   final _basicInfoFormKey = GlobalKey<FormState>();
   final _variantsFormKey = GlobalKey<FormState>();
-  final _specsFormKey = GlobalKey<FormState>();
   
   // Basic Info controllers
   final _titleController = TextEditingController();
@@ -49,6 +48,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
   final _shippingFeeController = TextEditingController();
   final _freeShippingThresholdController = TextEditingController();
   
+  // Stock management controllers
+  final _stockQuantityController = TextEditingController();
+  final _lowStockThresholdController = TextEditingController();
+  
   // Current product state
   Product? _currentProduct;
   ProductLock? _productLock;
@@ -56,7 +59,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
   List<ProductVariant> _variants = [];
   List<ProductMedia> _media = [];
   List<ProductOption> _options = [];
-  Map<String, String> _specs = {};
   
   // New variant system state
   List<VariantAttribute> _variantAttributes = [];
@@ -72,6 +74,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
   Timer? _autosaveTimer;
   
   static const Duration _autosaveDelay = Duration(seconds: 3);
+
 
   @override
   void initState() {
@@ -100,6 +103,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
     _shippingWeightController.addListener(_onShippingChanged);
     _shippingFeeController.addListener(_onShippingChanged);
     _freeShippingThresholdController.addListener(_onShippingChanged);
+    _stockQuantityController.addListener(_onFormChanged);
+    _lowStockThresholdController.addListener(_onFormChanged);
   }
 
   void _onShippingChanged() {
@@ -201,7 +206,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
     _detailedDescriptionController.text = product.detailedDescription;
     _selectedCategoryId = product.primaryCategoryId;
     _status = product.workflow.stage;
-    _specs = Map<String, String>.from(product.specs);
     
     // Load pricing data if available
     if (product.priceRange.min > 0) {
@@ -229,6 +233,16 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
     _variantAttributes = List.from(product.variantAttributes);
     _variantConfigurations = List.from(product.variantConfigurations);
     _hasCustomizableVariants = product.hasCustomizableVariants;
+    
+    // Load stock data if available
+    if (product.totalStock > 0) {
+      _stockQuantityController.text = product.totalStock.toString();
+    }
+    // Load low stock threshold if available from product attributes
+    final lowStockThreshold = product.attributes['lowStockThreshold'];
+    if (lowStockThreshold != null) {
+      _lowStockThresholdController.text = lowStockThreshold.toString();
+    }
     
     // Load media data from product document
     _loadProductMediaFromDocument();
@@ -578,6 +592,119 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
                       });
                       _onFormChanged();
                     },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: AppTheme.spacing16),
+          
+          // Stock Management Section
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.spacing16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.inventory, color: AppTheme.primaryOrange),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Stock Management',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  
+                  Row(
+                    children: [
+                      // Stock Quantity Field  
+                      Expanded(
+                        child: TextFormField(
+                          controller: _stockQuantityController,
+                          decoration: const InputDecoration(
+                            labelText: 'Stock Quantity *',
+                            border: OutlineInputBorder(),
+                            helperText: 'Available inventory count',
+                            suffixText: 'units',
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter stock quantity';
+                            }
+                            final qty = int.tryParse(value);
+                            if (qty == null) {
+                              return 'Enter a valid number';
+                            }
+                            if (qty < 0) {
+                              return 'Quantity cannot be negative';
+                            }
+                            if (qty > 999999) {
+                              return 'Quantity too large (max: 999,999)';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      
+                      const SizedBox(width: AppTheme.spacing12),
+                      
+                      // Low Stock Threshold
+                      Expanded(
+                        child: TextFormField(
+                          controller: _lowStockThresholdController,
+                          decoration: const InputDecoration(
+                            labelText: 'Low Stock Alert Threshold',
+                            border: OutlineInputBorder(),
+                            helperText: 'Alert when stock falls below this',
+                            suffixText: 'units',
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              final threshold = int.tryParse(value);
+                              if (threshold == null) {
+                                return 'Enter a valid number';
+                              }
+                              if (threshold < 0) {
+                                return 'Threshold cannot be negative';
+                              }
+                              final stockQty = int.tryParse(_stockQuantityController.text) ?? 0;
+                              if (threshold > stockQty) {
+                                return 'Threshold cannot exceed stock quantity';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: AppTheme.spacing12),
+                  
+                  // Stock Summary
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryOrange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildStockSummaryRow('Current Stock:', _getCurrentStockDisplay()),
+                        if (_getLowStockThreshold() != null) ...[
+                          const SizedBox(height: 4),
+                          _buildStockSummaryRow('Low Stock Alert:', '${_getLowStockThreshold()} units',
+                              isWarning: _getCurrentStock() <= (_getLowStockThreshold() ?? 0)),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1686,8 +1813,16 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
     if (_titleController.text.trim().isEmpty || 
         _slugController.text.trim().isEmpty || 
         _descriptionController.text.trim().isEmpty ||
-        _selectedCategoryId == null) {
+        _selectedCategoryId == null ||
+        _stockQuantityController.text.trim().isEmpty) {
       print('🔍 Autosave skipped: Required fields not filled');
+      return;
+    }
+    
+    // Skip autosave if stock quantity is invalid
+    final stockQty = int.tryParse(_stockQuantityController.text);
+    if (stockQty == null || stockQty < 0) {
+      print('🔍 Autosave skipped: Invalid stock quantity');
       return;
     }
 
@@ -1744,6 +1879,36 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
       );
       return;
     }
+    
+    if (_stockQuantityController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter stock quantity')),
+      );
+      return;
+    }
+    
+    if (_basePriceController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter base price')),
+      );
+      return;
+    }
+    
+    // Validate price relationship
+    final basePrice = double.tryParse(_basePriceController.text);
+    final salePrice = double.tryParse(_salePriceController.text);
+    if (basePrice == null || basePrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid base price')),
+      );
+      return;
+    }
+    if (salePrice != null && salePrice >= basePrice) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sale price must be less than base price')),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -1779,6 +1944,18 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
           'currency': 'PHP',
         },
         'imageUrls': _media.map((m) => m.storagePath).toList(),
+        // Brand data
+        'brandId': _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
+        // Stock data
+        'stockQty': int.tryParse(_stockQuantityController.text) ?? 0,
+        'totalStock': int.tryParse(_stockQuantityController.text) ?? 0,
+        'attributes': {
+          'lowStockThreshold': int.tryParse(_lowStockThresholdController.text),
+        },
+        'computed': {
+          'totalStock': int.tryParse(_stockQuantityController.text) ?? 0,
+          'isLowStock': (int.tryParse(_stockQuantityController.text) ?? 0) <= (int.tryParse(_lowStockThresholdController.text) ?? 5),
+        },
         // Variant system data
         'hasCustomizableVariants': _hasCustomizableVariants,
         'variantAttributes': _variantAttributes.map((attr) => attr.toMap()).toList(),
@@ -1902,7 +2079,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
         'brandId': _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
         'primaryCategoryId': _selectedCategoryId ?? '',
         'categoryPath': _getCategoryPath(_selectedCategoryId ?? ''),
-        'specs': _specs,
         'workflow': {
           'stage': status.name,
           'reviewedBy': status == ProductStatus.published ? 'current_user_id' : null,
@@ -1945,6 +2121,17 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
         // Add primary image URL for quick access (compatibility with existing code)
         'imageUrls': imageUrls,
         'primaryImageUrl': primaryImageUrl,
+        // Stock data
+        'stockQty': int.tryParse(_stockQuantityController.text) ?? 0,
+        'totalStock': int.tryParse(_stockQuantityController.text) ?? 0,
+        'attributes': {
+          'lowStockThreshold': int.tryParse(_lowStockThresholdController.text),
+        },
+        'computed': {
+          'totalStock': int.tryParse(_stockQuantityController.text) ?? 0,
+          'isLowStock': (int.tryParse(_stockQuantityController.text) ?? 0) <= (int.tryParse(_lowStockThresholdController.text) ?? 5),
+          'variantCount': _variantConfigurations.length,
+        },
         // Variant system data
         'hasCustomizableVariants': _hasCustomizableVariants,
         'variantAttributes': _variantAttributes.map((attr) => attr.toMap()).toList(),
@@ -2154,6 +2341,49 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
     );
   }
 
+  // Stock management helper methods
+  int _getCurrentStock() {
+    return int.tryParse(_stockQuantityController.text) ?? 0;
+  }
+  
+  String _getCurrentStockDisplay() {
+    final stock = _getCurrentStock();
+    if (stock <= 0) {
+      return 'Out of Stock';
+    }
+    return '$stock units';
+  }
+  
+  int? _getLowStockThreshold() {
+    final value = _lowStockThresholdController.text;
+    if (value.isEmpty) return null;
+    return int.tryParse(value);
+  }
+  
+  Widget _buildStockSummaryRow(String label, String value, {bool isWarning = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label, 
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textPrimaryColor(context),
+          ),
+        ),
+        Text(
+          value, 
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isWarning ? Colors.orange : 
+                   value.contains('Out of Stock') ? Colors.red :
+                   AppTheme.textPrimaryColor(context),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     _autosaveTimer?.cancel();
@@ -2169,6 +2399,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
     _shippingWeightController.dispose();
     _shippingFeeController.dispose();
     _freeShippingThresholdController.dispose();
+    _stockQuantityController.dispose();
+    _lowStockThresholdController.dispose();
     super.dispose();
   }
 }
