@@ -667,7 +667,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     setState(() => _isAddingToCart = true);
     
     try {
-      await CartService.addToCart(widget.product, quantity: _quantity);
+      // Prepare variant data
+      String? selectedVariantId;
+      Map<String, String>? selectedOptions;
+      String? variantSku;
+      String? variantDisplayName;
+      
+      if (_selectedVariantConfiguration != null) {
+        selectedVariantId = _selectedVariantConfiguration!.id;
+        selectedOptions = Map<String, String>.from(_selectedVariantOptions);
+        variantSku = _selectedVariantConfiguration!.sku;
+        variantDisplayName = _selectedVariantConfiguration!.displayName;
+      }
+      
+      await CartService.addToCart(
+        widget.product, 
+        quantity: _quantity,
+        selectedVariantId: selectedVariantId,
+        selectedOptions: selectedOptions,
+        variantSku: variantSku,
+        variantDisplayName: variantDisplayName,
+      );
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -712,7 +732,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     setState(() => _isAddingToCart = true);
     
     try {
-      await CartService.addToCart(widget.product, quantity: _quantity);
+      // Prepare variant data
+      String? selectedVariantId;
+      Map<String, String>? selectedOptions;
+      String? variantSku;
+      String? variantDisplayName;
+      
+      if (_selectedVariantConfiguration != null) {
+        selectedVariantId = _selectedVariantConfiguration!.id;
+        selectedOptions = Map<String, String>.from(_selectedVariantOptions);
+        variantSku = _selectedVariantConfiguration!.sku;
+        variantDisplayName = _selectedVariantConfiguration!.displayName;
+      }
+      
+      await CartService.addToCart(
+        widget.product, 
+        quantity: _quantity,
+        selectedVariantId: selectedVariantId,
+        selectedOptions: selectedOptions,
+        variantSku: variantSku,
+        variantDisplayName: variantDisplayName,
+      );
       
       if (mounted) {
         setState(() => _isAddingToCart = false);

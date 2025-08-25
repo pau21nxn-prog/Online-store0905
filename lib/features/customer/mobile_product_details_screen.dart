@@ -4,6 +4,7 @@ import '../../models/product.dart';
 import '../../models/product_variant.dart';
 import '../../common/theme.dart';
 import '../../services/product_analytics_service.dart';
+import '../../services/cart_service.dart';
 
 class MobileProductDetailsScreen extends StatefulWidget {
   final Product product;
@@ -969,8 +970,28 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
       quantity: _quantity,
     );
     
-    // Simulate adding to cart
-    await Future.delayed(const Duration(seconds: 1));
+    // Prepare variant data
+    String? selectedVariantId;
+    Map<String, String>? selectedOptions;
+    String? variantSku;
+    String? variantDisplayName;
+    
+    if (_selectedVariant != null) {
+      selectedVariantId = _selectedVariant!.id;
+      selectedOptions = Map<String, String>.from(_selectedVariant!.optionValues);
+      variantSku = _selectedVariant!.sku;
+      variantDisplayName = _selectedVariant!.variantDisplayName;
+    }
+    
+    // Actually add to cart
+    await CartService.addToCart(
+      widget.product, 
+      quantity: _quantity,
+      selectedVariantId: selectedVariantId,
+      selectedOptions: selectedOptions,
+      variantSku: variantSku,
+      variantDisplayName: variantDisplayName,
+    );
     
     setState(() {
       _isAddingToCart = false;
@@ -979,7 +1000,8 @@ class _MobileProductDetailsScreenState extends State<MobileProductDetailsScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${widget.product.title} added to cart'),
+          content: Text('${widget.product.title} (x$_quantity) added to cart!'),
+          backgroundColor: AppTheme.successGreen,
           action: SnackBarAction(
             label: 'View Cart',
             onPressed: () {
