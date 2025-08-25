@@ -34,7 +34,14 @@ class CartService {
   }
 
   // Add item to cart (always uses memory until payment)
-  static Future<void> addToCart(dynamic product, {int quantity = 1}) async {
+  static Future<void> addToCart(
+    dynamic product, {
+    int quantity = 1,
+    String? selectedVariantId,
+    Map<String, String>? selectedOptions,
+    String? variantSku,
+    String? variantDisplayName,
+  }) async {
     // Handle both Product object and individual parameters
     String productId, productName, imageUrl;
     double price;
@@ -55,7 +62,17 @@ class CartService {
           : '';
     }
 
-    _addToMemoryCart(productId, productName, price, imageUrl, quantity);
+    _addToMemoryCart(
+      productId, 
+      productName, 
+      price, 
+      imageUrl, 
+      quantity,
+      selectedVariantId: selectedVariantId,
+      selectedOptions: selectedOptions,
+      variantSku: variantSku,
+      variantDisplayName: variantDisplayName,
+    );
   }
 
   // Add item to cart with named parameters
@@ -65,8 +82,22 @@ class CartService {
     required double price,
     required String imageUrl,
     int quantity = 1,
+    String? selectedVariantId,
+    Map<String, String>? selectedOptions,
+    String? variantSku,
+    String? variantDisplayName,
   }) async {
-    _addToMemoryCart(productId, productName, price, imageUrl, quantity);
+    _addToMemoryCart(
+      productId, 
+      productName, 
+      price, 
+      imageUrl, 
+      quantity,
+      selectedVariantId: selectedVariantId,
+      selectedOptions: selectedOptions,
+      variantSku: variantSku,
+      variantDisplayName: variantDisplayName,
+    );
   }
 
   // Private method to add to memory cart
@@ -75,28 +106,43 @@ class CartService {
     String productName,
     double price,
     String imageUrl,
-    int quantity,
-  ) {
-    if (_memoryCart.containsKey(productId)) {
+    int quantity, {
+    String? selectedVariantId,
+    Map<String, String>? selectedOptions,
+    String? variantSku,
+    String? variantDisplayName,
+  }) {
+    // Create unique key for variant products
+    String cartKey = selectedVariantId != null ? '${productId}_$selectedVariantId' : productId;
+    
+    if (_memoryCart.containsKey(cartKey)) {
       // Update existing item
-      final existingItem = _memoryCart[productId]!;
-      _memoryCart[productId] = CartItem(
+      final existingItem = _memoryCart[cartKey]!;
+      _memoryCart[cartKey] = CartItem(
         productId: productId,
         productName: productName,
         price: price,
         quantity: existingItem.quantity + quantity,
         imageUrl: imageUrl,
         addedAt: existingItem.addedAt,
+        selectedVariantId: selectedVariantId,
+        selectedOptions: selectedOptions,
+        variantSku: variantSku,
+        variantDisplayName: variantDisplayName,
       );
     } else {
       // Add new item
-      _memoryCart[productId] = CartItem(
+      _memoryCart[cartKey] = CartItem(
         productId: productId,
         productName: productName,
         price: price,
         quantity: quantity,
         imageUrl: imageUrl,
         addedAt: DateTime.now(),
+        selectedVariantId: selectedVariantId,
+        selectedOptions: selectedOptions,
+        variantSku: variantSku,
+        variantDisplayName: variantDisplayName,
       );
     }
 
@@ -117,21 +163,25 @@ class CartService {
   }
 
   // Update item quantity
-  static Future<void> updateQuantity(String productId, int newQuantity) async {
+  static Future<void> updateQuantity(String cartKey, int newQuantity) async {
     if (newQuantity <= 0) {
-      await removeFromCart(productId);
+      await removeFromCart(cartKey);
       return;
     }
 
-    if (_memoryCart.containsKey(productId)) {
-      final item = _memoryCart[productId]!;
-      _memoryCart[productId] = CartItem(
+    if (_memoryCart.containsKey(cartKey)) {
+      final item = _memoryCart[cartKey]!;
+      _memoryCart[cartKey] = CartItem(
         productId: item.productId,
         productName: item.productName,
         price: item.price,
         quantity: newQuantity,
         imageUrl: item.imageUrl,
         addedAt: item.addedAt,
+        selectedVariantId: item.selectedVariantId,
+        selectedOptions: item.selectedOptions,
+        variantSku: item.variantSku,
+        variantDisplayName: item.variantDisplayName,
       );
       _cartController.add(_memoryCart.values.toList());
       _syncCartToFirebase();
@@ -139,8 +189,8 @@ class CartService {
   }
 
   // Remove item from cart
-  static Future<void> removeFromCart(String productId) async {
-    _memoryCart.remove(productId);
+  static Future<void> removeFromCart(String cartKey) async {
+    _memoryCart.remove(cartKey);
     _cartController.add(_memoryCart.values.toList());
     _syncCartToFirebase();
   }
@@ -170,8 +220,9 @@ class CartService {
   }
 
   // Check if product is in cart
-  static Future<bool> isInCart(String productId) async {
-    return _memoryCart.containsKey(productId);
+  static Future<bool> isInCart(String productId, {String? variantId}) async {
+    String cartKey = variantId != null ? '${productId}_$variantId' : productId;
+    return _memoryCart.containsKey(cartKey);
   }
 
   // Sync memory cart to Firebase for authenticated users (for persistence across sessions)
@@ -190,8 +241,10 @@ class CartService {
       }
       
       // Add all current memory cart items
-      for (final cartItem in _memoryCart.values) {
-        final itemRef = userCartRef.collection('items').doc(cartItem.productId);
+      for (final entry in _memoryCart.entries) {
+        final cartKey = entry.key;
+        final cartItem = entry.value;
+        final itemRef = userCartRef.collection('items').doc(cartKey);
         batch.set(itemRef, cartItem.toFirestore());
       }
 
@@ -249,12 +302,14 @@ class CartService {
     try {
       final batch = _firestore.batch();
       
-      for (final cartItem in _memoryCart.values) {
+      for (final entry in _memoryCart.entries) {
+        final cartKey = entry.key;
+        final cartItem = entry.value;
         final cartRef = _firestore
             .collection('carts')
             .doc(user.uid)
             .collection('items')
-            .doc(cartItem.productId);
+            .doc(cartKey);
 
         // Check if item already exists in Firebase cart
         final existingItem = await cartRef.get();
@@ -287,6 +342,10 @@ class CartService {
       'price': item.price,
       'quantity': item.quantity,
       'imageUrl': item.imageUrl,
+      'selectedVariantId': item.selectedVariantId,
+      'selectedOptions': item.selectedOptions,
+      'variantSku': item.variantSku,
+      'variantDisplayName': item.variantDisplayName,
     }).toList();
   }
 
@@ -315,12 +374,14 @@ class CartService {
     try {
       final batch = _firestore.batch();
       
-      for (final cartItem in _memoryCart.values) {
+      for (final entry in _memoryCart.entries) {
+        final cartKey = entry.key;
+        final cartItem = entry.value;
         final cartRef = _firestore
             .collection('carts')
             .doc(userId)
             .collection('items')
-            .doc(cartItem.productId);
+            .doc(cartKey);
 
         batch.set(cartRef, cartItem.toFirestore());
       }

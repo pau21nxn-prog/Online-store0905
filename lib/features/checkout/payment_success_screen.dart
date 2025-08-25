@@ -163,7 +163,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
           const SizedBox(height: 20),
           
           _buildDetailRow('Order ID', widget.order.id),
-          _buildDetailRow('Items', '${widget.order.itemCount} items'),
+          
+          // Detailed items breakdown
+          _buildOrderItemsList(),
+          
           _buildDetailRow('Total Amount', widget.order.formattedTotal),
           _buildDetailRow('Payment Method', widget.paymentIntent.displayMethod),
           _buildDetailRow('Order Date', _formatDate(widget.order.createdAt)),
@@ -342,5 +345,109 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
 
   String _formatDateTime(DateTime date) {
     return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildOrderItemsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Items Ordered',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.primaryColor,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...widget.order.items.map((item) => _buildSuccessOrderItem(item)),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildSuccessOrderItem(dynamic item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name ?? item['name'] ?? 'Unknown Item',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+                // Show variant information if available
+                if (item.selectedOptions != null && item.selectedOptions!.isNotEmpty)
+                  _buildSuccessVariantDisplay(item.selectedOptions!)
+                else if (item['selectedOptions'] != null && 
+                        (item['selectedOptions'] as Map).isNotEmpty)
+                  _buildSuccessVariantDisplay(
+                    Map<String, String>.from(item['selectedOptions']),
+                  ),
+                // Show SKU if available
+                if ((item.variantSku ?? item['variantSku']) != null)
+                  Text(
+                    'SKU: ${item.variantSku ?? item['variantSku']}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            'x${item.quantity ?? item['quantity'] ?? 1}',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            item.formattedPrice ?? 
+            '₱${((item['price'] ?? 0.0) * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuccessVariantDisplay(Map<String, String> options) {
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 2,
+        children: options.entries.map((entry) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFF28A745).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${entry.key}: ${entry.value}',
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF28A745),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 }

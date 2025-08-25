@@ -380,30 +380,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          ...widget.cartItems.map((item) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${item['name']} x${item['quantity']}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-                Text(
-                  '₱${((item['price'] ?? 0.0) * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-              ],
-            ),
-          )).toList(),
+          ...widget.cartItems.map((item) => _buildGuestOrderItem(item, isDarkMode)).toList(),
           Divider(color: isDarkMode ? Colors.grey[600] : Colors.grey[400]),
           Row(
             children: [
@@ -1046,5 +1023,79 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
   bool _isValidPhilippinePostalCode(String postalCode) {
     // Philippine postal codes are 4 digits
     return RegExp(r'^\d{4}$').hasMatch(postalCode);
+  }
+
+  Widget _buildGuestOrderItem(Map<String, dynamic> item, bool isDarkMode) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item['name'] ?? '',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+              ),
+              Text(
+                'x${item['quantity']}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '₱${((item['price'] ?? 0.0) * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+            ],
+          ),
+          // Show variant information if available
+          if (item['selectedOptions'] != null && 
+              (item['selectedOptions'] as Map).isNotEmpty)
+            _buildGuestVariantDisplay(
+              Map<String, String>.from(item['selectedOptions']),
+              isDarkMode,
+            ),
+          // Show SKU if available
+          if (item['variantSku'] != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'SKU: ${item['variantSku']}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuestVariantDisplay(Map<String, String> options, bool isDarkMode) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        options.entries.map((e) => '${e.key}: ${e.value}').join(' • '),
+        style: TextStyle(
+          fontSize: 12,
+          fontStyle: FontStyle.italic,
+          color: AppTheme.primaryOrange,
+        ),
+      ),
+    );
   }
 }

@@ -47,7 +47,8 @@
       "mcp__context7__resolve-library-id",
       "Bash(git checkout:*)",
       "Bash(git commit:*)",
-      "Bash(firebase firestore:export:*)"
+      "Bash(firebase firestore:export:*)",
+      "Bash(git push:*)"
     ],
     "defaultMode": "acceptEdits"
   }

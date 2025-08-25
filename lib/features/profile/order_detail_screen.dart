@@ -98,8 +98,14 @@ class OrderItem {
   final double price;
   final int quantity;
   final double total;
-  final String? variant;
+  final String? variant; // Keep for backward compatibility
   final String? sku;
+  
+  // Enhanced variant information
+  final String? selectedVariantId;
+  final Map<String, String>? selectedOptions;
+  final String? variantSku;
+  final String? variantDisplayName;
 
   const OrderItem({
     required this.productId,
@@ -110,6 +116,10 @@ class OrderItem {
     required this.total,
     this.variant,
     this.sku,
+    this.selectedVariantId,
+    this.selectedOptions,
+    this.variantSku,
+    this.variantDisplayName,
   });
 
   String get formattedPrice => '₱${price.toStringAsFixed(2)}';
@@ -125,20 +135,36 @@ class OrderItem {
       total: (data['total'] ?? 0.0).toDouble(),
       variant: data['variant'],
       sku: data['sku'],
+      selectedVariantId: data['selectedVariantId'],
+      selectedOptions: data['selectedOptions'] != null 
+          ? Map<String, String>.from(data['selectedOptions']) 
+          : null,
+      variantSku: data['variantSku'],
+      variantDisplayName: data['variantDisplayName'],
     );
   }
 
   Map<String, dynamic> toFirestore() {
-    return {
+    final map = {
       'productId': productId,
       'productName': productName,
       'productImage': productImage,
       'price': price,
       'quantity': quantity,
       'total': total,
-      if (variant != null) 'variant': variant,
-      if (sku != null) 'sku': sku,
     };
+    
+    // Legacy fields for backward compatibility
+    if (variant != null) map['variant'] = variant!;
+    if (sku != null) map['sku'] = sku!;
+    
+    // Enhanced variant fields
+    if (selectedVariantId != null) map['selectedVariantId'] = selectedVariantId!;
+    if (selectedOptions != null) map['selectedOptions'] = selectedOptions!;
+    if (variantSku != null) map['variantSku'] = variantSku!;
+    if (variantDisplayName != null) map['variantDisplayName'] = variantDisplayName!;
+    
+    return map;
   }
 }
 

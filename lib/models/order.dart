@@ -169,6 +169,12 @@ class OrderItem {
   final double price;
   final int quantity;
   final double total;
+  
+  // Variant information
+  final String? selectedVariantId;
+  final Map<String, String>? selectedOptions;
+  final String? variantSku;
+  final String? variantDisplayName;
 
   OrderItem({
     required this.productId,
@@ -177,6 +183,10 @@ class OrderItem {
     required this.price,
     required this.quantity,
     double? total,
+    this.selectedVariantId,
+    this.selectedOptions,
+    this.variantSku,
+    this.variantDisplayName,
   }) : total = total ?? (price * quantity);
 
   factory OrderItem.fromMap(Map<String, dynamic> data) {
@@ -189,11 +199,17 @@ class OrderItem {
       price: price,
       quantity: quantity,
       total: (data['total'] ?? (price * quantity)).toDouble(),
+      selectedVariantId: data['selectedVariantId'],
+      selectedOptions: data['selectedOptions'] != null 
+          ? Map<String, String>.from(data['selectedOptions']) 
+          : null,
+      variantSku: data['variantSku'],
+      variantDisplayName: data['variantDisplayName'],
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {
+    final map = {
       'productId': productId,
       'productName': productName,
       'productImage': productImage,
@@ -201,6 +217,14 @@ class OrderItem {
       'quantity': quantity,
       'total': total,
     };
+    
+    // Only add variant fields if they exist
+    if (selectedVariantId != null) map['selectedVariantId'] = selectedVariantId!;
+    if (selectedOptions != null) map['selectedOptions'] = selectedOptions!;
+    if (variantSku != null) map['variantSku'] = variantSku!;
+    if (variantDisplayName != null) map['variantDisplayName'] = variantDisplayName!;
+    
+    return map;
   }
 
   String get formattedPrice => '₱${price.toStringAsFixed(2)}';

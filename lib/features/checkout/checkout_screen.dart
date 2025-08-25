@@ -274,26 +274,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          ...widget.cartItems.map((item) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${item.productName} x${item.quantity}',
-                    style: TextStyle(color: AppTheme.textPrimaryColor(context)),
-                  ),
-                ),
-                Text(
-                  PaymentService.formatCurrency(item.price * item.quantity),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textPrimaryColor(context),
-                  ),
-                ),
-              ],
-            ),
-          )),
+          ...widget.cartItems.map((item) => _buildOrderItem(item)),
           Divider(color: AppTheme.textSecondaryColor(context).withOpacity(0.3)),
           Row(
             children: [
@@ -919,5 +900,92 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isValidPhilippinePostalCode(String postalCode) {
     // Philippine postal codes are 4 digits
     return RegExp(r'^\d{4}$').hasMatch(postalCode);
+  }
+
+  Widget _buildOrderItem(CartItem item) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.productName,
+                  style: TextStyle(
+                    color: AppTheme.textPrimaryColor(context),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                // Show variant information if available
+                if (item.selectedOptions != null && item.selectedOptions!.isNotEmpty)
+                  _buildVariantDisplay(item.selectedOptions!),
+                // Show SKU if available
+                if (item.variantSku != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'SKU: ${item.variantSku}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondaryColor(context),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  'Qty: ${item.quantity}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.textSecondaryColor(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            PaymentService.formatCurrency(item.price * item.quantity),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimaryColor(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVariantDisplay(Map<String, String> options) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: options.entries.map((entry) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryOrange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.primaryOrange.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              '${entry.key}: ${entry.value}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.primaryOrange,
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 }
