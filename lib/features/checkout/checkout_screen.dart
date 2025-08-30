@@ -976,7 +976,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             child: Text(
-              '${entry.key}: ${entry.value}',
+              entry.value,
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,

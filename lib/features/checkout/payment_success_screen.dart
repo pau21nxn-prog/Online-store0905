@@ -438,7 +438,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              '${entry.key}: ${entry.value}',
+              entry.value,
               style: const TextStyle(
                 fontSize: 11,
                 color: Color(0xFF28A745),

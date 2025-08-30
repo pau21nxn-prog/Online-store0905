@@ -1089,7 +1089,7 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Text(
-        options.entries.map((e) => '${e.key}: ${e.value}').join(' • '),
+        options.values.join(' • '),
         style: TextStyle(
           fontSize: 12,
           fontStyle: FontStyle.italic,
