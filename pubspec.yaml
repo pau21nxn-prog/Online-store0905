@@ -44,6 +44,9 @@ dependencies:
   # Utilities
   url_launcher: ^6.2.4
   
+  # Responsive design
+  responsive_builder: ^0.7.0
+  
   # Email service - NEW ADDITION
   mailer: ^6.0.1
   

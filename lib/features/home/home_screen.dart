@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../../models/product.dart';
 import '../../models/category.dart';
 import '../../services/cart_service.dart';
 import '../../services/theme_service.dart';
 import '../../services/category_service.dart';
+import '../../services/auth_service.dart';
 // Wishlist import removed
 import '../common/widgets/product_card.dart';
 import '../product/product_detail_screen.dart';
@@ -74,8 +76,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Expanded(
             child: CustomScrollView(
               slivers: [
-                // "Check mo to Mhie" Featured Section
+                // "Check mo to Mhie" Featured Section Header
                 _buildCheckMoToMhieSection(),
+                
+                // Featured Products Grid (2-column mobile layout)
+                _buildFeaturedProductsGrid(),
                 
                 // Footer Section
                 _buildFooterSection(),
@@ -283,66 +288,99 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Removed Quick Access Grid as requested
 
-  // "Check mo to Mhie" Featured Section
+  // "Check mo to Mhie" Featured Section - Mobile Grid Layout
   Widget _buildCheckMoToMhieSection() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Check this out',
-              style: AppTheme.sectionHeaderStyle.copyWith(
-                color: AppTheme.textPrimaryColor(context),
+    // Get current user to determine if admin
+    final currentUser = AuthService.currentUser;
+    final isAdmin = currentUser?.canAccessAdmin ?? false;
+    
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .where('workflow.stage', isEqualTo: 'published')
+          .orderBy('createdAt', descending: true)
+          .limit(10) // Increased limit for grid display
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: MobileLayoutUtils.getMobilePadding(),
+              child: _buildPromotedPlaceholder(),
+            ),
+          );
+        }
+
+        final products = snapshot.data!.docs
+            .map((doc) => Product.fromFirestore(doc.id, doc.data() as Map<String, dynamic>))
+            .toList();
+
+        return SliverList(
+          delegate: SliverChildListDelegate([
+            Padding(
+              padding: MobileLayoutUtils.getMobileHorizontalPadding(),
+              child: Text(
+                'Check this out',
+                style: AppTheme.sectionHeaderStyle.copyWith(
+                  color: AppTheme.textPrimaryColor(context),
+                ),
               ),
             ),
             const SizedBox(height: 12),
-            Container(
-              height: 200,
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('products')
-                    .where('workflow.stage', isEqualTo: 'published')
-                    .orderBy('createdAt', descending: true)
-                    .limit(5)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return _buildPromotedPlaceholder();
-                  }
+          ]),
+        );
+      },
+    );
+  }
+  
+  // Featured Products Grid Section
+  Widget _buildFeaturedProductsGrid() {
+    final currentUser = AuthService.currentUser;
+    final isAdmin = currentUser?.canAccessAdmin ?? false;
+    
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .where('workflow.stage', isEqualTo: 'published')
+          .orderBy('createdAt', descending: true)
+          .limit(10)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
 
-                  final products = snapshot.data!.docs
-                      .map((doc) => Product.fromFirestore(doc.id, doc.data() as Map<String, dynamic>))
-                      .toList();
+        final products = snapshot.data!.docs
+            .map((doc) => Product.fromFirestore(doc.id, doc.data() as Map<String, dynamic>))
+            .toList();
 
-                  return ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: products.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        width: 150,
-                        margin: const EdgeInsets.only(right: 12),
-                        child: ProductCard(
-                          product: products[index],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProductDetailScreen(product: products[index]),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+        return SliverPadding(
+          padding: MobileLayoutUtils.getMobileHorizontalPadding(),
+          sliver: SliverGrid(
+            gridDelegate: MobileLayoutUtils.getProductGridDelegate(
+              isAdmin: isAdmin,
+              context: context,
             ),
-          ],
-        ),
-      ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final product = products[index];
+                return ProductCard(
+                  product: product,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductDetailScreen(product: product),
+                      ),
+                    );
+                  },
+                );
+              },
+              childCount: products.length,
+            ),
+          ),
+        );
+      },
     );
   }
 

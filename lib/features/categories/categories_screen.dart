@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../../models/category.dart';
+import '../../services/auth_service.dart';
 import 'category_list_screen.dart';
 import '../search/search_screen.dart';
 
@@ -80,19 +82,24 @@ class CategoriesScreen extends StatelessWidget {
                 const SizedBox(height: AppTheme.spacing24),
 
                 // Categories Grid
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: _getCrossAxisCount(context),
-                    childAspectRatio: 0.85,
-                    crossAxisSpacing: AppTheme.spacing16,
-                    mainAxisSpacing: AppTheme.spacing16,
-                  ),
+                Builder(
+                  builder: (context) {
+                    final currentUser = AuthService.currentUser;
+                    final isAdmin = currentUser?.canAccessAdmin ?? false;
+                    
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: MobileLayoutUtils.getCategoryGridDelegate(
+                        isAdmin: isAdmin,
+                        context: context,
+                      ),
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
                     final category = categories[index];
                     return _buildCategoryCard(context, category);
+                  },
+                    );
                   },
                 ),
               ],
@@ -235,12 +242,6 @@ class CategoriesScreen extends StatelessWidget {
     );
   }
 
-  int _getCrossAxisCount(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width > 1024) return 4; // Desktop
-    if (width > 600) return 3;  // Tablet
-    return 2; // Mobile
-  }
 
   Future<void> _addSampleCategories(BuildContext context) async {
     final sampleCategories = [

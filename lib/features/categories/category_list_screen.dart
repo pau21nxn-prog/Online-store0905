@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../../models/product.dart';
+import '../../services/auth_service.dart';
 import '../common/widgets/product_card.dart';
 import '../product/product_detail_screen.dart';
 import '../search/search_screen.dart';
@@ -89,14 +91,17 @@ class CategoryListScreen extends StatelessWidget {
 
               // Products Grid
               Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(AppTheme.spacing16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: _getCrossAxisCount(context),
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: AppTheme.spacing12,
-                    mainAxisSpacing: AppTheme.spacing12,
-                  ),
+                child: Builder(
+                  builder: (context) {
+                    final currentUser = AuthService.currentUser;
+                    final isAdmin = currentUser?.canAccessAdmin ?? false;
+                    
+                    return GridView.builder(
+                      padding: MobileLayoutUtils.getMobilePadding(),
+                      gridDelegate: MobileLayoutUtils.getProductGridDelegate(
+                        isAdmin: isAdmin,
+                        context: context,
+                      ),
                   itemCount: products.length,
                   itemBuilder: (context, index) {
                     final product = products[index];
@@ -110,6 +115,8 @@ class CategoryListScreen extends StatelessWidget {
                           ),
                         );
                       },
+                    );
+                  },
                     );
                   },
                 ),
@@ -151,10 +158,4 @@ class CategoryListScreen extends StatelessWidget {
     );
   }
 
-  int _getCrossAxisCount(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width > 1024) return 6; // Desktop
-    if (width > 480) return 4;  // Tablet
-    return 2; // Mobile
-  }
 }

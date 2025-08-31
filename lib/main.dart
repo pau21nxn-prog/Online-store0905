@@ -24,6 +24,8 @@ import 'features/profile/orders_screen.dart'; // Updated import path
 import 'features/admin/admin_main_screen.dart';
 // Notifications import removed
 import 'features/checkout/simple_payment_demo.dart';
+import 'common/mobile_layout_utils.dart';
+import 'common/mobile_viewport_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -128,14 +130,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     // Show admin screens only if user is authenticated AND is admin
     final showAdminView = _currentUser?.canAccessAdmin ?? false;
-    final screens = showAdminView ? _adminScreens : _screens;
+    
+    // Admin users get desktop layout, regular users get mobile layout
+    if (showAdminView) {
+      // Admin layout - desktop view with sidebar
+      return _buildAdminDesktopLayout();
+    } else {
+      // User layout - mobile view with bottom navigation
+      return _buildUserMobileLayout();
+    }
+  }
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor(context),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: screens,
-      ),
+  Widget _buildUserMobileLayout() {
+    return MobileViewportWrapper(
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundColor(context),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _screens, // Use regular user screens
+        ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppTheme.surfaceColor(context),
@@ -167,14 +180,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             fontSize: 12,
           ),
           items: [
-            BottomNavigationBarItem(
-              icon: Icon(
-                showAdminView ? Icons.dashboard_outlined : Icons.home_outlined
-              ),
-              activeIcon: Icon(
-                showAdminView ? Icons.dashboard : Icons.home
-              ),
-              label: showAdminView ? 'Admin' : 'Home',
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Home',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.search_outlined),
@@ -300,6 +309,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ],
         ),
       ),
+      ), // Close MobileViewportWrapper
     );
+  }
+
+  Widget _buildAdminDesktopLayout() {
+    // Admin gets desktop layout - return admin main screen directly  
+    return const AdminMainScreen();
   }
 }

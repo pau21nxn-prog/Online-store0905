@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../../models/product.dart';
 import '../../models/search_filter.dart';
 import '../../services/search_service.dart';
+import '../../services/auth_service.dart';
 // Wishlist import removed
 import '../product/product_detail_screen.dart';
 
@@ -469,14 +471,16 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
 
+    // Get current user to determine layout
+    final currentUser = AuthService.currentUser;
+    final isAdmin = currentUser?.canAccessAdmin ?? false;
+    
     return GridView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: _getCrossAxisCount(context),
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+      padding: MobileLayoutUtils.getMobilePadding(),
+      gridDelegate: MobileLayoutUtils.getProductGridDelegate(
+        isAdmin: isAdmin,
+        context: context,
       ),
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
@@ -621,12 +625,6 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  int _getCrossAxisCount(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width > 1024) return 6;
-    if (width > 600) return 4;
-    return 2;
-  }
 
   void _onSearchChanged(String value) {
     setState(() {
