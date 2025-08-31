@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../../models/user.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -123,16 +124,50 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Edit Profile')),
-        body: const Center(child: CircularProgressIndicator()),
+        backgroundColor: AppTheme.backgroundColor(context),
+        appBar: AppBar(
+          title: Text(
+            'Edit Profile',
+            style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+          ),
+          backgroundColor: AppTheme.backgroundColor(context),
+          foregroundColor: AppTheme.textPrimaryColor(context),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
+          ),
+        ),
       );
     }
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: Text(
+          'Edit Profile',
+          style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+        ),
+        backgroundColor: AppTheme.backgroundColor(context),
+        foregroundColor: AppTheme.textPrimaryColor(context),
         actions: [
           TextButton(
             onPressed: _isSaving ? null : _saveProfile,
@@ -140,9 +175,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
+                    ),
                   )
-                : const Text('Save'),
+                : Text(
+                    'Save',
+                    style: TextStyle(color: AppTheme.primaryOrange),
+                  ),
           ),
         ],
       ),
@@ -197,7 +238,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // Basic Information
             Text(
               'Basic Information',
-              style: AppTheme.subtitleStyle.copyWith(fontSize: 18),
+              style: AppTheme.subtitleStyle.copyWith(
+                fontSize: 18,
+                color: AppTheme.textPrimaryColor(context),
+              ),
             ),
             const SizedBox(height: AppTheme.spacing16),
 
@@ -256,7 +300,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // Account Information
             Text(
               'Account Information',
-              style: AppTheme.subtitleStyle.copyWith(fontSize: 18),
+              style: AppTheme.subtitleStyle.copyWith(
+                fontSize: 18,
+                color: AppTheme.textPrimaryColor(context),
+              ),
             ),
             const SizedBox(height: AppTheme.spacing16),
 

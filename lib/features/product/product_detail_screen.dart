@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../../models/product.dart';
 import '../../models/cart_item.dart';
 import '../../models/variant_option.dart';
@@ -58,9 +59,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
-        slivers: [
+      slivers: [
           // App Bar with Image
           SliverAppBar(
             expandedHeight: 400,

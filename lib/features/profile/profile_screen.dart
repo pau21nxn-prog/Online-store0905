@@ -5,6 +5,7 @@ import '../../models/user.dart';
 import '../../services/auth_service.dart'; // Our new service
 // Wishlist service import removed
 import '../../services/theme_service.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../auth/login_screen.dart';
 import '../auth/checkout_auth_modal.dart';
 import 'edit_profile_screen.dart';
@@ -76,6 +77,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     final isGuest = _currentUser?.isGuest ?? true;
     final isAuthenticated = AuthService.isAuthenticated;
     

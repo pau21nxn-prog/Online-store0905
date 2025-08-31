@@ -81,7 +81,24 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
         title: _buildSearchBar(),
         backgroundColor: AppTheme.primaryOrange,

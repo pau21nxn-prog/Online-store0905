@@ -20,9 +20,31 @@ class CategoryListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
-        title: Text(categoryName),
+        title: Text(
+          categoryName,
+          style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+        ),
+        backgroundColor: AppTheme.backgroundColor(context),
+        foregroundColor: AppTheme.textPrimaryColor(context),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),

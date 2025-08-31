@@ -7,6 +7,7 @@ import 'dart:async';
 import '../../models/payment_models.dart';
 import '../../services/payment_service_new.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import 'payment_success_screen.dart';
 import 'payment_failed_screen.dart';
 
@@ -373,6 +374,22 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
         // Prevent back navigation during payment processing
@@ -386,7 +403,7 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen>
         return true;
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: AppTheme.backgroundColor(context),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -398,13 +415,17 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen>
                     if (!_isProcessing)
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: AppTheme.textPrimaryColor(context),
+                        ),
                       ),
                     const Spacer(),
                     Text(
                       'Payment Processing',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimaryColor(context),
                       ),
                     ),
                     const Spacer(),

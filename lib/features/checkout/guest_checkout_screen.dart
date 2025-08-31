@@ -5,6 +5,7 @@ import '../../services/cart_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/email_service.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import 'qr_payment_checkout.dart';
 
 class GuestCheckoutScreen extends StatefulWidget {
@@ -67,7 +68,13 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: _isProcessing
+      body: _buildMobileConstrainedBody(context),
+    );
+  }
+
+  Widget _buildMobileConstrainedBody(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    final bodyContent = _isProcessing
           ? const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -301,8 +308,19 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                   ],
                 ),
               ),
-            ),
-    );
+            );
+
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: bodyContent,
+        ),
+      );
+    }
+    
+    return bodyContent;
   }
 
   Widget _buildEmailNotice() {

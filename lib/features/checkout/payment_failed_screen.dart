@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../../models/payment_models.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 
 class PaymentFailedScreen extends StatelessWidget {
   final PaymentIntent paymentIntent;
@@ -19,7 +20,13 @@ class PaymentFailedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      body: SafeArea(
+      body: _buildMobileConstrainedBody(context),
+    );
+  }
+
+  Widget _buildMobileConstrainedBody(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    final bodyContent = SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -82,6 +89,18 @@ class PaymentFailedScreen extends StatelessWidget {
         ),
       ),
     );
+
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: bodyContent,
+        ),
+      );
+    }
+    
+    return bodyContent;
   }
 
   String _getFailureMessage() {

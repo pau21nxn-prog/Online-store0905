@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import '../../models/payment_models.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 
 class PaymentSuccessScreen extends StatefulWidget {
   final PaymentIntent paymentIntent;
@@ -40,8 +41,14 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      body: Stack(
-        children: [
+      body: _buildMobileConstrainedBody(context),
+    );
+  }
+
+  Widget _buildMobileConstrainedBody(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    final bodyContent = Stack(
+      children: [
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -123,6 +130,18 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         ],
       ),
     );
+
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: bodyContent,
+        ),
+      );
+    }
+    
+    return bodyContent;
   }
 
   Widget _buildOrderDetailsCard() {

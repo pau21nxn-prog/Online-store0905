@@ -10,6 +10,7 @@ import '../../services/cart_service.dart';
 // Notification service import removed
 import '../../services/address_service.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import 'qr_payment_checkout.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -234,22 +235,39 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         foregroundColor: AppTheme.textPrimaryColor(context),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildOrderSummary(),
-            const SizedBox(height: 24),
-            _buildEmailNotice(),
-            const SizedBox(height: 24),
-            _buildShippingAddress(),
-            const SizedBox(height: 32),
-            _buildPlaceOrderButton(),
-          ],
-        ),
+      body: _buildMobileConstrainedBody(context),
+    );
+  }
+
+  Widget _buildMobileConstrainedBody(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    final bodyContent = SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildOrderSummary(),
+          const SizedBox(height: 24),
+          _buildEmailNotice(),
+          const SizedBox(height: 24),
+          _buildShippingAddress(),
+          const SizedBox(height: 32),
+          _buildPlaceOrderButton(),
+        ],
       ),
     );
+
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: bodyContent,
+        ),
+      );
+    }
+    
+    return bodyContent;
   }
 
   Widget _buildOrderSummary() {

@@ -22,8 +22,7 @@ import 'features/cart/cart_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/profile/orders_screen.dart'; // Updated import path
 import 'features/admin/admin_main_screen.dart';
-// Notifications import removed
-import 'features/checkout/simple_payment_demo.dart';
+// Removed unused imports: simple_payment_demo.dart
 import 'common/mobile_layout_utils.dart';
 import 'common/mobile_viewport_wrapper.dart';
 
@@ -70,8 +69,7 @@ class AnneDFindsApp extends StatelessWidget {
             '/login': (context) => const LoginScreen(),
             '/cart': (context) => const CartScreen(),
             '/orders': (context) => const OrdersScreen(), // Updated route
-            // Notifications route removed
-            '/payment-demo': (context) => const SimplePaymentDemo(),
+            // Removed unused routes: notifications, payment-demo
           },
         );
       },

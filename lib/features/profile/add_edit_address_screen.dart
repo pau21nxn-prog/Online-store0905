@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../../models/address.dart';
 import '../../services/address_service.dart';
 
@@ -78,10 +79,29 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Address' : 'Add Address'),
+        title: Text(
+          _isEditing ? 'Edit Address' : 'Add Address',
+          style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+        ),
         backgroundColor: AppTheme.backgroundColor(context),
         foregroundColor: AppTheme.textPrimaryColor(context),
         elevation: 0,

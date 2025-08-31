@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 
 // Order Status Enum
 enum OrderStatus {
@@ -347,9 +348,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(),
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppTheme.backgroundColor(context),
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: RefreshIndicator(
@@ -389,9 +406,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: Text('Order #${widget.order.shortId}'),
-      backgroundColor: AppTheme.primaryOrange,
-      foregroundColor: Colors.white,
+      title: Text(
+        'Order #${widget.order.shortId}',
+        style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+      ),
+      backgroundColor: AppTheme.backgroundColor(context),
+      foregroundColor: AppTheme.textPrimaryColor(context),
       elevation: 0,
       actions: [
         if (widget.order.trackingNumber != null)

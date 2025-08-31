@@ -63,8 +63,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: _buildEnhancedAppBar(context),
       drawer: _buildCategoryDrawer(context),
       body: Column(
@@ -108,10 +125,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             icon: Icon(Icons.menu, color: Colors.white, size: 22), // Reduced size
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             tooltip: 'Categories',
-            padding: EdgeInsets.all(6), // Compressed padding
+            padding: EdgeInsets.only(left: 0, top: 6, right: 6, bottom: 6), // 0px from left border
           ),
           
-          const SizedBox(width: 6), // Reduced spacing
+          const SizedBox(width: 4), // 4px spacing between hamburger and logo
           
           // 2. Logo: "AnneDFinds" text in orange with white rounded rectangle, slightly tilted, 0.8x size
           Transform.rotate(
@@ -157,12 +174,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 onPressed: themeService.toggleTheme,
                 tooltip: themeService.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-                padding: EdgeInsets.all(6), // Compressed padding
+                padding: EdgeInsets.only(left: 6, top: 6, right: 0, bottom: 6), // 0px from right side
               );
             },
           ),
           
-          const SizedBox(width: 4), // Minimal spacing
+          const SizedBox(width: 2), // Minimal spacing
           
           // 4. Login button (icon only, no text) - moved to rightmost position with minimal spacing
           IconButton(
@@ -171,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Navigator.pushNamed(context, '/login');
             },
             tooltip: 'Sign In',
-            padding: EdgeInsets.all(6), // Compressed padding
+            padding: EdgeInsets.only(left: 2, top: 8, right: 0, bottom: 8), // 0px from right border
           ),
         ],
       ),

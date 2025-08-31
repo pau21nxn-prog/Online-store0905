@@ -4,6 +4,7 @@ import '../../models/cart_item.dart';
 import '../../services/cart_service.dart';
 import '../../services/payment_service.dart';
 import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../auth/checkout_auth_modal.dart';
 import '../checkout/checkout_screen.dart';
 import '../checkout/guest_checkout_screen.dart';
@@ -13,26 +14,46 @@ class CartScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor(context),
       appBar: _buildAppBar(context),
-      body: StreamBuilder<List<CartItem>>(
-        stream: CartService.getCartItems(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildLoadingState();
-          }
+      body: _buildBodyContent(context),
+    );
+  }
 
-          if (snapshot.hasError) {
-            return _buildErrorState(context);
-          }
+  Widget _buildBodyContent(BuildContext context) {
+    return StreamBuilder<List<CartItem>>(
+      stream: CartService.getCartItems(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildLoadingState();
+        }
 
-          final cartItems = snapshot.data ?? [];
-          return cartItems.isEmpty 
-              ? _buildEmptyCart(context) 
-              : _buildCartWithItems(context, cartItems);
-        },
-      ),
+        if (snapshot.hasError) {
+          return _buildErrorState(context);
+        }
+
+        final cartItems = snapshot.data ?? [];
+        return cartItems.isEmpty 
+            ? _buildEmptyCart(context) 
+            : _buildCartWithItems(context, cartItems);
+      },
     );
   }
 
@@ -246,6 +267,29 @@ class CartScreen extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
+                  // Variant information
+                  if (item.variantDisplayName != null) ...[
+                    Text(
+                      item.variantDisplayName!,
+                      style: TextStyle(
+                        color: AppTheme.primaryOrange,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                  ],
+                  // SKU information
+                  if (item.variantSku != null) ...[
+                    Text(
+                      'SKU: ${item.variantSku!}',
+                      style: TextStyle(
+                        color: AppTheme.textSecondaryColor(context),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   Text(
                     PaymentService.formatCurrency(item.price),
                     style: const TextStyle(
