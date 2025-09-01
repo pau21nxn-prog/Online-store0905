@@ -224,6 +224,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
@@ -235,13 +251,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         foregroundColor: AppTheme.textPrimaryColor(context),
         elevation: 0,
       ),
-      body: _buildMobileConstrainedBody(context),
+      body: _buildBodyContent(context),
     );
   }
 
-  Widget _buildMobileConstrainedBody(BuildContext context) {
-    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
-    final bodyContent = SingleChildScrollView(
+  Widget _buildBodyContent(BuildContext context) {
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,18 +271,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ],
       ),
     );
-
-    if (shouldUseWrapper) {
-      return Center(
-        child: Container(
-          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
-          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
-          child: bodyContent,
-        ),
-      );
-    }
-    
-    return bodyContent;
   }
 
   Widget _buildOrderSummary() {

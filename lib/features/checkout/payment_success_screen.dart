@@ -39,22 +39,47 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: _buildMobileConstrainedBody(context),
+      backgroundColor: AppTheme.backgroundColor(context),
+      appBar: AppBar(
+        title: Text(
+          'Payment Submitted',
+          style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+        ),
+        backgroundColor: AppTheme.successGreen,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: _buildBodyContent(context),
     );
   }
 
-  Widget _buildMobileConstrainedBody(BuildContext context) {
-    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
-    final bodyContent = Stack(
+  Widget _buildBodyContent(BuildContext context) {
+    return Stack(
       children: [
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
               child: Column(
                 children: [
-                  const Spacer(),
+                  const SizedBox(height: 40),
                   
                   // Success Icon and Animation
                   Container(
@@ -62,12 +87,12 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                     height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFF28A745).withOpacity(0.1),
+                      color: AppTheme.successGreen.withOpacity(0.1),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.check_circle,
                       size: 80,
-                      color: Color(0xFF28A745),
+                      color: AppTheme.successGreen,
                     ),
                   ),
                   
@@ -75,10 +100,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                   
                   // Success Message
                   Text(
-                    'Payment Successful!',
+                    'Payment Notification Sent!',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF28A745),
+                      color: AppTheme.successGreen,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -86,9 +111,9 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                   const SizedBox(height: 16),
                   
                   Text(
-                    'Salamat! Your order has been confirmed and will be processed shortly.',
+                    'Payment notification sent to admin team and order confirmation sent to your email.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
+                      color: AppTheme.textSecondaryColor(context),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -103,7 +128,12 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                   // Payment Details Card
                   _buildPaymentDetailsCard(),
                   
-                  const Spacer(),
+                  const SizedBox(height: 24),
+                  
+                  // What happens next section
+                  _buildNextStepsCard(),
+                  
+                  const SizedBox(height: 40),
                   
                   // Action Buttons
                   _buildActionButtons(),
@@ -111,37 +141,25 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
               ),
             ),
           ),
-          
-          // Confetti Animation
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirection: 1.57, // Downward
-              numberOfParticles: 30,
-              colors: const [
-                Color(0xFF28A745),
-                Color(0xFF007BFF),
-                Color(0xFFFFC107),
-                Color(0xFFDC3545),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldUseWrapper) {
-      return Center(
-        child: Container(
-          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
-          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
-          child: bodyContent,
         ),
-      );
-    }
-    
-    return bodyContent;
+        
+        // Confetti Animation
+        Align(
+          alignment: Alignment.topCenter,
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirection: 1.57, // Downward
+            numberOfParticles: 30,
+            colors: const [
+              Color(0xFF28A745),
+              Color(0xFF007BFF),
+              Color(0xFFFFC107),
+              Color(0xFFDC3545),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildOrderDetailsCard() {
@@ -268,6 +286,65 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
     );
   }
 
+  Widget _buildNextStepsCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey.shade700
+              : Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'What happens next?',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimaryColor(context),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildNextStepItem('Admin will verify your payment'),
+          _buildNextStepItem('You will receive an email confirmation once verified'),
+          _buildNextStepItem('Your order will then be processed and shipped'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNextStepItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '• ',
+            style: TextStyle(
+              color: AppTheme.primaryOrange,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: AppTheme.textPrimaryColor(context),
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -330,7 +407,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         SizedBox(
           width: double.infinity,
           height: 56,
-          child: OutlinedButton(
+          child: ElevatedButton(
             onPressed: () {
               Navigator.pushNamedAndRemoveUntil(
                 context,
@@ -338,18 +415,18 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                 (route) => false,
               );
             },
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: Colors.grey[400]!),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryOrange,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Text(
-              'Continue Shopping',
+            child: const Text(
+              'Back to Home',
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),

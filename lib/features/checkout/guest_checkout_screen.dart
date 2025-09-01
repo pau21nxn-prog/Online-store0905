@@ -61,20 +61,39 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
-        title: const Text('Guest Checkout'),
-        backgroundColor: AppTheme.primaryOrange,
-        foregroundColor: Colors.white,
+        title: Text(
+          'Guest Checkout',
+          style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+        ),
+        backgroundColor: AppTheme.backgroundColor(context),
+        foregroundColor: AppTheme.textPrimaryColor(context),
         elevation: 0,
       ),
-      body: _buildMobileConstrainedBody(context),
+      body: _buildBodyContent(context),
     );
   }
 
-  Widget _buildMobileConstrainedBody(BuildContext context) {
-    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
-    final bodyContent = _isProcessing
+  Widget _buildBodyContent(BuildContext context) {
+    return _isProcessing
           ? const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -309,18 +328,6 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
                 ),
               ),
             );
-
-    if (shouldUseWrapper) {
-      return Center(
-        child: Container(
-          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
-          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
-          child: bodyContent,
-        ),
-      );
-    }
-    
-    return bodyContent;
   }
 
   Widget _buildEmailNotice() {

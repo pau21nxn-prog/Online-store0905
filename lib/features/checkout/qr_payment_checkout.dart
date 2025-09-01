@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../common/theme.dart';
+import '../../common/mobile_layout_utils.dart';
 import '../../services/email_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/cart_service.dart';
@@ -30,11 +32,31 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
-        title: const Text('Payment'),
-        backgroundColor: Colors.orange[600],
-        foregroundColor: Colors.white,
+        title: Text(
+          'Payment',
+          style: TextStyle(color: AppTheme.textPrimaryColor(context)),
+        ),
+        backgroundColor: AppTheme.backgroundColor(context),
+        foregroundColor: AppTheme.textPrimaryColor(context),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
