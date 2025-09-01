@@ -30,7 +30,8 @@ export const sendOrderConfirmationEmail = onCall(async (request) => {
       totalAmount,
       paymentMethod,
       deliveryAddress,
-      estimatedDelivery
+      estimatedDelivery,
+      skipAdminNotification
     } = data;
 
     // Validate required fields
@@ -314,11 +315,15 @@ We appreciate your trust in us.
         emailType: "order_confirmation"
       });
 
-      // Send admin notification
-      try {
-        await sendAdminNotification(orderId, customerName, toEmail, totalAmount, orderItems, deliveryAddress);
-      } catch (adminError) {
-        console.warn("⚠️ Admin notification failed:", adminError);
+      // Send admin notification (skip if specifically requested to avoid duplicates)
+      if (!skipAdminNotification) {
+        try {
+          await sendAdminNotification(orderId, customerName, toEmail, totalAmount, orderItems, deliveryAddress);
+        } catch (adminError) {
+          console.warn("⚠️ Admin notification failed:", adminError);
+        }
+      } else {
+        console.log("ℹ️ Skipping admin notification as requested (avoiding duplicate)");
       }
 
       return {

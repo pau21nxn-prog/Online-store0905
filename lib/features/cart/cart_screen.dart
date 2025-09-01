@@ -307,7 +307,7 @@ class CartScreen extends StatelessWidget {
                         context,
                         Icons.remove,
                         item.quantity > 1 
-                            ? () => CartService.updateQuantity(item.productId, item.quantity - 1)
+                            ? () => CartService.updateQuantity(item.getCartKey(), item.quantity - 1)
                             : null,
                       ),
                       
@@ -316,7 +316,7 @@ class CartScreen extends StatelessWidget {
                       _buildQuantityButton(
                         context,
                         Icons.add,
-                        () => CartService.updateQuantity(item.productId, item.quantity + 1),
+                        () => CartService.updateQuantity(item.getCartKey(), item.quantity + 1),
                       ),
                       
                       const Spacer(),
@@ -369,7 +369,7 @@ class CartScreen extends StatelessWidget {
         onFieldSubmitted: (value) {
           final newQuantity = int.tryParse(value) ?? item.quantity;
           if (newQuantity > 0 && newQuantity != item.quantity) {
-            CartService.updateQuantity(item.productId, newQuantity);
+            CartService.updateQuantity(item.getCartKey(), newQuantity);
           } else if (newQuantity <= 0) {
             // Reset to original quantity if invalid
             controller.text = '${item.quantity}';
@@ -378,7 +378,7 @@ class CartScreen extends StatelessWidget {
         onEditingComplete: () {
           final newQuantity = int.tryParse(controller.text) ?? item.quantity;
           if (newQuantity > 0 && newQuantity != item.quantity) {
-            CartService.updateQuantity(item.productId, newQuantity);
+            CartService.updateQuantity(item.getCartKey(), newQuantity);
           } else if (newQuantity <= 0) {
             // Reset to original quantity if invalid
             controller.text = '${item.quantity}';
@@ -625,7 +625,7 @@ class CartScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              CartService.removeFromCart(item.productId);
+              CartService.removeFromCart(item.getCartKey());
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

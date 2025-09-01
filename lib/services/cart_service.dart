@@ -285,7 +285,7 @@ class CartService {
           continue;
         }
         
-        _memoryCart[item.productId] = item;
+        _memoryCart[doc.id] = item;
       }
 
       _cartController.add(_memoryCart.values.toList());

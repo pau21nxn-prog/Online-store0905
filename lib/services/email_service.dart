@@ -18,6 +18,7 @@ class EmailService {
     required String paymentMethod,
     required Map<String, String> deliveryAddress,
     required DateTime estimatedDelivery,
+    bool skipAdminNotification = false,
   }) async {
     try {
       print('📧 Sending Gmail order confirmation email to: $toEmail');
@@ -40,6 +41,7 @@ class EmailService {
         paymentMethod: paymentMethod,
         deliveryAddress: deliveryAddress,
         estimatedDelivery: estimatedDelivery,
+        skipAdminNotification: skipAdminNotification,
       );
 
       if (emailSent) {
@@ -68,6 +70,7 @@ class EmailService {
     required String paymentMethod,
     required Map<String, String> deliveryAddress,
     required DateTime estimatedDelivery,
+    bool skipAdminNotification = false,
   }) async {
     try {
       print('📤 Sending email via Gmail Firebase Function...');
@@ -97,6 +100,7 @@ class EmailService {
           'deliveryInstructions': deliveryAddress['deliveryInstructions'] ?? '',
         },
         'estimatedDelivery': estimatedDelivery.toIso8601String(),
+        'skipAdminNotification': skipAdminNotification,
       };
 
       print('📋 Gmail function data: ${jsonEncode(functionData)}');

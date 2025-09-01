@@ -109,22 +109,8 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
             // Order Items
             if (items.isNotEmpty) ...[
               for (var item in items) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${item['name'] ?? 'Unknown Item'} x${item['quantity'] ?? 1}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ),
-                    Text(
-                      '₱${((item['price'] ?? 0.0) * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                _buildPaymentOrderItem(item),
+                const SizedBox(height: 12),
               ],
               
               const Divider(),
@@ -645,6 +631,7 @@ Please verify payment has been received and confirm with customer! 🎉''',
           'deliveryInstructions': '${shippingAddress['deliveryInstructions'] ?? ''}',
         },
         estimatedDelivery: DateTime.now().add(const Duration(days: 3)),
+        skipAdminNotification: true, // Prevent duplicate admin notification
       );
 
       if (adminSuccess) {
@@ -794,6 +781,104 @@ Please verify payment has been received and confirm with customer! 🎉''',
     return parts.isNotEmpty ? parts.join(', ') : 'Address not provided';
   }
 
+  Widget _buildPaymentOrderItem(dynamic item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product Name
+                Text(
+                  item['name'] ?? 'Unknown Item',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                
+                // Variant Options as Tags
+                if (item['selectedOptions'] != null && 
+                    (item['selectedOptions'] as Map).isNotEmpty)
+                  _buildPaymentVariantDisplay(
+                    Map<String, String>.from(item['selectedOptions']),
+                  ),
+                
+                // SKU Display
+                if (item['variantSku'] != null && item['variantSku'].toString().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'SKU: ${item['variantSku']}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          
+          // Quantity
+          Text(
+            'Qty: ${item['quantity'] ?? 1}',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 16),
+          
+          // Price
+          Text(
+            '₱${((item['price'] ?? 0.0) * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentVariantDisplay(Map<String, String> options) {
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: options.entries.map((entry) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.primaryColor.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              entry.value,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   // Admin contact helper functions removed as no longer needed
 }
 
@@ -811,6 +896,22 @@ class PaymentConfirmationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
+    
+    if (shouldUseWrapper) {
+      return Center(
+        child: Container(
+          width: MobileLayoutUtils.getEffectiveViewportWidth(context),
+          decoration: MobileLayoutUtils.getMobileViewportDecoration(),
+          child: _buildScaffoldContent(context),
+        ),
+      );
+    }
+    
+    return _buildScaffoldContent(context);
+  }
+
+  Widget _buildScaffoldContent(BuildContext context) {
     final paymentNames = {
       PaymentMethod.gcash: 'GCash',
       PaymentMethod.gotyme: 'GoTyme Bank',

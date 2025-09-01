@@ -90,6 +90,11 @@ class CartItem {
 
   double get totalPrice => price * quantity;
 
+  // Get the cart key used for storage and updates (includes variant info)
+  String getCartKey() {
+    return selectedVariantId != null ? '${productId}_$selectedVariantId' : productId;
+  }
+
   @override
   String toString() {
     return 'CartItem(productId: $productId, productName: $productName, price: $price, quantity: $quantity)';
