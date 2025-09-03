@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
+import 'dart:html' as html;
 import '../../common/theme.dart';
 import '../../common/mobile_layout_utils.dart';
 import '../../services/email_service.dart';
@@ -28,10 +31,33 @@ class QRPaymentCheckout extends StatefulWidget {
 
 class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
   PaymentMethod? selectedPaymentMethod;
+  PaymentMethod? expandedQRMethod;
   bool isProcessing = false;
 
   @override
   Widget build(BuildContext context) {
+    // ULTRA DEBUG: Multiple logging approaches to ensure visibility
+    print('🎯 DEBUG - QR Payment Screen Initialized:');
+    print('💰 Total Amount: ${widget.totalAmount}');
+    print('🆔 Order ID: ${widget.orderId}');
+    print('📦 OrderDetails Keys: ${widget.orderDetails.keys.toList()}');
+    print('📋 Items in OrderDetails: ${widget.orderDetails['items']?.length ?? 0}');
+    
+    // Log each item in detail
+    final items = widget.orderDetails['items'] as List<dynamic>? ?? [];
+    for (int i = 0; i < items.length; i++) {
+      final item = items[i];
+      print('🔍 QR PAYMENT ITEM $i:');
+      print('  - Name: ${item['name']}');
+      print('  - Variant SKU: ${item['variantSku']}');
+      print('  - Variant Display Name: ${item['variantDisplayName']}');
+      print('  - Selected Options: ${item['selectedOptions']}');
+      print('  - Quantity: ${item['quantity']}');
+      print('  - Price: ${item['price']}');
+    }
+    
+    print('🚨 QR PAYMENT SCREEN BUILD METHOD EXECUTED - CODE IS RUNNING!');
+    
     final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
     
     if (shouldUseWrapper) {
@@ -65,11 +91,9 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
           children: [
             _buildOrderSummary(),
             const SizedBox(height: 24),
-            _buildPaymentMethodSelection(),
-            const SizedBox(height: 24),
-            if (selectedPaymentMethod != null) _buildQRCodeDisplay(),
-            const SizedBox(height: 24),
             _buildPaymentInstructions(),
+            const SizedBox(height: 24),
+            _buildPaymentMethodSelection(),
             const SizedBox(height: 32),
             _buildConfirmPaymentButton(),
           ],
@@ -83,6 +107,20 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
     final items = widget.orderDetails['items'] as List<dynamic>? ?? [];
     final subtotal = widget.orderDetails['subtotal'] as double? ?? 0.0;
     final shipping = widget.orderDetails['shipping'] as double? ?? 99.0; // Default shipping
+    
+    // DEBUG: Log order details to console
+    print('🔍 DEBUG - QR Payment Order Details:');
+    print('📦 Total items: ${items.length}');
+    for (int i = 0; i < items.length; i++) {
+      final item = items[i];
+      print('📋 Item $i:');
+      print('  - Name: ${item['name']}');
+      print('  - Quantity: ${item['quantity']}');
+      print('  - Price: ${item['price']}');
+      print('  - Variant SKU: ${item['variantSku']}');
+      print('  - Variant Display Name: ${item['variantDisplayName']}');
+      print('  - Selected Options: ${item['selectedOptions']}');
+    }
     
     return Card(
       child: Padding(
@@ -226,59 +264,76 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
     IconData icon,
     Color color,
   ) {
+    final isExpanded = expandedQRMethod == method;
     final isSelected = selectedPaymentMethod == method;
     
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedPaymentMethod = method;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!,
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(8),
-          color: isSelected ? color.withOpacity(0.1) : null,
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? color : null,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              // Toggle QR display for this method
+              if (expandedQRMethod == method) {
+                expandedQRMethod = null;
+                selectedPaymentMethod = null;
+              } else {
+                expandedQRMethod = method;
+                selectedPaymentMethod = method;
+              }
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: isExpanded ? color : Colors.grey[300]!,
+                width: isExpanded ? 2 : 1,
               ),
+              borderRadius: BorderRadius.circular(8),
+              color: isExpanded ? color.withOpacity(0.1) : null,
             ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: color),
-          ],
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 32),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isExpanded ? color : null,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: isExpanded ? color : Colors.grey[600],
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+        
+        // Inline QR Display
+        if (isExpanded) _buildInlineQRDisplay(method, color),
+      ],
     );
   }
 
-  Widget _buildQRCodeDisplay() {
+  Widget _buildInlineQRDisplay(PaymentMethod method, Color color) {
     final qrImages = {
       PaymentMethod.gcash: 'QR/Gcash.jpg',
       PaymentMethod.gotyme: 'QR/GoTyme.jpg',
@@ -316,114 +371,152 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
       },
     };
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(
-              'Scan QR Code for ${paymentNames[selectedPaymentMethod]}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.3),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                  ),
-                ],
-              ),
-              child: Image.asset(
-                qrImages[selectedPaymentMethod]!,
-                width: 250,
-                height: 250,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 250,
-                    height: 250,
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.qr_code,
-                      size: 80,
-                      color: Colors.grey,
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Account Information Section
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'Account Information',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${accountInfo[selectedPaymentMethod]!['label']}:',
-                        style: const TextStyle(fontSize: 12, color: Colors.black54),
-                      ),
-                      Text(
-                        accountInfo[selectedPaymentMethod]!['value']!,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Account name:',
-                        style: TextStyle(fontSize: 12, color: Colors.black54),
-                      ),
-                      Text(
-                        accountInfo[selectedPaymentMethod]!['name']!,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            Text(
-              'Amount to Pay: ₱${widget.totalAmount.toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
-            ),
-          ],
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(8),
+          bottomRight: Radius.circular(8),
         ),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Scan QR Code for ${paymentNames[method]}',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                ),
+              ],
+            ),
+            child: Image.asset(
+              qrImages[method]!,
+              width: 200,
+              height: 200,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 200,
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: const Icon(
+                    Icons.qr_code,
+                    size: 60,
+                    color: Colors.grey,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Account Information Section
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Account Information',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${accountInfo[method]!['label']}:',
+                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    Text(
+                      accountInfo[method]!['value']!,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Account name:',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    Text(
+                      accountInfo[method]!['name']!,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Download QR Code Button (Web only)
+          if (kIsWeb)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 16),
+              child: OutlinedButton.icon(
+                onPressed: () => _downloadQRCode(method),
+                icon: Icon(
+                  Icons.download,
+                  size: 18,
+                  color: color,
+                ),
+                label: Text(
+                  'Save QR Code',
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: color, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          
+          Text(
+            'Amount to Pay: ₱${widget.totalAmount.toStringAsFixed(2)}',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange,
+            ),
+          ),
+        ],
       ),
     );
   }
+
 
   Widget _buildPaymentInstructions() {
     return Card(
@@ -579,10 +672,45 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
       // Prepare order items in the correct format with enhanced details
       final orderItems = (widget.orderDetails['items'] as List<dynamic>?)
           ?.map((item) => {
-            'name': '${item['name'] ?? 'Unknown Item'} (₱${((item['price'] ?? 0.0).toDouble()).toStringAsFixed(2)} each)',
+            'name': () {
+              // Build enhanced product name with variant info for email
+              String productName = item['name'] ?? 'Unknown Item';
+              
+              // Add variant display name if available
+              if (item['variantDisplayName'] != null && item['variantDisplayName'].toString().isNotEmpty) {
+                productName = '$productName - ${item['variantDisplayName']}';
+              }
+              
+              // Add SKU if available
+              if (item['variantSku'] != null && item['variantSku'].toString().isNotEmpty) {
+                productName = '$productName (SKU: ${item['variantSku']})';
+              }
+              
+              // Add price information
+              return '$productName (₱${((item['price'] ?? 0.0).toDouble()).toStringAsFixed(2)} each)';
+            }(),
             'quantity': item['quantity'] ?? 1,
             'price': (item['price'] ?? 0.0).toDouble(),
+            'variantSku': item['variantSku'],
+            'variantDisplayName': item['variantDisplayName'],
+            'selectedOptions': item['selectedOptions'],
           }).toList() ?? [];
+
+      // ULTRA DEBUG: Admin email data with maximum visibility
+      print('🚨🚨🚨 ADMIN EMAIL METHOD EXECUTING 🚨🚨🚨');
+      print('📧 DEBUG - Admin Email Data:');
+      print('📦 Admin Order Items Count: ${orderItems.length}');
+      for (int i = 0; i < orderItems.length; i++) {
+        final item = orderItems[i];
+        print('🔥 ADMIN EMAIL ITEM $i:');
+        print('  - FINAL NAME: ${item['name']}');
+        print('  - RAW VARIANT SKU: ${item['variantSku']}');
+        print('  - RAW VARIANT DISPLAY NAME: ${item['variantDisplayName']}');
+        print('  - RAW SELECTED OPTIONS: ${item['selectedOptions']}');
+        print('  - QUANTITY: ${item['quantity']}');
+        print('  - PRICE: ${item['price']}');
+      }
+      print('🚨 ADMIN EMAIL DATA PREPARED - SENDING TO EMAIL SERVICE 🚨');
 
       // Get shipping address details
       final shippingAddress = widget.orderDetails['shippingAddress'] ?? 
@@ -689,10 +817,45 @@ Please verify payment has been received and confirm with customer! 🎉''',
       // Prepare order items in the correct format with enhanced details
       final orderItems = (widget.orderDetails['items'] as List<dynamic>?)
           ?.map((item) => {
-            'name': '${item['name'] ?? 'Unknown Item'} - ₱${((item['price'] ?? 0.0).toDouble()).toStringAsFixed(2)} each',
+            'name': () {
+              // Build enhanced product name with variant info for email
+              String productName = item['name'] ?? 'Unknown Item';
+              
+              // Add variant display name if available
+              if (item['variantDisplayName'] != null && item['variantDisplayName'].toString().isNotEmpty) {
+                productName = '$productName - ${item['variantDisplayName']}';
+              }
+              
+              // Add SKU if available
+              if (item['variantSku'] != null && item['variantSku'].toString().isNotEmpty) {
+                productName = '$productName (SKU: ${item['variantSku']})';
+              }
+              
+              // Add price information
+              return '$productName - ₱${((item['price'] ?? 0.0).toDouble()).toStringAsFixed(2)} each';
+            }(),
             'quantity': item['quantity'] ?? 1,
             'price': (item['price'] ?? 0.0).toDouble(),
+            'variantSku': item['variantSku'],
+            'variantDisplayName': item['variantDisplayName'],
+            'selectedOptions': item['selectedOptions'],
           }).toList() ?? [];
+
+      // ULTRA DEBUG: Customer email data with maximum visibility  
+      print('🚨🚨🚨 CUSTOMER EMAIL METHOD EXECUTING 🚨🚨🚨');
+      print('📧 DEBUG - Customer Email Data:');
+      print('📦 Customer Order Items Count: ${orderItems.length}');
+      for (int i = 0; i < orderItems.length; i++) {
+        final item = orderItems[i];
+        print('🔥 CUSTOMER EMAIL ITEM $i:');
+        print('  - FINAL NAME: ${item['name']}');
+        print('  - RAW VARIANT SKU: ${item['variantSku']}');
+        print('  - RAW VARIANT DISPLAY NAME: ${item['variantDisplayName']}');
+        print('  - RAW SELECTED OPTIONS: ${item['selectedOptions']}');
+        print('  - QUANTITY: ${item['quantity']}');
+        print('  - PRICE: ${item['price']}');
+      }
+      print('🚨 CUSTOMER EMAIL DATA PREPARED - SENDING TO EMAIL SERVICE 🚨');
 
       // Get shipping address details
       final shippingAddress = widget.orderDetails['shippingAddress'] ?? 
@@ -782,68 +945,131 @@ Please verify payment has been received and confirm with customer! 🎉''',
   }
 
   Widget _buildPaymentOrderItem(dynamic item) {
+    // Enhanced variant display logic
+    final hasVariantDisplayName = item['variantDisplayName'] != null && item['variantDisplayName'].toString().isNotEmpty;
+    final hasVariantSku = item['variantSku'] != null && item['variantSku'].toString().isNotEmpty;
+    final hasSelectedOptions = item['selectedOptions'] != null && (item['selectedOptions'] as Map).isNotEmpty;
+    
+    // Build product name - use base name only to avoid duplication
+    String displayName = item['name'] ?? 'Unknown Item';
+    
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Product Name
-                Text(
-                  item['name'] ?? 'Unknown Item',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                
-                // Variant Options as Tags
-                if (item['selectedOptions'] != null && 
-                    (item['selectedOptions'] as Map).isNotEmpty)
-                  _buildPaymentVariantDisplay(
-                    Map<String, String>.from(item['selectedOptions']),
-                  ),
-                
-                // SKU Display
-                if (item['variantSku'] != null && item['variantSku'].toString().isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'SKU: ${item['variantSku']}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(
+            color: (hasVariantDisplayName || hasVariantSku || hasSelectedOptions) ? AppTheme.primaryOrange : Colors.transparent,
+            width: 3,
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.only(left: (hasVariantDisplayName || hasVariantSku || hasSelectedOptions) ? 12 : 0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Product Name (base name only)
+                  Text(
+                    displayName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      color: (hasVariantDisplayName || hasVariantSku || hasSelectedOptions) ? AppTheme.primaryOrange : null,
                     ),
                   ),
-              ],
+                  const SizedBox(height: 4),
+                  
+                  // Show either variant display name OR selected options (not both to avoid duplication)
+                  if (hasVariantDisplayName)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryOrange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppTheme.primaryOrange.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        item['variantDisplayName'],
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.primaryOrange,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )
+                  else if (hasSelectedOptions)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      child: _buildPaymentVariantDisplay(
+                        Map<String, String>.from(item['selectedOptions']),
+                      ),
+                    ),
+                  
+                  // Enhanced SKU Display
+                  if (hasVariantSku)
+                    Container(
+                      margin: const EdgeInsets.only(top: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'SKU: ${item['variantSku']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  
+                  // Fallback message when no variant data
+                  if (!hasVariantDisplayName && !hasVariantSku && !hasSelectedOptions)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Standard product (no variants)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          
-          // Quantity
-          Text(
-            'Qty: ${item['quantity'] ?? 1}',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
+            
+            // Quantity
+            Text(
+              'Qty: ${item['quantity'] ?? 1}',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          
-          // Price
-          Text(
-            '₱${((item['price'] ?? 0.0) * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+            const SizedBox(width: 16),
+            
+            // Price
+            Text(
+              '₱${((item['price'] ?? 0.0) * (item['quantity'] ?? 1)).toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -877,6 +1103,73 @@ Please verify payment has been received and confirm with customer! 🎉''',
         }).toList(),
       ),
     );
+  }
+
+  // Download QR Code functionality for web platform
+  Future<void> _downloadQRCode(PaymentMethod method) async {
+    if (!kIsWeb) {
+      // Only available on web platform
+      return;
+    }
+
+    try {
+      // Map payment methods to their asset paths and file extensions
+      final qrAssets = {
+        PaymentMethod.gcash: {'path': 'QR/Gcash.jpg', 'ext': 'jpg'},
+        PaymentMethod.gotyme: {'path': 'QR/GoTyme.jpg', 'ext': 'jpg'},
+        PaymentMethod.metrobank: {'path': 'QR/Metrobank.jpg', 'ext': 'jpg'},
+        PaymentMethod.bpi: {'path': 'QR/BPI.png', 'ext': 'png'},
+      };
+
+      final paymentNames = {
+        PaymentMethod.gcash: 'GCash',
+        PaymentMethod.gotyme: 'GoTyme_Bank',
+        PaymentMethod.metrobank: 'Metrobank',
+        PaymentMethod.bpi: 'BPI',
+      };
+
+      final assetInfo = qrAssets[method]!;
+      final paymentName = paymentNames[method]!;
+      
+      // Load the asset as bytes
+      final ByteData data = await rootBundle.load(assetInfo['path']!);
+      final Uint8List bytes = data.buffer.asUint8List();
+      
+      // Create filename with branding
+      final filename = '${paymentName}_QR_AnnedFinds.${assetInfo['ext']}';
+      
+      // Create download for web platform
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', filename)
+        ..click();
+      
+      // Clean up the blob URL
+      html.Url.revokeObjectUrl(url);
+      
+      // Show success feedback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('QR code saved as $filename'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error feedback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download QR code: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   // Admin contact helper functions removed as no longer needed

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../../common/theme.dart';
+import '../../services/theme_service.dart';
 import 'products_management_screen.dart';
 import 'orders_management_screen.dart';
 import 'users_management_screen.dart';
+import 'banner_management_screen.dart';
 import '../../scripts/initialize_categories.dart';
 
 class AdminMainScreen extends StatefulWidget {
@@ -22,6 +25,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     const ProductsManagementScreen(),
     const OrdersManagementScreen(),
     const UsersManagementScreen(),
+    const BannerManagementScreen(),
   ];
 
   @override
@@ -61,6 +65,18 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => setState(() {}),
+          ),
+          Consumer<ThemeService>(
+            builder: (context, themeService, child) {
+              return IconButton(
+                icon: Icon(
+                  themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                  color: Colors.white,
+                ),
+                onPressed: themeService.toggleTheme,
+                tooltip: themeService.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -130,6 +146,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                       _buildNavItem(0, Icons.inventory, 'Products'),
                       _buildNavItem(1, Icons.shopping_bag, 'Orders'),
                       _buildNavItem(2, Icons.people, 'Users'),
+                      _buildNavItem(3, Icons.image, 'Banners'),
                     ],
                   ),
                 ),

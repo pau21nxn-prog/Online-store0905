@@ -52,19 +52,21 @@ export const sendOrderConfirmationEmail = onCall(async (request) => {
         })
       : "3-5 business days";
 
-    // Create order items HTML
-    const itemsHtml = orderItems.map((item: any) => `
+    // Create order items HTML (name already contains variant info from Flutter) - Updated to fix duplication
+    const itemsHtml = orderItems.map((item: any) => {
+      return `
       <tr style="border-bottom: 1px solid #eee;">
         <td style="padding: 12px; text-align: left;">${item.name}</td>
         <td style="padding: 12px; text-align: center;">${item.quantity}</td>
         <td style="padding: 12px; text-align: right;">₱${(item.price * item.quantity).toFixed(2)}</td>
       </tr>
-    `).join("");
+      `;
+    }).join("");
 
-    // Create order items for plain text
-    const itemsText = orderItems.map((item: any) => 
-      `• ${item.name} x${item.quantity} = ₱${(item.price * item.quantity).toFixed(2)}`
-    ).join("\n");
+    // Create order items for plain text (name already contains variant info from Flutter)
+    const itemsText = orderItems.map((item: any) => {
+      return `• ${item.name} x${item.quantity} = ₱${(item.price * item.quantity).toFixed(2)}`;
+    }).join("\n");
 
     // Create beautiful HTML email template
     const htmlContent = `
@@ -193,16 +195,6 @@ export const sendOrderConfirmationEmail = onCall(async (request) => {
                     </table>
                 </div>
 
-                <!-- What's Next -->
-                <div style="background-color: #F0F9FF; border-left: 4px solid #0EA5E9; padding: 20px; border-radius: 5px; margin: 30px 0;">
-                    <h3 style="color: #0369A1; margin: 0 0 15px 0;">🎯 What's Next?</h3>
-                    <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
-                        <li>✅ We'll process your order within 1-2 business days</li>
-                        <li>📦 You'll receive tracking information once shipped</li>
-                        <li>🚚 Estimated delivery: ${deliveryDate}</li>
-                        <li>💬 Questions? Contact our support team below</li>
-                    </ul>
-                </div>
 
                 <!-- Contact Info -->
                 <div style="text-align: center; margin: 40px 0 20px 0; padding: 20px; background-color: #F8F9FA; border-radius: 8px;">
@@ -260,13 +252,6 @@ Province: ${deliveryAddress.province || deliveryAddress.state || ""}
 Postal Code: ${deliveryAddress.postalCode || deliveryAddress.zipCode}
 Country: ${deliveryAddress.country || "Philippines"}${deliveryAddress.deliveryInstructions ? `
 Delivery Instructions: ${deliveryAddress.deliveryInstructions}` : ""}
-
-WHAT'S NEXT?
-═══════════════════════════════════════════════════════════════════════════
-✅ We'll process your order within 1-2 business days
-📦 You'll receive tracking information once shipped
-🚚 Estimated delivery: ${deliveryDate}
-💬 Questions? Contact our support team
 
 NEED HELP?
 ═══════════════════════════════════════════════════════════════════════════
@@ -369,9 +354,21 @@ async function sendAdminNotification(
 ) {
   const adminEmail = "annedfinds@gmail.com";
   
-  const itemsList = orderItems.map((item: any) => 
-    `• ${item.name} x${item.quantity} = ₱${(item.price * item.quantity).toFixed(2)}`
-  ).join("\n");
+  const itemsList = orderItems.map((item: any) => {
+    let productName = item.name;
+    
+    // Add variant information if available
+    if (item.variantDisplayName) {
+      productName += ` - ${item.variantDisplayName}`;
+    }
+    
+    // Add SKU if available
+    if (item.variantSku) {
+      productName += ` (SKU: ${item.variantSku})`;
+    }
+    
+    return `• ${productName} x${item.quantity} = ₱${(item.price * item.quantity).toFixed(2)}`;
+  }).join("\n");
 
   const adminTextContent = `
 🚨 NEW ORDER ALERT - AnneDFinds
@@ -431,9 +428,21 @@ AnneDFinds Admin System
               <div style="background-color: #F0F9FF; border-left: 4px solid #0EA5E9; padding: 20px; margin: 20px 0; border-radius: 5px;">
                   <h3 style="color: #0369A1; margin: 0 0 15px 0;">Items Ordered:</h3>
                   <ul style="margin: 0; padding-left: 20px;">
-                      ${orderItems.map((item: any) => 
-                        `<li style="margin: 5px 0;">${item.name} x${item.quantity} = ₱${(item.price * item.quantity).toFixed(2)}</li>`
-                      ).join("")}
+                      ${orderItems.map((item: any) => {
+                        let productName = item.name;
+                        
+                        // Add variant information if available
+                        if (item.variantDisplayName) {
+                          productName += ` - ${item.variantDisplayName}`;
+                        }
+                        
+                        // Add SKU if available
+                        if (item.variantSku) {
+                          productName += ` (SKU: ${item.variantSku})`;
+                        }
+                        
+                        return `<li style="margin: 5px 0;">${productName} x${item.quantity} = ₱${(item.price * item.quantity).toFixed(2)}</li>`;
+                      }).join("")}
                   </ul>
               </div>
 

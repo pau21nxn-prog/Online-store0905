@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../common/theme.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart'; // Our new service
+import '../../services/email_service.dart';
 // Wishlist service import removed
 import '../../services/theme_service.dart';
 import '../../common/mobile_layout_utils.dart';
@@ -151,14 +152,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           
           // Quick sign-up section
           _buildGuestAccountCreationSection(),
-          const SizedBox(height: 16), // Reduced from 24 to 16
-          
-          _buildMenuItem(
-            icon: Icons.settings,
-            title: 'Settings',
-            subtitle: 'App preferences & dark mode',
-            onTap: () => _navigateToSettings(),
-          ),
           const SizedBox(height: 16), // Reduced from 24 to 16
           ..._buildSupportMenuItems(),
         ],
@@ -512,12 +505,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   List<Widget> _buildPreferencesMenuItems() {
     return [
-      _buildMenuItem(
-        icon: Icons.settings,
-        title: 'Settings',
-        subtitle: 'App preferences & dark mode',
-        onTap: _navigateToSettings,
-      ),
+      // Settings menu item removed
       // Notification settings menu item removed
     ];
   }
@@ -525,10 +513,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Widget> _buildSupportMenuItems() {
     return [
       _buildMenuItem(
-        icon: Icons.help,
-        title: 'Help & Support',
-        subtitle: 'Get help and contact us',
-        onTap: _showHelpAndSupport,
+        icon: Icons.contact_support,
+        title: 'Contact Us',
+        subtitle: 'Get in touch with our team',
+        onTap: _showContactUs,
       ),
     ];
   }
@@ -577,72 +565,173 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showHelpAndSupport() {
+  void _showContactUs() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         backgroundColor: AppTheme.surfaceColor(context),
-        title: Text(
-          'Help & Support',
-          style: TextStyle(color: AppTheme.textPrimaryColor(context)),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Customer Support Contacts:',
-              style: TextStyle(
-                color: AppTheme.textPrimaryColor(context),
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with back button
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor(context)),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Contact Us',
+                      style: TextStyle(
+                        color: AppTheme.textPrimaryColor(context),
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(Icons.email, color: AppTheme.primaryOrange, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'annedfinds@gmail.com',
-                    style: TextStyle(
-                      color: AppTheme.textSecondaryColor(context),
-                      fontSize: 14,
-                    ),
+              const SizedBox(height: 24),
+              
+              // Promotional message - takes up most space
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tired of paying so much fees to online selling platforms?\nLet\'s build your own E-commerce website now.',
+                        style: TextStyle(
+                          color: AppTheme.textPrimaryColor(context),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Benefits
+                      Column(
+                        children: [
+                          _buildBenefitItem('✅', 'Freely market your own product.', Colors.green),
+                          const SizedBox(height: 12),
+                          _buildBenefitItem('✅', 'Choose your own payment system.', Colors.green),
+                          const SizedBox(height: 12),
+                          _buildBenefitItem('✅', 'Reach everyone online and expand your business.', Colors.green),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Problems to avoid
+                      Column(
+                        children: [
+                          _buildBenefitItem('❌', 'STOP losing your profits.', Colors.red),
+                          const SizedBox(height: 12),
+                          _buildBenefitItem('❌', 'Say NO to hidden charges and commissions.', Colors.red),
+                          const SizedBox(height: 12),
+                          _buildBenefitItem('❌', 'Say NO to complex fee structures.', Colors.red),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      // Call to action
+                      Text(
+                        'Keep more of your EARNINGS. Let\'s maximize your PROFITS.\nLet\'s BUILD your own online selling platform!',
+                        style: TextStyle(
+                          color: AppTheme.primaryOrange,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.phone, color: AppTheme.primaryOrange, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '09682285496 or 09773257043',
-                    style: TextStyle(
-                      color: AppTheme.textSecondaryColor(context),
-                      fontSize: 14,
-                    ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Click Here button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _showContactForm(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    'CLICK HERE',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryOrange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Close'),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Contact info at bottom
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'annedfinds@gmail.com | 09773257043',
+                  style: TextStyle(
+                    color: AppTheme.textSecondaryColor(context),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildBenefitItem(String icon, String text, Color iconColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          icon,
+          style: TextStyle(fontSize: 16, color: iconColor),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: AppTheme.textPrimaryColor(context),
+              fontSize: 15,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showContactForm() {
+    showDialog(
+      context: context,
+      builder: (context) => ContactFormDialog(),
     );
   }
 
@@ -683,4 +772,320 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+}
+
+class ContactFormDialog extends StatefulWidget {
+  @override
+  _ContactFormDialogState createState() => _ContactFormDialogState();
+}
+
+class _ContactFormDialogState extends State<ContactFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _messageController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  bool _isValidPhilippineNumber(String phone) {
+    // Remove all non-digit characters
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Check different Philippine number formats
+    if (cleanPhone.startsWith('09') && cleanPhone.length == 11) {
+      return true; // 09XXXXXXXXX
+    }
+    if (cleanPhone.startsWith('639') && cleanPhone.length == 12) {
+      return true; // 639XXXXXXXXX
+    }
+    if (cleanPhone.startsWith('63') && cleanPhone.length == 12) {
+      return true; // 63XXXXXXXXXX (alternative)
+    }
+    
+    return false;
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email.trim());
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Create order items for the contact form data
+      final contactData = [
+        {
+          'name': 'Contact Form Submission',
+          'quantity': 1,
+          'price': 0.0,
+          'details': {
+            'firstName': _firstNameController.text.trim(),
+            'lastName': _lastNameController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'email': _emailController.text.trim(),
+            'message': _messageController.text.trim(),
+          }
+        }
+      ];
+
+      final deliveryAddress = {
+        'fullName': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'streetAddress': 'Contact Form Inquiry',
+        'city': 'N/A',
+        'province': 'N/A',
+        'postalCode': 'N/A',
+        'country': 'Philippines',
+      };
+
+      // Send email using existing email service
+      final success = await EmailService.sendOrderConfirmationEmail(
+        toEmail: 'annedfinds@gmail.com', // Send to admin
+        customerName: '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
+        orderId: 'CONTACT${DateTime.now().millisecondsSinceEpoch}',
+        orderItems: contactData,
+        totalAmount: 0.0,
+        paymentMethod: 'Contact Form',
+        deliveryAddress: deliveryAddress,
+        estimatedDelivery: DateTime.now(),
+        skipAdminNotification: true,
+      );
+
+      setState(() => _isLoading = false);
+
+      if (success) {
+        // Show success message and close form
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Message sent successfully! We\'ll get back to you soon.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop(); // Close contact form
+      } else {
+        // Show error message but keep form open
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to send message. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error sending message: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppTheme.surfaceColor(context),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close, color: AppTheme.textPrimaryColor(context)),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Get in Touch',
+                      style: TextStyle(
+                        color: AppTheme.textPrimaryColor(context),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              
+              // Form fields
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // First Name
+                      TextFormField(
+                        controller: _firstNameController,
+                        decoration: InputDecoration(
+                          labelText: 'First Name *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppTheme.primaryOrange),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'First name is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Last Name
+                      TextFormField(
+                        controller: _lastNameController,
+                        decoration: InputDecoration(
+                          labelText: 'Last Name *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppTheme.primaryOrange),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Last name is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Phone Number
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: 'Phone Number *',
+                          hintText: '09XXXXXXXXX or +639XXXXXXXXX',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppTheme.primaryOrange),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Phone number is required';
+                          }
+                          if (!_isValidPhilippineNumber(value)) {
+                            return 'Please enter a valid Philippine phone number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Email
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppTheme.primaryOrange),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Email is required';
+                          }
+                          if (!_isValidEmail(value)) {
+                            return 'Please enter a valid email address';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Message
+                      TextFormField(
+                        controller: _messageController,
+                        maxLength: 50,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: 'Message *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppTheme.primaryOrange),
+                          ),
+                          counterText: '', // Hide character counter as requested
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Message is required';
+                          }
+                          if (value.length > 50) {
+                            return 'Message must be 50 characters or less';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Send Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'SEND',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

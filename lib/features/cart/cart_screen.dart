@@ -568,10 +568,13 @@ class CartScreen extends StatelessWidget {
       // Convert CartItem list to Map format for compatibility
       final cartItemsMap = cartItems.map((item) => {
         'productId': item.productId,
-        'productName': item.productName,
+        'name': item.productName, // Use 'name' key to match guest checkout expectations
         'price': item.price,
         'quantity': item.quantity,
         'imageUrl': item.imageUrl,
+        'variantSku': item.variantSku,
+        'variantDisplayName': item.variantDisplayName,
+        'selectedOptions': item.selectedOptions,
       }).toList();
 
       showDialog(

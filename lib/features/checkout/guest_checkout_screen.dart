@@ -705,11 +705,43 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
               totalAmount: widget.totalAmount,
               orderId: orderId,
               orderDetails: {
-                'items': widget.cartItems.map((item) => {
-                  'name': item['name'],
-                  'quantity': item['quantity'],
-                  'price': item['price'],
-                }).toList(),
+                'items': () {
+                  // DEBUG: Log cart items data before mapping
+                  print('🔍 DEBUG - Guest Checkout Cart Items:');
+                  print('📦 Total cart items: ${widget.cartItems.length}');
+                  for (int i = 0; i < widget.cartItems.length; i++) {
+                    final item = widget.cartItems[i];
+                    print('📋 Cart Item $i:');
+                    print('  - Name: ${item['name']}');
+                    print('  - Quantity: ${item['quantity']}');
+                    print('  - Price: ${item['price']}');
+                    print('  - Variant SKU: ${item['variantSku']}');
+                    print('  - Variant Display Name: ${item['variantDisplayName']}');
+                    print('  - Selected Options: ${item['selectedOptions']}');
+                  }
+                  
+                  final mappedItems = widget.cartItems.map((item) => {
+                    'name': item['name'],
+                    'quantity': item['quantity'],
+                    'price': item['price'],
+                    'variantSku': item['variantSku'],
+                    'variantDisplayName': item['variantDisplayName'],
+                    'selectedOptions': item['selectedOptions'],
+                  }).toList();
+                  
+                  // DEBUG: Log mapped order items
+                  print('🔄 DEBUG - Mapped Order Items for QR Payment:');
+                  for (int i = 0; i < mappedItems.length; i++) {
+                    final item = mappedItems[i];
+                    print('📋 Mapped Item $i:');
+                    print('  - Name: ${item['name']}');
+                    print('  - Variant SKU: ${item['variantSku']}');
+                    print('  - Variant Display Name: ${item['variantDisplayName']}');
+                    print('  - Selected Options: ${item['selectedOptions']}');
+                  }
+                  
+                  return mappedItems;
+                }(),
                 'subtotal': widget.totalAmount,
                 'shipping': 0.0,
                 'total': widget.totalAmount,
@@ -1113,13 +1145,30 @@ class _GuestCheckoutScreenState extends State<GuestCheckoutScreen> {
   Widget _buildGuestVariantDisplay(Map<String, String> options, bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
-      child: Text(
-        options.values.join(' • '),
-        style: TextStyle(
-          fontSize: 12,
-          fontStyle: FontStyle.italic,
-          color: AppTheme.primaryOrange,
-        ),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: options.entries.map((entry) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryOrange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.primaryOrange.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              entry.value,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.primaryOrange,
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

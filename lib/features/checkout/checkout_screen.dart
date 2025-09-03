@@ -727,11 +727,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               totalAmount: widget.total,
               orderId: orderId, // Use the actual order ID we created
               orderDetails: {
-                'items': widget.cartItems.map((item) => {
-                  'name': item.productName,
-                  'quantity': item.quantity,
-                  'price': item.price,
-                }).toList(),
+                'items': () {
+                  // DEBUG: Log cart items data before mapping
+                  print('🔍 DEBUG - Regular Checkout Cart Items:');
+                  print('📦 Total cart items: ${widget.cartItems.length}');
+                  for (int i = 0; i < widget.cartItems.length; i++) {
+                    final item = widget.cartItems[i];
+                    print('📋 Cart Item $i:');
+                    print('  - Product Name: ${item.productName}');
+                    print('  - Quantity: ${item.quantity}');
+                    print('  - Price: ${item.price}');
+                    print('  - Variant SKU: ${item.variantSku}');
+                    print('  - Variant Display Name: ${item.variantDisplayName}');
+                    print('  - Selected Options: ${item.selectedOptions}');
+                  }
+                  
+                  final mappedItems = widget.cartItems.map((item) => {
+                    'name': item.productName,
+                    'quantity': item.quantity,
+                    'price': item.price,
+                    'variantSku': item.variantSku,
+                    'variantDisplayName': item.variantDisplayName,
+                    'selectedOptions': item.selectedOptions,
+                  }).toList();
+                  
+                  // DEBUG: Log mapped order items for QR Payment
+                  print('🔄 DEBUG - Regular Checkout Mapped Items for QR Payment:');
+                  for (int i = 0; i < mappedItems.length; i++) {
+                    final item = mappedItems[i];
+                    print('📋 Mapped Item $i:');
+                    print('  - Name: ${item['name']}');
+                    print('  - Variant SKU: ${item['variantSku']}');
+                    print('  - Variant Display Name: ${item['variantDisplayName']}');
+                    print('  - Selected Options: ${item['selectedOptions']}');
+                  }
+                  
+                  return mappedItems;
+                }(),
                 'subtotal': widget.subtotal,
                 'shipping': widget.shipping,
                 'total': widget.total,

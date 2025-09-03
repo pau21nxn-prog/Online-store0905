@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../../common/theme.dart';
 import '../../common/mobile_layout_utils.dart';
 import '../../models/product.dart';
 import '../../models/category.dart';
+import '../../models/banner.dart' as banner_model;
 import '../../services/cart_service.dart';
 import '../../services/theme_service.dart';
 import '../../services/category_service.dart';
 import '../../services/auth_service.dart';
-// Wishlist import removed
+import '../../services/banner_service.dart';
 import '../common/widgets/product_card.dart';
 import '../product/product_detail_screen.dart';
 import '../categories/category_list_screen.dart';
 import '../search/search_screen.dart';
 import '../cart/cart_screen.dart';
-// dart:async removed - no longer needed for promotional banners
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,13 +31,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<Category> _categories = [];
   bool _categoriesLoading = true;
   
-  // Promotional banner system removed
+  // Banner carousel state
+  PageController _bannerPageController = PageController();
+  Timer? _bannerTimer;
+  int _currentBannerIndex = 0;
+  List<banner_model.Banner> _banners = [];
+  bool _bannersLoading = true;
   
   @override
   void initState() {
     super.initState();
     _loadCategories();
-    // Promotional system initialization removed
+    _loadBanners();
   }
 
   Future<void> _loadCategories() async {
@@ -53,11 +59,58 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
   
-  // Promotional banner methods removed
+  Future<void> _loadBanners() async {
+    try {
+      print('HomeScreen: Starting banner loading...');
+      final banners = await BannerService.getBanners();
+      print('HomeScreen: Loaded ${banners.length} banners');
+      
+      setState(() {
+        _banners = banners;
+        _bannersLoading = false;
+      });
+      
+      // Start auto-cycling if banners are available
+      if (_banners.isNotEmpty) {
+        print('HomeScreen: Starting banner autoplay with ${_banners.length} banners');
+        _startBannerAutoplay();
+      } else {
+        print('HomeScreen: No banners available, showing empty state');
+      }
+    } catch (e) {
+      print('HomeScreen: Error loading banners: $e');
+      print('HomeScreen: Error type: ${e.runtimeType}');
+      setState(() {
+        _bannersLoading = false;
+      });
+    }
+  }
+  
+  void _startBannerAutoplay() {
+    _bannerTimer?.cancel();
+    if (_banners.length > 1) {
+      _bannerTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        if (mounted) {
+          final nextIndex = (_currentBannerIndex + 1) % _banners.length;
+          _bannerPageController.animateToPage(
+            nextIndex,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
+  }
+  
+  void _stopBannerAutoplay() {
+    _bannerTimer?.cancel();
+  }
   
   @override
   void dispose() {
     _searchController.dispose();
+    _bannerTimer?.cancel();
+    _bannerPageController.dispose();
     super.dispose();
   }
 
@@ -84,26 +137,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       backgroundColor: AppTheme.backgroundColor(context),
       appBar: _buildEnhancedAppBar(context),
       drawer: _buildCategoryDrawer(context),
-      body: Column(
-        children: [
-          // Search bar below header
-          _buildSearchBarBelowHeader(context),
-          
-          // Main content
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                // "Check mo to Mhie" Featured Section Header
-                _buildCheckMoToMhieSection(),
-                
-                // Featured Products Grid (2-column mobile layout)
-                _buildFeaturedProductsGrid(),
-                
-                // Footer Section
-                _buildFooterSection(),
-              ],
-            ),
+      body: CustomScrollView(
+        slivers: [
+          // Banner carousel - now scrollable with content
+          SliverToBoxAdapter(
+            child: _buildBannerCarousel(context),
           ),
+          
+          // "Check mo to Mhie" Featured Section Header
+          _buildCheckMoToMhieSection(),
+          
+          // Featured Products Grid (2-column mobile layout)
+          _buildFeaturedProductsGrid(),
+          
+          // Footer Section
+          _buildFooterSection(),
         ],
       ),
     );
@@ -120,41 +168,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       title: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 1. Hamburger Menu Button
-          IconButton(
-            icon: Icon(Icons.menu, color: Colors.white, size: 22), // Reduced size
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            tooltip: 'Categories',
-            padding: EdgeInsets.only(left: 0, top: 6, right: 6, bottom: 6), // 0px from left border
-          ),
-          
-          const SizedBox(width: 4), // 4px spacing between hamburger and logo
-          
-          // 2. Logo: "AnneDFinds" text in orange with white rounded rectangle, slightly tilted, 0.8x size
-          Transform.rotate(
-            angle: -0.1, // Slight tilt (about 5.7 degrees)
+          // Logo: "AnneDFinds" text in orange with white rounded rectangle, slightly tilted, 0.8x size
+          // Positioned 2px from left border and clickable to open categories
+          GestureDetector(
+            onTap: () => _scaffoldKey.currentState?.openDrawer(),
             child: Container(
-              height: 40, // Reduced from 50 to 40 (0.8x)
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Compressed padding
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10), // Slightly smaller
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
+              margin: const EdgeInsets.only(left: 2), // 2px from left border
+              child: Transform.rotate(
+                angle: -0.1, // Slight tilt (about 5.7 degrees)
+                child: Container(
+                  height: 40, // Reduced from 50 to 40 (0.8x)
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Compressed padding
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10), // Slightly smaller
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  'AnneDFinds',
-                  style: TextStyle(
-                    color: AppTheme.primaryOrange,
-                    fontSize: 23, // Reduced from 29 to 23 (0.8x)
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.4,
+                  child: Center(
+                    child: Text(
+                      'AnneDFinds',
+                      style: TextStyle(
+                        color: AppTheme.primaryOrange,
+                        fontSize: 23, // Reduced from 29 to 23 (0.8x)
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -236,6 +281,166 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
         },
         readOnly: true,
+      ),
+    );
+  }
+
+  // Banner carousel widget
+  Widget _buildBannerCarousel(BuildContext context) {
+    if (_bannersLoading) {
+      // Loading shimmer effect
+      return Container(
+        height: 180, // 2/3 of typical product card height
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor(context),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_banners.isEmpty) {
+      // Empty state with colored background
+      return Container(
+        height: 180,
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppTheme.primaryOrange.withOpacity(0.2),
+            width: 2,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.image_outlined,
+                size: 48,
+                color: AppTheme.primaryOrange.withOpacity(0.5),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'No banners available',
+                style: TextStyle(
+                  color: AppTheme.textSecondaryColor(context),
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 180,
+      margin: const EdgeInsets.all(16),
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          // Banner PageView
+          PageView.builder(
+            controller: _bannerPageController,
+            itemCount: _banners.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentBannerIndex = index;
+              });
+              // Restart auto-play when user manually changes page
+              _startBannerAutoplay();
+            },
+            itemBuilder: (context, index) {
+              final banner = _banners[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 20), // Space for dots
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    banner.imageUrl,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: AppTheme.surfaceColor(context),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppTheme.surfaceColor(context),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.broken_image,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Failed to load image',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          // Dots indicator (only show if more than 1 banner)
+          if (_banners.length > 1)
+            Positioned(
+              bottom: 8,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(
+                  _banners.length,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    height: 8,
+                    width: _currentBannerIndex == index ? 24 : 8,
+                    decoration: BoxDecoration(
+                      color: _currentBannerIndex == index
+                          ? AppTheme.primaryOrange
+                          : AppTheme.primaryOrange.withOpacity(
+                              MobileLayoutUtils.shouldUseViewportWrapper(context) ? 0.5 : 0.3
+                            ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
