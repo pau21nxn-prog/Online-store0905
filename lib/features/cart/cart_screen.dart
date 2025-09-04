@@ -7,6 +7,7 @@ import '../../common/theme.dart';
 import '../../common/mobile_layout_utils.dart';
 import '../auth/checkout_auth_modal.dart';
 import '../checkout/checkout_screen.dart';
+import '../../main.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -154,17 +155,14 @@ class CartScreen extends StatelessWidget {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                // Navigate to home screen using MainNavigationScreen
-                // Find the MainNavigationScreen and call its navigation method
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                
-                // Alternative: Use a more direct approach to ensure we get to home
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                }
-                
-                // If we're in a nested navigator, this will ensure we get back to the main app
-                Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+                // Navigate to home screen by resetting navigation stack
+                // This ensures we return to MainNavigationScreen with home tab selected (index 0)
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const MainNavigationScreen(),
+                  ),
+                  (route) => false,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
