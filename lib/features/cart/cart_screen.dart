@@ -155,6 +155,8 @@ class CartScreen extends StatelessWidget {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
+                // Dismiss keyboard before navigation to prevent it from appearing on mobile
+                FocusScope.of(context).unfocus();
                 // Navigate to home screen by resetting navigation stack
                 // This ensures we return to MainNavigationScreen with home tab selected (index 0)
                 Navigator.of(context).pushAndRemoveUntil(
