@@ -80,7 +80,21 @@
       "Read(/C:\\Users\\pau\\anned_finds\\lib\\features\\checkout/**)",
       "Bash(find:*)",
       "Read(/C:\\Users\\pau\\anned_finds\\lib\\features\\home/**)",
-      "Read(/C:\\Users\\pau\\anned_finds\\lib\\features\\profile/**)"
+      "Read(/C:\\Users\\pau\\anned_finds\\lib\\features\\profile/**)",
+      "Read(/C:\\Users\\pau\\anned_finds/**)",
+      "Bash(for file in lib/services/*.dart)",
+      "Bash(do)",
+      "Bash(if grep -q \"debugPrint\" \"$file\")",
+      "Bash(! grep -q \"package:flutter/foundation.dart\" \"$file\")",
+      "Bash(then)",
+      "Bash(echo:*)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Read(/C:\\Users\\pau\\anned_finds/**)",
+      "Bash(sed:*)",
+      "Read(/C:\\Users\\pau\\anned_finds\\lib\\services/**)",
+      "Read(/C:\\Users\\pau\\anned_finds\\lib\\features\\checkout/**)",
+      "Bash(for:*)"
     ],
     "defaultMode": "acceptEdits"
   }
