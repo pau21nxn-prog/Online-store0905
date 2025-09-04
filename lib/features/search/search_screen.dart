@@ -160,7 +160,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildSearchBar() {
     return TextField(
       controller: _searchController,
-      autofocus: widget.initialQuery == null,
+      autofocus: false,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: 'Search products...',
