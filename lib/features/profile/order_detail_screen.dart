@@ -492,9 +492,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: status.color.withOpacity(0.1),
+        color: status.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: status.color.withOpacity(0.3)),
+        border: Border.all(color: status.color.withValues(alpha: 0.3)),
       ),
       child: Text(
         status.displayName.toUpperCase(),
@@ -512,7 +512,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     return Row(
       children: [
         CircleAvatar(
-          backgroundColor: status.color.withOpacity(0.1),
+          backgroundColor: status.color.withValues(alpha: 0.1),
           child: Icon(status.icon, color: status.color, size: 24),
         ),
         const SizedBox(width: 12),
@@ -1452,8 +1452,8 @@ class _PaymentDisplay extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: order.isPaid 
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.orange.withOpacity(0.1),
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : Colors.orange.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

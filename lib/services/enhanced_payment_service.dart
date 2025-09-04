@@ -3,11 +3,8 @@
 // use context7
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:crypto/crypto.dart';
 import '../models/payment_models.dart';
 
 class PaymentService {

@@ -198,7 +198,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 children: [
                   CircleAvatar(
                     radius: 60,
-                    backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
+                    backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.1),
                     backgroundImage: _currentUser?.profileImageUrl != null
                         ? NetworkImage(_currentUser!.profileImageUrl!)
                         : null,
@@ -353,12 +353,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Container(
               padding: const EdgeInsets.all(AppTheme.spacing16),
               decoration: BoxDecoration(
-                color: AppTheme.successGreen.withOpacity(
-                  Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.1
+                color: AppTheme.successGreen.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.1
                 ),
                 borderRadius: BorderRadius.circular(AppTheme.radius8),
                 border: Border.all(
-                  color: AppTheme.successGreen.withOpacity(0.3),
+                  color: AppTheme.successGreen.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
 import 'dart:html' as html;
@@ -9,7 +8,6 @@ import '../../common/mobile_layout_utils.dart';
 import '../../services/email_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/cart_service.dart';
-import '../../models/user.dart';
 
 enum PaymentMethod { gcash, gotyme, metrobank, bpi }
 
@@ -37,26 +35,26 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
   @override
   Widget build(BuildContext context) {
     // ULTRA DEBUG: Multiple logging approaches to ensure visibility
-    print('🎯 DEBUG - QR Payment Screen Initialized:');
-    print('💰 Total Amount: ${widget.totalAmount}');
-    print('🆔 Order ID: ${widget.orderId}');
-    print('📦 OrderDetails Keys: ${widget.orderDetails.keys.toList()}');
-    print('📋 Items in OrderDetails: ${widget.orderDetails['items']?.length ?? 0}');
+    debugPrint('🎯 DEBUG - QR Payment Screen Initialized:');
+    debugPrint('💰 Total Amount: ${widget.totalAmount}');
+    debugPrint('🆔 Order ID: ${widget.orderId}');
+    debugPrint('📦 OrderDetails Keys: ${widget.orderDetails.keys.toList()}');
+    debugPrint('📋 Items in OrderDetails: ${widget.orderDetails['items']?.length ?? 0}');
     
     // Log each item in detail
     final items = widget.orderDetails['items'] as List<dynamic>? ?? [];
     for (int i = 0; i < items.length; i++) {
       final item = items[i];
-      print('🔍 QR PAYMENT ITEM $i:');
-      print('  - Name: ${item['name']}');
-      print('  - Variant SKU: ${item['variantSku']}');
-      print('  - Variant Display Name: ${item['variantDisplayName']}');
-      print('  - Selected Options: ${item['selectedOptions']}');
-      print('  - Quantity: ${item['quantity']}');
-      print('  - Price: ${item['price']}');
+      debugPrint('🔍 QR PAYMENT ITEM $i:');
+      debugPrint('  - Name: ${item['name']}');
+      debugPrint('  - Variant SKU: ${item['variantSku']}');
+      debugPrint('  - Variant Display Name: ${item['variantDisplayName']}');
+      debugPrint('  - Selected Options: ${item['selectedOptions']}');
+      debugPrint('  - Quantity: ${item['quantity']}');
+      debugPrint('  - Price: ${item['price']}');
     }
     
-    print('🚨 QR PAYMENT SCREEN BUILD METHOD EXECUTED - CODE IS RUNNING!');
+    debugPrint('🚨 QR PAYMENT SCREEN BUILD METHOD EXECUTED - CODE IS RUNNING!');
     
     final shouldUseWrapper = MobileLayoutUtils.shouldUseViewportWrapper(context);
     
@@ -109,17 +107,17 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
     final shipping = widget.orderDetails['shipping'] as double? ?? 99.0; // Default shipping
     
     // DEBUG: Log order details to console
-    print('🔍 DEBUG - QR Payment Order Details:');
-    print('📦 Total items: ${items.length}');
+    debugPrint('🔍 DEBUG - QR Payment Order Details:');
+    debugPrint('📦 Total items: ${items.length}');
     for (int i = 0; i < items.length; i++) {
       final item = items[i];
-      print('📋 Item $i:');
-      print('  - Name: ${item['name']}');
-      print('  - Quantity: ${item['quantity']}');
-      print('  - Price: ${item['price']}');
-      print('  - Variant SKU: ${item['variantSku']}');
-      print('  - Variant Display Name: ${item['variantDisplayName']}');
-      print('  - Selected Options: ${item['selectedOptions']}');
+      debugPrint('📋 Item $i:');
+      debugPrint('  - Name: ${item['name']}');
+      debugPrint('  - Quantity: ${item['quantity']}');
+      debugPrint('  - Price: ${item['price']}');
+      debugPrint('  - Variant SKU: ${item['variantSku']}');
+      debugPrint('  - Variant Display Name: ${item['variantDisplayName']}');
+      debugPrint('  - Selected Options: ${item['selectedOptions']}');
     }
     
     return Card(
@@ -290,7 +288,7 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
                 width: isExpanded ? 2 : 1,
               ),
               borderRadius: BorderRadius.circular(8),
-              color: isExpanded ? color.withOpacity(0.1) : null,
+              color: isExpanded ? color.withValues(alpha: 0.1) : null,
             ),
             child: Row(
               children: [
@@ -380,7 +378,7 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
           bottomLeft: Radius.circular(8),
           bottomRight: Radius.circular(8),
         ),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         children: [
@@ -396,7 +394,7 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
+                  color: Colors.grey.withValues(alpha: 0.3),
                   spreadRadius: 1,
                   blurRadius: 3,
                 ),
@@ -427,9 +425,9 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: color.withOpacity(0.3)),
+              border: Border.all(color: color.withValues(alpha: 0.3)),
             ),
             child: Column(
               children: [
@@ -662,7 +660,7 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
       await _sendCustomerConfirmation(enhancedCustomerInfo);
 
     } catch (e) {
-      print('Error sending notifications: $e');
+      debugPrint('Error sending notifications: $e');
       rethrow;
     }
   }
@@ -697,20 +695,20 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
           }).toList() ?? [];
 
       // ULTRA DEBUG: Admin email data with maximum visibility
-      print('🚨🚨🚨 ADMIN EMAIL METHOD EXECUTING 🚨🚨🚨');
-      print('📧 DEBUG - Admin Email Data:');
-      print('📦 Admin Order Items Count: ${orderItems.length}');
+      debugPrint('🚨🚨🚨 ADMIN EMAIL METHOD EXECUTING 🚨🚨🚨');
+      debugPrint('📧 DEBUG - Admin Email Data:');
+      debugPrint('📦 Admin Order Items Count: ${orderItems.length}');
       for (int i = 0; i < orderItems.length; i++) {
         final item = orderItems[i];
-        print('🔥 ADMIN EMAIL ITEM $i:');
-        print('  - FINAL NAME: ${item['name']}');
-        print('  - RAW VARIANT SKU: ${item['variantSku']}');
-        print('  - RAW VARIANT DISPLAY NAME: ${item['variantDisplayName']}');
-        print('  - RAW SELECTED OPTIONS: ${item['selectedOptions']}');
-        print('  - QUANTITY: ${item['quantity']}');
-        print('  - PRICE: ${item['price']}');
+        debugPrint('🔥 ADMIN EMAIL ITEM $i:');
+        debugPrint('  - FINAL NAME: ${item['name']}');
+        debugPrint('  - RAW VARIANT SKU: ${item['variantSku']}');
+        debugPrint('  - RAW VARIANT DISPLAY NAME: ${item['variantDisplayName']}');
+        debugPrint('  - RAW SELECTED OPTIONS: ${item['selectedOptions']}');
+        debugPrint('  - QUANTITY: ${item['quantity']}');
+        debugPrint('  - PRICE: ${item['price']}');
       }
-      print('🚨 ADMIN EMAIL DATA PREPARED - SENDING TO EMAIL SERVICE 🚨');
+      debugPrint('🚨 ADMIN EMAIL DATA PREPARED - SENDING TO EMAIL SERVICE 🚨');
 
       // Get shipping address details
       final shippingAddress = widget.orderDetails['shippingAddress'] ?? 
@@ -763,13 +761,13 @@ Please verify payment has been received and confirm with customer! 🎉''',
       );
 
       if (adminSuccess) {
-        print('✅ Admin payment notification sent successfully with complete information');
+        debugPrint('✅ Admin payment notification sent successfully with complete information');
       } else {
         throw Exception('Failed to send admin notification');
       }
 
     } catch (e) {
-      print('❌ Error sending admin notification: $e');
+      debugPrint('❌ Error sending admin notification: $e');
       rethrow;
     }
   }
@@ -810,7 +808,7 @@ Please verify payment has been received and confirm with customer! 🎉''',
       if (customerEmail == 'no-email@provided.com' || 
           customerEmail.isEmpty || 
           !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(customerEmail)) {
-        print('Skipping customer email - invalid email address: $customerEmail');
+        debugPrint('Skipping customer email - invalid email address: $customerEmail');
         return;
       }
 
@@ -842,20 +840,20 @@ Please verify payment has been received and confirm with customer! 🎉''',
           }).toList() ?? [];
 
       // ULTRA DEBUG: Customer email data with maximum visibility  
-      print('🚨🚨🚨 CUSTOMER EMAIL METHOD EXECUTING 🚨🚨🚨');
-      print('📧 DEBUG - Customer Email Data:');
-      print('📦 Customer Order Items Count: ${orderItems.length}');
+      debugPrint('🚨🚨🚨 CUSTOMER EMAIL METHOD EXECUTING 🚨🚨🚨');
+      debugPrint('📧 DEBUG - Customer Email Data:');
+      debugPrint('📦 Customer Order Items Count: ${orderItems.length}');
       for (int i = 0; i < orderItems.length; i++) {
         final item = orderItems[i];
-        print('🔥 CUSTOMER EMAIL ITEM $i:');
-        print('  - FINAL NAME: ${item['name']}');
-        print('  - RAW VARIANT SKU: ${item['variantSku']}');
-        print('  - RAW VARIANT DISPLAY NAME: ${item['variantDisplayName']}');
-        print('  - RAW SELECTED OPTIONS: ${item['selectedOptions']}');
-        print('  - QUANTITY: ${item['quantity']}');
-        print('  - PRICE: ${item['price']}');
+        debugPrint('🔥 CUSTOMER EMAIL ITEM $i:');
+        debugPrint('  - FINAL NAME: ${item['name']}');
+        debugPrint('  - RAW VARIANT SKU: ${item['variantSku']}');
+        debugPrint('  - RAW VARIANT DISPLAY NAME: ${item['variantDisplayName']}');
+        debugPrint('  - RAW SELECTED OPTIONS: ${item['selectedOptions']}');
+        debugPrint('  - QUANTITY: ${item['quantity']}');
+        debugPrint('  - PRICE: ${item['price']}');
       }
-      print('🚨 CUSTOMER EMAIL DATA PREPARED - SENDING TO EMAIL SERVICE 🚨');
+      debugPrint('🚨 CUSTOMER EMAIL DATA PREPARED - SENDING TO EMAIL SERVICE 🚨');
 
       // Get shipping address details
       final shippingAddress = widget.orderDetails['shippingAddress'] ?? 
@@ -898,13 +896,13 @@ Please verify payment has been received and confirm with customer! 🎉''',
       );
 
       if (customerSuccess) {
-        print('✅ Customer confirmation email sent successfully with complete information');
+        debugPrint('✅ Customer confirmation email sent successfully with complete information');
       } else {
-        print('❌ Failed to send customer confirmation email');
+        debugPrint('❌ Failed to send customer confirmation email');
       }
 
     } catch (e) {
-      print('❌ Error sending customer confirmation: $e');
+      debugPrint('❌ Error sending customer confirmation: $e');
       // Don't rethrow - customer email failure shouldn't stop the flow
     }
   }
@@ -989,10 +987,10 @@ Please verify payment has been received and confirm with customer! 🎉''',
                       margin: const EdgeInsets.only(top: 4),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryOrange.withOpacity(0.1),
+                        color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: AppTheme.primaryOrange.withOpacity(0.3),
+                          color: AppTheme.primaryOrange.withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -1019,7 +1017,7 @@ Please verify payment has been received and confirm with customer! 🎉''',
                       margin: const EdgeInsets.only(top: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -1084,10 +1082,10 @@ Please verify payment has been received and confirm with customer! 🎉''',
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppTheme.primaryColor.withOpacity(0.3),
+                color: AppTheme.primaryColor.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),

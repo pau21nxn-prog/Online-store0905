@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Script to initialize the 26 comprehensive categories directly in Firestore
 Future<void> initializeCategories() async {
-  print('🚀 Starting to initialize 26 comprehensive categories...');
+  debugPrint('🚀 Starting to initialize 26 comprehensive categories...');
 
   try {
     final firestore = FirebaseFirestore.instance;
@@ -11,8 +11,8 @@ Future<void> initializeCategories() async {
     final existingCategories = await firestore.collection('categories').get();
     
     if (existingCategories.docs.isNotEmpty) {
-      print('⚠️  Found ${existingCategories.docs.length} existing categories.');
-      print('🗑️  Clearing existing categories first...');
+      debugPrint('⚠️  Found ${existingCategories.docs.length} existing categories.');
+      debugPrint('🗑️  Clearing existing categories first...');
       
       // Clear existing categories
       final batch = firestore.batch();
@@ -20,14 +20,14 @@ Future<void> initializeCategories() async {
         batch.delete(doc.reference);
       }
       await batch.commit();
-      print('✅ Cleared ${existingCategories.docs.length} existing categories.');
+      debugPrint('✅ Cleared ${existingCategories.docs.length} existing categories.');
     }
 
     // Define the 26 comprehensive categories
     final categories = _getCategoryList();
     
     // Add new categories
-    print('📝 Adding ${categories.length} new categories...');
+    debugPrint('📝 Adding ${categories.length} new categories...');
     final batch = firestore.batch();
     
     for (final categoryData in categories) {
@@ -43,20 +43,20 @@ Future<void> initializeCategories() async {
         .orderBy('sortOrder')
         .get();
     
-    print('✅ Successfully initialized ${newCategories.docs.length} categories!');
+    debugPrint('✅ Successfully initialized ${newCategories.docs.length} categories!');
     
     // List all categories for verification
-    print('\n📋 Categories created:');
+    debugPrint('\n📋 Categories created:');
     for (int i = 0; i < newCategories.docs.length; i++) {
       final data = newCategories.docs[i].data();
-      print('${i + 1}. ${data['name']} (${data['slug']})');
+      debugPrint('${i + 1}. ${data['name']} (${data['slug']})');
     }
     
-    print('\n🎉 Category initialization completed successfully!');
+    debugPrint('\n🎉 Category initialization completed successfully!');
     
   } catch (e, stackTrace) {
-    print('❌ Error initializing categories: $e');
-    print('Stack trace: $stackTrace');
+    debugPrint('❌ Error initializing categories: $e');
+    debugPrint('Stack trace: $stackTrace');
     rethrow;
   }
 }

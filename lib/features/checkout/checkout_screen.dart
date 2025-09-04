@@ -6,7 +6,6 @@ import '../../models/payment.dart';
 import '../../models/order.dart';
 import '../../models/address.dart' as addr;
 import '../../services/payment_service.dart';
-import '../../services/cart_service.dart';
 // Notification service import removed
 import '../../services/address_service.dart';
 import '../../common/theme.dart';
@@ -82,7 +81,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         });
       }
     } catch (e) {
-      print('Error loading default address: $e');
+      debugPrint('Error loading default address: $e');
       // Don't show error to user, just log it
     }
   }
@@ -280,7 +279,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.textSecondaryColor(context).withOpacity(0.2),
+          color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -296,7 +295,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           const SizedBox(height: 12),
           ...widget.cartItems.map((item) => _buildOrderItem(item)),
-          Divider(color: AppTheme.textSecondaryColor(context).withOpacity(0.3)),
+          Divider(color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3)),
           Row(
             children: [
               Expanded(
@@ -332,7 +331,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ],
           ),
-          Divider(color: AppTheme.textSecondaryColor(context).withOpacity(0.3)),
+          Divider(color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3)),
           Row(
             children: [
               Expanded(
@@ -364,16 +363,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primaryOrange.withOpacity(0.1),
+        color: AppTheme.primaryOrange.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.primaryOrange.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.primaryOrange.withOpacity(0.2),
+              color: AppTheme.primaryOrange.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -418,7 +417,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.textSecondaryColor(context).withOpacity(0.2),
+          color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.2),
         ),
       ),
       child: Form(
@@ -601,7 +600,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
-            color: isDarkMode ? Colors.grey[600]! : AppTheme.textSecondaryColor(context).withOpacity(0.3),
+            color: isDarkMode ? Colors.grey[600]! : AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
           ),
         ),
         focusedBorder: OutlineInputBorder(
@@ -729,17 +728,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               orderDetails: {
                 'items': () {
                   // DEBUG: Log cart items data before mapping
-                  print('🔍 DEBUG - Regular Checkout Cart Items:');
-                  print('📦 Total cart items: ${widget.cartItems.length}');
+                  debugPrint('🔍 DEBUG - Regular Checkout Cart Items:');
+                  debugPrint('📦 Total cart items: ${widget.cartItems.length}');
                   for (int i = 0; i < widget.cartItems.length; i++) {
                     final item = widget.cartItems[i];
-                    print('📋 Cart Item $i:');
-                    print('  - Product Name: ${item.productName}');
-                    print('  - Quantity: ${item.quantity}');
-                    print('  - Price: ${item.price}');
-                    print('  - Variant SKU: ${item.variantSku}');
-                    print('  - Variant Display Name: ${item.variantDisplayName}');
-                    print('  - Selected Options: ${item.selectedOptions}');
+                    debugPrint('📋 Cart Item $i:');
+                    debugPrint('  - Product Name: ${item.productName}');
+                    debugPrint('  - Quantity: ${item.quantity}');
+                    debugPrint('  - Price: ${item.price}');
+                    debugPrint('  - Variant SKU: ${item.variantSku}');
+                    debugPrint('  - Variant Display Name: ${item.variantDisplayName}');
+                    debugPrint('  - Selected Options: ${item.selectedOptions}');
                   }
                   
                   final mappedItems = widget.cartItems.map((item) => {
@@ -752,14 +751,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   }).toList();
                   
                   // DEBUG: Log mapped order items for QR Payment
-                  print('🔄 DEBUG - Regular Checkout Mapped Items for QR Payment:');
+                  debugPrint('🔄 DEBUG - Regular Checkout Mapped Items for QR Payment:');
                   for (int i = 0; i < mappedItems.length; i++) {
                     final item = mappedItems[i];
-                    print('📋 Mapped Item $i:');
-                    print('  - Name: ${item['name']}');
-                    print('  - Variant SKU: ${item['variantSku']}');
-                    print('  - Variant Display Name: ${item['variantDisplayName']}');
-                    print('  - Selected Options: ${item['selectedOptions']}');
+                    debugPrint('📋 Mapped Item $i:');
+                    debugPrint('  - Name: ${item['name']}');
+                    debugPrint('  - Variant SKU: ${item['variantSku']}');
+                    debugPrint('  - Variant Display Name: ${item['variantDisplayName']}');
+                    debugPrint('  - Selected Options: ${item['selectedOptions']}');
                   }
                   
                   return mappedItems;
@@ -1021,10 +1020,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: AppTheme.primaryOrange.withOpacity(0.1),
+              color: AppTheme.primaryOrange.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppTheme.primaryOrange.withOpacity(0.3),
+                color: AppTheme.primaryOrange.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),

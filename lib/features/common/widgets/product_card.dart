@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../common/theme.dart';
 import '../../../models/product.dart';
-import '../../../services/storage_service.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -40,7 +39,7 @@ class ProductCard extends StatelessWidget {
                             return Icon(
                               Icons.image_not_supported,
                               size: 50,
-                              color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+                              color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
                             );
                           },
                           loadingBuilder: (context, child, loadingProgress) {
@@ -53,7 +52,7 @@ class ProductCard extends StatelessWidget {
                       : Icon(
                           Icons.shopping_bag,
                           size: 50,
-                          color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+                          color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
                         ),
                 ),
               ),

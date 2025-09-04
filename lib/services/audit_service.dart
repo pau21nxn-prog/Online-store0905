@@ -40,7 +40,7 @@ class AuditService {
 
       await _firestore.collection('auditLogs').add(auditLog);
     } catch (e) {
-      print('Error logging audit action: $e');
+      debugPrint('Error logging audit action: $e');
       // Don't throw error to avoid breaking the main operation
     }
   }
@@ -253,7 +253,7 @@ class AuditService {
         },
       );
     } catch (e) {
-      print('Error cleaning up audit logs: $e');
+      debugPrint('Error cleaning up audit logs: $e');
       throw e;
     }
   }
@@ -306,7 +306,7 @@ class AuditService {
 
       return stats;
     } catch (e) {
-      print('Error getting audit statistics: $e');
+      debugPrint('Error getting audit statistics: $e');
       throw e;
     }
   }

@@ -390,17 +390,16 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen>
   }
 
   Widget _buildScaffoldContent(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: !_isProcessing,
+      onPopInvokedWithResult: (didPop, result) async {
         // Prevent back navigation during payment processing
-        if (_isProcessing) {
+        if (_isProcessing && !didPop) {
           final shouldCancel = await _showCancelDialog();
           if (shouldCancel) {
             _cancelPayment();
           }
-          return false;
         }
-        return true;
       },
       child: Scaffold(
         backgroundColor: AppTheme.backgroundColor(context),
@@ -476,7 +475,7 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen>
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _getStatusColor().withOpacity(0.1),
+              color: _getStatusColor().withValues(alpha: 0.1),
               border: Border.all(
                 color: _getStatusColor(),
                 width: 3,
@@ -622,7 +621,7 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

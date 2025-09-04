@@ -130,7 +130,7 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
               color: Theme.of(context).cardColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -765,7 +765,7 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
 
     return Chip(
       label: Text(label),
-      backgroundColor: color.withOpacity(0.1),
+      backgroundColor: color.withValues(alpha: 0.1),
       labelStyle: TextStyle(
         color: color,
         fontSize: 10,

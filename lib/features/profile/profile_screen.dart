@@ -94,7 +94,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildScaffoldContent(BuildContext context) {
-    final isGuest = _currentUser?.isGuest ?? true;
     final isAuthenticated = AuthService.isAuthenticated;
     
     return Scaffold(
@@ -195,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.primaryOrange.withOpacity(0.3),
+          color: AppTheme.primaryOrange.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -277,22 +276,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryOrange.withOpacity(0.1),
-            AppTheme.secondaryOrange.withOpacity(0.05),
+            AppTheme.primaryOrange.withValues(alpha: 0.1),
+            AppTheme.secondaryOrange.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.primaryOrange.withOpacity(0.2),
+          color: AppTheme.primaryOrange.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 40,
-            backgroundColor: AppTheme.primaryOrange.withOpacity(0.2),
+            backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.2),
             backgroundImage: _currentUser?.profileImageUrl != null
                 ? NetworkImage(_currentUser!.profileImageUrl!)
                 : null,
@@ -337,8 +336,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: _currentUser?.isAdmin == true 
-                        ? AppTheme.primaryOrange.withOpacity(0.2)
-                        : AppTheme.accentBlue.withOpacity(0.2),
+                        ? AppTheme.primaryOrange.withValues(alpha: 0.2)
+                        : AppTheme.accentBlue.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -375,14 +374,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppTheme.primaryOrange.withOpacity(0.1),
-                AppTheme.primaryOrange.withOpacity(0.05)
+                AppTheme.primaryOrange.withValues(alpha: 0.1),
+                AppTheme.primaryOrange.withValues(alpha: 0.05)
               ],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+            border: Border.all(color: AppTheme.primaryOrange.withValues(alpha: 0.3)),
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -447,7 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         leading: Container(
           padding: const EdgeInsets.all(6), // Reduced from 8 to 6
           decoration: BoxDecoration(
-            color: AppTheme.primaryOrange.withOpacity(0.1),
+            color: AppTheme.primaryOrange.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6), // Reduced from 8 to 6
           ),
           child: Icon(icon, color: AppTheme.primaryOrange, size: 18), // Reduced icon size
@@ -572,8 +571,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: AppTheme.surfaceColor(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
-          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 700),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -593,14 +592,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Contact Us',
                       style: TextStyle(
                         color: AppTheme.textPrimaryColor(context),
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
               // Promotional message - takes up most space
               Expanded(
@@ -609,93 +608,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tired of paying so much fees to online selling platforms?\nLet\'s build your own E-commerce website now.',
+                        'Tired of paying so much fees to major online selling platforms?\nLet\'s build your own E-commerce website now.',
                         style: TextStyle(
                           color: AppTheme.textPrimaryColor(context),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                           height: 1.4,
                         ),
+                        textAlign: TextAlign.left,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       
                       // Benefits
                       Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildBenefitItem('✅', 'Freely market your own product.', Colors.green),
-                          const SizedBox(height: 12),
+                          _buildBenefitItem('✅', 'Market your own product freely.', Colors.green),
+                          const SizedBox(height: 10),
                           _buildBenefitItem('✅', 'Choose your own payment system.', Colors.green),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           _buildBenefitItem('✅', 'Reach everyone online and expand your business.', Colors.green),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       
                       // Problems to avoid
                       Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildBenefitItem('❌', 'STOP losing your profits.', Colors.red),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           _buildBenefitItem('❌', 'Say NO to hidden charges and commissions.', Colors.red),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           _buildBenefitItem('❌', 'Say NO to complex fee structures.', Colors.red),
                         ],
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 20),
                       
                       // Call to action
                       Text(
-                        'Keep more of your EARNINGS. Let\'s maximize your PROFITS.\nLet\'s BUILD your own online selling platform!',
+                        'Keep more of your EARNINGS. Maximize your PROFITS.\nLet\'s BUILD your own online shop NOW!',
                         style: TextStyle(
                           color: AppTheme.primaryOrange,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                           height: 1.4,
                         ),
-                        textAlign: TextAlign.center,
+                        textAlign: TextAlign.left,
                       ),
                     ],
                   ),
                 ),
               ),
               
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
               
               // Click Here button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => _showContactForm(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text(
-                    'CLICK HERE',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Center(
+                child: SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: () => _showContactForm(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryOrange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text(
+                      'CLICK HERE',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               
               // Contact info at bottom
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(
-                  'annedfinds@gmail.com | 09773257043',
-                  style: TextStyle(
-                    color: AppTheme.textSecondaryColor(context),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                child: Center(
+                  child: Text(
+                    'annedfinds@gmail.com | 09773257043',
+                    style: TextStyle(
+                      color: AppTheme.textSecondaryColor(context),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
             ],
@@ -719,7 +723,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             text,
             style: TextStyle(
               color: AppTheme.textPrimaryColor(context),
-              fontSize: 15,
+              fontSize: 14,
               height: 1.3,
             ),
           ),
@@ -826,44 +830,13 @@ class _ContactFormDialogState extends State<ContactFormDialog> {
     setState(() => _isLoading = true);
 
     try {
-      // Create order items for the contact form data
-      final contactData = [
-        {
-          'name': 'Contact Form Submission',
-          'quantity': 1,
-          'price': 0.0,
-          'details': {
-            'firstName': _firstNameController.text.trim(),
-            'lastName': _lastNameController.text.trim(),
-            'phone': _phoneController.text.trim(),
-            'email': _emailController.text.trim(),
-            'message': _messageController.text.trim(),
-          }
-        }
-      ];
-
-      final deliveryAddress = {
-        'fullName': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
-        'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'streetAddress': 'Contact Form Inquiry',
-        'city': 'N/A',
-        'province': 'N/A',
-        'postalCode': 'N/A',
-        'country': 'Philippines',
-      };
-
-      // Send email using existing email service
-      final success = await EmailService.sendOrderConfirmationEmail(
-        toEmail: 'annedfinds@gmail.com', // Send to admin
-        customerName: '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
-        orderId: 'CONTACT${DateTime.now().millisecondsSinceEpoch}',
-        orderItems: contactData,
-        totalAmount: 0.0,
-        paymentMethod: 'Contact Form',
-        deliveryAddress: deliveryAddress,
-        estimatedDelivery: DateTime.now(),
-        skipAdminNotification: true,
+      // Send email using new contact form specific service
+      final success = await EmailService.sendContactFormSubmission(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        email: _emailController.text.trim(),
+        message: _messageController.text.trim(),
       );
 
       setState(() => _isLoading = false);

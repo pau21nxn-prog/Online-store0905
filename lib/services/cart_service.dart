@@ -250,7 +250,7 @@ class CartService {
 
       await batch.commit();
     } catch (e) {
-      print('Error syncing cart to Firebase: $e');
+      debugPrint('Error syncing cart to Firebase: $e');
     }
   }
 
@@ -279,9 +279,9 @@ class CartService {
             item.quantity > 10 ||  // Reasonable quantity limit
             item.quantity <= 0 ||  // Invalid quantities
             item.productId.isEmpty) {
-          print('Skipping invalid cart item: ${item.productName} (qty: ${item.quantity})');
+          debugPrint('Skipping invalid cart item: ${item.productName} (qty: ${item.quantity})');
           // Optionally delete the invalid item from Firestore
-          doc.reference.delete().catchError((e) => print('Error deleting invalid item: $e'));
+          doc.reference.delete().catchError((e) => debugPrint('Error deleting invalid item: $e'));
           continue;
         }
         
@@ -290,7 +290,7 @@ class CartService {
 
       _cartController.add(_memoryCart.values.toList());
     } catch (e) {
-      print('Error loading Firebase cart: $e');
+      debugPrint('Error loading Firebase cart: $e');
     }
   }
 
@@ -327,10 +327,10 @@ class CartService {
       }
 
       await batch.commit();
-      print('Successfully migrated cart to Firebase');
+      debugPrint('Successfully migrated cart to Firebase');
       
     } catch (e) {
-      print('Error migrating cart to Firebase: $e');
+      debugPrint('Error migrating cart to Firebase: $e');
     }
   }
 
@@ -387,10 +387,10 @@ class CartService {
       }
 
       await batch.commit();
-      print('Cart saved to Firebase after payment');
+      debugPrint('Cart saved to Firebase after payment');
       
     } catch (e) {
-      print('Error saving cart to Firebase after payment: $e');
+      debugPrint('Error saving cart to Firebase after payment: $e');
     }
   }
 
@@ -425,12 +425,12 @@ class CartService {
 
       if (deletedCount > 0) {
         await batch.commit();
-        print('Cleaned up $deletedCount invalid cart items');
+        debugPrint('Cleaned up $deletedCount invalid cart items');
         // Reload clean cart
         await _loadFirebaseCart();
       }
     } catch (e) {
-      print('Error cleaning up cart data: $e');
+      debugPrint('Error cleaning up cart data: $e');
     }
   }
 

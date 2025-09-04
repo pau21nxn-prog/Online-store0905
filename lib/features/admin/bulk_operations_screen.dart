@@ -159,7 +159,7 @@ class _BulkOperationsScreenState extends State<BulkOperationsScreen>
             color: Theme.of(context).cardColor,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -601,7 +601,6 @@ class _BulkOperationsScreenState extends State<BulkOperationsScreen>
   }
 
   Widget _buildPriceUpdateForm() {
-    final strategyController = TextEditingController();
     final valueController = TextEditingController();
     PriceUpdateStrategy selectedStrategy = PriceUpdateStrategy.percentage;
 
@@ -871,7 +870,7 @@ class _BulkOperationsScreenState extends State<BulkOperationsScreen>
   Widget _buildStatusChip(ProductStatus status) {
     return Chip(
       label: Text(_getStatusDisplayName(status)),
-      backgroundColor: _getStatusColor(status).withOpacity(0.1),
+      backgroundColor: _getStatusColor(status).withValues(alpha: 0.1),
       labelStyle: TextStyle(
         color: _getStatusColor(status),
         fontSize: 12,
@@ -997,7 +996,7 @@ class _BulkOperationsScreenState extends State<BulkOperationsScreen>
 
     return Chip(
       label: Text(status.toUpperCase()),
-      backgroundColor: color.withOpacity(0.1),
+      backgroundColor: color.withValues(alpha: 0.1),
       labelStyle: TextStyle(color: color, fontSize: 12),
     );
   }

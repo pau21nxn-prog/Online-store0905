@@ -6,6 +6,35 @@ class SearchService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // Generate search tokens from product data
+  static List<String> generateSearchTokens(String name, String description, [String? brandId]) {
+    final tokens = <String>{};
+    
+    // Add words from product name
+    final nameWords = name.toLowerCase().split(RegExp(r'[\s\-_.,!?]+'));
+    tokens.addAll(nameWords.where((word) => word.length >= 2));
+    
+    // Add words from description  
+    final descWords = description.toLowerCase().split(RegExp(r'[\s\-_.,!?]+'));
+    tokens.addAll(descWords.where((word) => word.length >= 2));
+    
+    // Add partial matches for longer words (for better search coverage)
+    final longWords = [...nameWords, ...descWords].where((word) => word.length >= 4);
+    for (final word in longWords) {
+      for (int i = 2; i <= word.length; i++) {
+        tokens.add(word.substring(0, i));
+      }
+    }
+    
+    // Add brand info if available
+    if (brandId != null && brandId.isNotEmpty) {
+      tokens.add(brandId.toLowerCase());
+    }
+    
+    // Remove empty strings and short tokens
+    return tokens.where((token) => token.length >= 2).toList();
+  }
+
   // Search products with filters - CLIENT-SIDE SORTING (No Firestore indexes needed)
   static Future<List<Product>> searchProducts({
     String? query,
@@ -18,56 +47,93 @@ class SearchService {
     int limit = 50,
   }) async {
     try {
-      // Start with basic query - only filter by isActive to avoid index issues
+      // Start with basic query - only filter by published products (same as home screen)
       Query<Map<String, dynamic>> firestoreQuery = _firestore
           .collection('products')
-          .where('isActive', isEqualTo: true);
+          .where('workflow.stage', isEqualTo: 'published');
 
-      // Get all active products first
+      // Get all published products first
       final snapshot = await firestoreQuery.get();
       List<Product> products = snapshot.docs
           .map((doc) => Product.fromFirestore(doc.id, doc.data()))
           .toList();
 
       // Apply CLIENT-SIDE filters to avoid complex Firestore indexes
+      debugPrint('SearchService: Found ${products.length} published products before filtering');
       
       // Apply text search filter
       if (query != null && query.trim().isNotEmpty) {
-        final searchTerms = query.toLowerCase().split(' ');
+        final searchQuery = query.trim().toLowerCase();
+        final searchTerms = searchQuery.split(' ').where((term) => term.isNotEmpty).toList();
+        debugPrint('SearchService: Searching for terms: $searchTerms');
+        
+        final initialCount = products.length;
         products = products.where((product) {
-          final productText = '${product.name} ${product.description}'.toLowerCase();
-          return searchTerms.any((term) => productText.contains(term));
+          // Use search tokens if available, otherwise fallback to text search
+          if (product.searchTokens.isNotEmpty) {
+            final matches = searchTerms.any((term) => 
+              product.searchTokens.any((token) => token.toLowerCase().contains(term))
+            );
+            if (matches) {
+              debugPrint('SearchService: Token match found - "${product.name}" has tokens containing "$searchQuery"');
+            }
+            return matches;
+          } else {
+            // Fallback to text search if no tokens
+            final searchableText = [
+              product.name,
+              product.description,
+              product.title,
+            ].where((text) => text.isNotEmpty)
+             .join(' ')
+             .toLowerCase();
+            
+            final matches = searchTerms.any((term) => searchableText.contains(term));
+            if (matches) {
+              debugPrint('SearchService: Text match found - "${product.name}" contains "$searchQuery"');
+            }
+            return matches;
+          }
         }).toList();
+        
+        debugPrint('SearchService: Text search filtered from $initialCount to ${products.length} products');
       }
 
       // Apply category filter
       if (categoryId != null && categoryId.isNotEmpty) {
-        products = products.where((product) => product.categoryId == categoryId).toList();
+        final beforeCount = products.length;
+        products = products.where((product) => product.primaryCategoryId == categoryId).toList();
+        debugPrint('SearchService: Category filter ($categoryId) filtered from $beforeCount to ${products.length} products');
       }
 
       // Apply price filters
       if (minPrice != null || maxPrice != null) {
+        final beforeCount = products.length;
         products = products.where((product) {
           final price = product.price;
           final min = minPrice ?? 0;
           final max = maxPrice ?? double.infinity;
           return price >= min && price <= max;
         }).toList();
+        debugPrint('SearchService: Price filter (₱$minPrice - ₱$maxPrice) filtered from $beforeCount to ${products.length} products');
       }
 
       // Apply stock filter
       if (inStockOnly == true) {
+        final beforeCount = products.length;
         products = products.where((product) => product.stockQty > 0).toList();
+        debugPrint('SearchService: Stock filter filtered from $beforeCount to ${products.length} products');
       }
 
       // Apply rating filter (skip for now - need to calculate from reviews)
       if (minRating != null) {
         // TODO: Calculate average rating from reviews collection
         // For now, skip rating filter
-        print('Rating filter requested but not implemented yet');
+        debugPrint('Rating filter requested but not implemented yet');
       }
 
       // Apply CLIENT-SIDE sorting (no Firestore indexes needed)
+      debugPrint('SearchService: Sorting ${products.length} products by $sortBy');
       switch (sortBy) {
         case 'price_low':
         case 'price_low_high':
@@ -98,13 +164,20 @@ class SearchService {
 
       // Apply limit after sorting
       if (products.length > limit) {
+        debugPrint('SearchService: Limiting results from ${products.length} to $limit');
         products = products.take(limit).toList();
       }
 
+      debugPrint('SearchService: Final search result: ${products.length} products');
+      if (products.isNotEmpty) {
+        debugPrint('SearchService: Sample results: ${products.take(3).map((p) => p.name).join(', ')}');
+      }
+      
       return products;
     } catch (e) {
-      print('Error searching products: $e');
-      throw Exception('Error searching products: $e');
+      debugPrint('SearchService Error: $e');
+      debugPrint('SearchService Error Stack: ${StackTrace.current}');
+      rethrow; // Let the UI handle the error display
     }
   }
 
@@ -115,7 +188,7 @@ class SearchService {
     try {
       final snapshot = await _firestore
           .collection('products')
-          .where('isActive', isEqualTo: true)
+          .where('workflow.stage', isEqualTo: 'published')
           .limit(50) // Increased limit for better suggestions
           .get();
 
@@ -144,7 +217,7 @@ class SearchService {
 
       return suggestions.take(10).toList();
     } catch (e) {
-      print('Error getting search suggestions: $e');
+      debugPrint('Error getting search suggestions: $e');
       return [];
     }
   }
@@ -198,7 +271,7 @@ class SearchService {
         await batch.commit();
       }
     } catch (e) {
-      print('Error saving search query: $e');
+      debugPrint('Error saving search query: $e');
       // Silent fail for search history
     }
   }
@@ -223,7 +296,7 @@ class SearchService {
           .toSet() // Remove duplicates
           .toList();
     } catch (e) {
-      print('Error getting search history: $e');
+      debugPrint('Error getting search history: $e');
       return [];
     }
   }
@@ -246,7 +319,7 @@ class SearchService {
         'Electronics',
       ];
     } catch (e) {
-      print('Error getting popular searches: $e');
+      debugPrint('Error getting popular searches: $e');
       return [];
     }
   }
@@ -257,7 +330,7 @@ class SearchService {
       // Get products to calculate price range and brands
       final productsSnapshot = await _firestore
           .collection('products')
-          .where('isActive', isEqualTo: true)
+          .where('workflow.stage', isEqualTo: 'published')
           .get();
 
       // Get categories
@@ -297,7 +370,7 @@ class SearchService {
             'name': data['name'] ?? 'Unknown Category',
           });
         } catch (e) {
-          print('Error processing category ${doc.id}: $e');
+          debugPrint('Error processing category ${doc.id}: $e');
         }
       }
 
@@ -310,7 +383,7 @@ class SearchService {
         'brands': brands.take(15).toList(), // Top 15 brands
       };
     } catch (e) {
-      print('Error getting filter options: $e');
+      debugPrint('Error getting filter options: $e');
       return {
         'priceRange': {'min': 0.0, 'max': 100000.0},
         'categories': <Map<String, dynamic>>[],
@@ -338,7 +411,7 @@ class SearchService {
 
       await batch.commit();
     } catch (e) {
-      print('Error clearing search history: $e');
+      debugPrint('Error clearing search history: $e');
       // Silent fail
     }
   }
@@ -348,12 +421,12 @@ class SearchService {
     try {
       final snapshot = await _firestore
           .collection('products')
-          .where('isActive', isEqualTo: true)
+          .where('workflow.stage', isEqualTo: 'published')
           .get();
       
       return snapshot.docs.length;
     } catch (e) {
-      print('Error getting total product count: $e');
+      debugPrint('Error getting total product count: $e');
       return 0;
     }
   }
@@ -363,8 +436,8 @@ class SearchService {
     try {
       final snapshot = await _firestore
           .collection('products')
-          .where('isActive', isEqualTo: true)
-          .where('categoryId', isEqualTo: categoryId)
+          .where('workflow.stage', isEqualTo: 'published')
+          .where('primaryCategoryId', isEqualTo: categoryId)
           .limit(limit)
           .get();
 
@@ -372,7 +445,7 @@ class SearchService {
           .map((doc) => Product.fromFirestore(doc.id, doc.data()))
           .toList();
     } catch (e) {
-      print('Error getting products by category: $e');
+      debugPrint('Error getting products by category: $e');
       return [];
     }
   }

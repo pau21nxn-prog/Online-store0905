@@ -638,6 +638,6 @@ class ProductAnalyticsService {
   }
 
   static void debugPrint(String message) {
-    print('[ProductAnalyticsService] $message');
+    debugPrint('[ProductAnalyticsService] $message');
   }
 }

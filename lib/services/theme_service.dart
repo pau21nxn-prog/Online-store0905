@@ -33,7 +33,7 @@ class ThemeService extends ChangeNotifier {
       
       notifyListeners();
     } catch (e) {
-      print('Error loading theme: $e');
+      debugPrint('Error loading theme: $e');
       _themeMode = ThemeMode.light;
     }
   }
@@ -58,7 +58,7 @@ class ThemeService extends ChangeNotifier {
       
       await prefs.setInt(_themeKey, themeIndex);
     } catch (e) {
-      print('Error saving theme: $e');
+      debugPrint('Error saving theme: $e');
     }
   }
 

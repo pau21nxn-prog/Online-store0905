@@ -60,7 +60,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius8),
-                borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius8),
@@ -111,7 +111,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                color: Theme.of(context).shadowColor.withOpacity(0.1),
+                color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -212,7 +212,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
       decoration: BoxDecoration(
         color: backgroundColor,
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.5)),
+          bottom: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
         ),
       ),
       child: Padding(
@@ -247,7 +247,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                      color: isActive ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isActive ? Colors.green : Colors.red,
@@ -268,7 +268,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.blue, width: 1),
                       ),
@@ -383,7 +383,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -640,7 +640,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                         icon: const Icon(Icons.clear_all, size: 16),
                         label: const Text('Clear Filters'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                           foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),

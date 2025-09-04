@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:async';
-import 'dart:typed_data';
 import '../../common/theme.dart';
 import '../../models/product.dart';
 import '../../models/product_variant.dart';
@@ -58,7 +57,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
   List<Category> _categories = [];
   List<ProductVariant> _variants = [];
   List<ProductMedia> _media = [];
-  List<ProductOption> _options = [];
+  final List<ProductOption> _options = [];
   
   // New variant system state
   List<VariantAttribute> _variantAttributes = [];
@@ -275,7 +274,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
     if (widget.product == null) return;
     
     try {
-      print('🔍 DEBUG: Loading media from product document...');
+      debugPrint('🔍 DEBUG: Loading media from product document...');
       
       // Load fresh product document to get current media data
       final doc = await FirebaseFirestore.instance
@@ -285,18 +284,18 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
       
       if (doc.exists) {
         final data = doc.data()!;
-        print('🔍 DEBUG: Product document loaded. Keys: ${data.keys.toList()}');
+        debugPrint('🔍 DEBUG: Product document loaded. Keys: ${data.keys.toList()}');
         
         // Load imageUrls array from document
         final imageUrls = List<String>.from(data['imageUrls'] ?? []);
-        print('🔍 DEBUG: Found ${imageUrls.length} image URLs: $imageUrls');
+        debugPrint('🔍 DEBUG: Found ${imageUrls.length} image URLs: $imageUrls');
         
         if (imageUrls.isNotEmpty) {
           final List<ProductMedia> loadedMedia = [];
           
           for (int i = 0; i < imageUrls.length; i++) {
             final imageUrl = imageUrls[i];
-            print('🔍 DEBUG: Creating media object for: $imageUrl');
+            debugPrint('🔍 DEBUG: Creating media object for: $imageUrl');
             
             final media = ProductMedia(
               id: 'loaded_${DateTime.now().millisecondsSinceEpoch}_$i',
@@ -322,18 +321,18 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
             _media = loadedMedia;
           });
           
-          print('🔍 DEBUG: Loaded ${loadedMedia.length} media items');
+          debugPrint('🔍 DEBUG: Loaded ${loadedMedia.length} media items');
         } else {
-          print('🔍 DEBUG: No image URLs found in document');
+          debugPrint('🔍 DEBUG: No image URLs found in document');
           setState(() {
             _media = [];
           });
         }
       } else {
-        print('🔍 DEBUG: Product document not found');
+        debugPrint('🔍 DEBUG: Product document not found');
       }
     } catch (e) {
-      print('🔍 DEBUG: Error loading media from document: $e');
+      debugPrint('🔍 DEBUG: Error loading media from document: $e');
       setState(() {
         _media = [];
       });
@@ -691,9 +690,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryOrange.withOpacity(0.1),
+                      color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+                      border: Border.all(color: AppTheme.primaryOrange.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       children: [
@@ -818,9 +817,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryOrange.withOpacity(0.1),
+                      color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+                      border: Border.all(color: AppTheme.primaryOrange.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       children: [
@@ -855,8 +854,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
           margin: const EdgeInsets.all(AppTheme.spacing16),
           padding: const EdgeInsets.all(AppTheme.spacing16),
           decoration: BoxDecoration(
-            color: AppTheme.primaryOrange.withOpacity(0.05),
-            border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.2)),
+            color: AppTheme.primaryOrange.withValues(alpha: 0.05),
+            border: Border.all(color: AppTheme.primaryOrange.withValues(alpha: 0.2)),
             borderRadius: BorderRadius.circular(AppTheme.radius8),
           ),
           child: Column(
@@ -1076,7 +1075,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
         color: Theme.of(context).scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -1266,22 +1265,22 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
       // Upload to Firebase Storage with optimization
       final productId = _currentProduct?.id ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
       
-      print('🔍 DEBUG: Starting upload for product ID: $productId');
-      print('🔍 DEBUG: File size: ${file.size} bytes');
-      print('🔍 DEBUG: File name: ${file.name}');
+      debugPrint('🔍 DEBUG: Starting upload for product ID: $productId');
+      debugPrint('🔍 DEBUG: File size: ${file.size} bytes');
+      debugPrint('🔍 DEBUG: File name: ${file.name}');
       
       final imageVariants = await StorageService.uploadProductImages(
         productId: productId,
         imageFiles: [file.bytes!],
         fileNames: [file.name],
         onProgress: (progress) {
-          print('📊 Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
+          debugPrint('📊 Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
         },
       );
       
-      print('🔍 DEBUG: Upload completed. Variants received: ${imageVariants.length}');
+      debugPrint('🔍 DEBUG: Upload completed. Variants received: ${imageVariants.length}');
       if (imageVariants.isNotEmpty) {
-        print('🔍 DEBUG: First variant URLs: ${imageVariants.first}');
+        debugPrint('🔍 DEBUG: First variant URLs: ${imageVariants.first}');
       }
       
       if (imageVariants.isNotEmpty) {
@@ -1487,7 +1486,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
     return Card(
       key: ValueKey(media.id),
       elevation: isPrimary ? 4 : 2,
-      color: isPrimary ? AppTheme.primaryOrange.withOpacity(0.05) : null,
+      color: isPrimary ? AppTheme.primaryOrange.withValues(alpha: 0.05) : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -1508,7 +1507,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
                         media.storagePath,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          print('🖼️ Image load error: $error');
+                          debugPrint('🖼️ Image load error: $error');
                           return const Icon(
                             Icons.broken_image,
                             color: Colors.grey,
@@ -1815,14 +1814,14 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
         _descriptionController.text.trim().isEmpty ||
         _selectedCategoryId == null ||
         _stockQuantityController.text.trim().isEmpty) {
-      print('🔍 Autosave skipped: Required fields not filled');
+      debugPrint('🔍 Autosave skipped: Required fields not filled');
       return;
     }
     
     // Skip autosave if stock quantity is invalid
     final stockQty = int.tryParse(_stockQuantityController.text);
     if (stockQty == null || stockQty < 0) {
-      print('🔍 Autosave skipped: Invalid stock quantity');
+      debugPrint('🔍 Autosave skipped: Invalid stock quantity');
       return;
     }
 
@@ -1863,7 +1862,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
   }
 
   Future<void> _saveAndPublish() async {
-    print('🔍 DEBUG: _saveAndPublish called');
+    debugPrint('🔍 DEBUG: _saveAndPublish called');
     
     // Simple validation first
     if (_titleController.text.trim().isEmpty) {
@@ -1915,7 +1914,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
     });
 
     try {
-      print('🔍 DEBUG: Building simplified product data...');
+      debugPrint('🔍 DEBUG: Building simplified product data...');
       
       // Build product data with proper pricing
       final basePrice = double.tryParse(_basePriceController.text) ?? 0.0;
@@ -1970,21 +1969,21 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
         productData['createdBy'] = 'admin';
       }
       
-      print('🔍 DEBUG: Simplified product data built');
+      debugPrint('🔍 DEBUG: Simplified product data built');
       
       if (widget.product == null) {
-        print('🔍 DEBUG: Creating new product...');
+        debugPrint('🔍 DEBUG: Creating new product...');
         final docRef = await FirebaseFirestore.instance
             .collection('products')
             .add(productData);
-        print('🔍 DEBUG: New product created with ID: ${docRef.id}');
+        debugPrint('🔍 DEBUG: New product created with ID: ${docRef.id}');
       } else {
-        print('🔍 DEBUG: Updating existing product ID: ${widget.product!.id}');
+        debugPrint('🔍 DEBUG: Updating existing product ID: ${widget.product!.id}');
         await FirebaseFirestore.instance
             .collection('products')
             .doc(widget.product!.id)
             .update(productData);
-        print('🔍 DEBUG: Product updated successfully');
+        debugPrint('🔍 DEBUG: Product updated successfully');
       }
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1993,7 +1992,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
       
       Navigator.pop(context, true);
     } catch (e) {
-      print('🔍 DEBUG: Error in _saveAndPublish: $e');
+      debugPrint('🔍 DEBUG: Error in _saveAndPublish: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving product: $e')),
       );
@@ -2007,18 +2006,18 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
   }
 
   Map<String, dynamic> _buildProductData(ProductStatus status) {
-    print('🔍 DEBUG: Building product data...');
+    debugPrint('🔍 DEBUG: Building product data...');
     
     try {
       // Calculate pricing data
-      print('🔍 DEBUG: Calculating pricing...');
+      debugPrint('🔍 DEBUG: Calculating pricing...');
       final basePrice = double.tryParse(_basePriceController.text) ?? 0.0;
       final salePrice = double.tryParse(_salePriceController.text);
       final finalPrice = salePrice ?? basePrice;
-      print('🔍 DEBUG: Base price: $basePrice, Sale price: $salePrice, Final price: $finalPrice');
+      debugPrint('🔍 DEBUG: Base price: $basePrice, Sale price: $salePrice, Final price: $finalPrice');
       
       // Build media data safely
-      print('🔍 DEBUG: Processing media... Count: ${_media.length}');
+      debugPrint('🔍 DEBUG: Processing media... Count: ${_media.length}');
       List<Map<String, dynamic>> mediaData = [];
       List<String> imageUrls = [];
       String? primaryImageUrl;
@@ -2026,18 +2025,18 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
       try {
         for (int i = 0; i < _media.length; i++) {
           final media = _media[i];
-          print('🔍 DEBUG: Processing media $i: ${media.id}');
+          debugPrint('🔍 DEBUG: Processing media $i: ${media.id}');
           
           // Add to imageUrls if it's an image
           if (media.isImage) {
             imageUrls.add(media.storagePath);
-            print('🔍 DEBUG: Added image URL: ${media.storagePath}');
+            debugPrint('🔍 DEBUG: Added image URL: ${media.storagePath}');
           }
           
           // Check for primary image
           if (media.role == MediaRole.cover) {
             primaryImageUrl = media.storagePath;
-            print('🔍 DEBUG: Found primary image: $primaryImageUrl');
+            debugPrint('🔍 DEBUG: Found primary image: $primaryImageUrl');
           }
           
           // Build media object safely
@@ -2058,19 +2057,19 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
         // Set primary image if not found
         if (primaryImageUrl == null && imageUrls.isNotEmpty) {
           primaryImageUrl = imageUrls.first;
-          print('🔍 DEBUG: Using first image as primary: $primaryImageUrl');
+          debugPrint('🔍 DEBUG: Using first image as primary: $primaryImageUrl');
         }
         
-        print('🔍 DEBUG: Media processing complete. Images: ${imageUrls.length}, Primary: $primaryImageUrl');
+        debugPrint('🔍 DEBUG: Media processing complete. Images: ${imageUrls.length}, Primary: $primaryImageUrl');
       } catch (e) {
-        print('🔍 DEBUG: Error processing media: $e');
+        debugPrint('🔍 DEBUG: Error processing media: $e');
         // Fallback to simple image URLs only
         imageUrls = _media.map((m) => m.storagePath).toList();
         primaryImageUrl = imageUrls.isNotEmpty ? imageUrls.first : null;
         mediaData = []; // Skip complex media data if there's an error
       }
       
-      print('🔍 DEBUG: Building final product data object...');
+      debugPrint('🔍 DEBUG: Building final product data object...');
       final productData = {
         'title': _titleController.text.trim(),
         'slug': _slugController.text.trim(),
@@ -2145,12 +2144,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
         },
       };
       
-      print('🔍 DEBUG: Product data built successfully');
+      debugPrint('🔍 DEBUG: Product data built successfully');
       return productData;
       
     } catch (e, stackTrace) {
-      print('🔍 DEBUG: Error in _buildProductData: $e');
-      print('🔍 DEBUG: Stack trace: $stackTrace');
+      debugPrint('🔍 DEBUG: Error in _buildProductData: $e');
+      debugPrint('🔍 DEBUG: Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -2164,7 +2163,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
 
   List<String> _generateSearchTokens() {
     try {
-      print('🔍 DEBUG: Generating search tokens...');
+      debugPrint('🔍 DEBUG: Generating search tokens...');
       final tokens = <String>{};
       
       // Add title words safely
@@ -2184,10 +2183,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen>
       
       // Remove empty strings and short words
       final result = tokens.where((token) => token.isNotEmpty && token.length > 2).toList();
-      print('🔍 DEBUG: Generated ${result.length} search tokens');
+      debugPrint('🔍 DEBUG: Generated ${result.length} search tokens');
       return result;
     } catch (e) {
-      print('🔍 DEBUG: Error generating search tokens: $e');
+      debugPrint('🔍 DEBUG: Error generating search tokens: $e');
       return [];
     }
   }

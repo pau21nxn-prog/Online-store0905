@@ -91,7 +91,7 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.light,
     primarySwatch: MaterialColor(
-      primaryOrange.value,
+      primaryOrange.toARGB32(),
       <int, Color>{
         50: const Color(0xFFFFF3E0),
         100: const Color(0xFFFFE0B2),
@@ -112,12 +112,10 @@ class AppTheme {
       primary: primaryOrange,
       secondary: secondaryOrange,
       surface: lightSurface,
-      background: lightBackground,
       error: errorRed,
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: lightTextPrimary,
-      onBackground: lightTextPrimary,
       onError: Colors.white,
     ),
     appBarTheme: const AppBarTheme(
@@ -168,7 +166,7 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.dark,
     primarySwatch: MaterialColor(
-      primaryOrange.value,
+      primaryOrange.toARGB32(),
       <int, Color>{
         50: const Color(0xFFFFF3E0),
         100: const Color(0xFFFFE0B2),
@@ -189,12 +187,10 @@ class AppTheme {
       primary: primaryOrange,
       secondary: secondaryOrange,
       surface: darkSurface,
-      background: darkBackground,
       error: errorRed,
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: darkTextPrimary,
-      onBackground: darkTextPrimary,
       onError: Colors.white,
     ),
     appBarTheme: const AppBarTheme(

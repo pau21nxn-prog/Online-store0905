@@ -89,10 +89,10 @@ class _WishlistButtonState extends State<WishlistButton>
       return ElevatedButton.icon(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _isInWishlist ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+          backgroundColor: _isInWishlist ? Colors.red.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
           foregroundColor: color,
           elevation: 0,
-          side: BorderSide(color: color.withOpacity(0.3)),
+          side: BorderSide(color: color.withValues(alpha: 0.3)),
         ),
         icon: _isLoading
             ? SizedBox(

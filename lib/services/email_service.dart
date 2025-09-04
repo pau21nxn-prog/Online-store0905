@@ -21,12 +21,12 @@ class EmailService {
     bool skipAdminNotification = false,
   }) async {
     try {
-      print('📧 Sending Gmail order confirmation email to: $toEmail');
-      print('Platform: ${kIsWeb ? "Web" : "Mobile"}');
+      debugPrint('📧 Sending Gmail order confirmation email to: $toEmail');
+      debugPrint('Platform: ${kIsWeb ? "Web" : "Mobile"}');
 
       // Validate input email
       if (!_isValidEmail(toEmail)) {
-        print('❌ Invalid recipient email: $toEmail');
+        debugPrint('❌ Invalid recipient email: $toEmail');
         await _logFailedEmail(toEmail, orderId, customerName);
         return false;
       }
@@ -45,16 +45,16 @@ class EmailService {
       );
 
       if (emailSent) {
-        print('✅ Gmail email sent successfully');
+        debugPrint('✅ Gmail email sent successfully');
         return true;
       } else {
-        print('❌ Failed to send Gmail email');
+        debugPrint('❌ Failed to send Gmail email');
         await _logFailedEmail(toEmail, orderId, customerName);
         return false;
       }
 
     } catch (e) {
-      print('❌ Gmail email service error: $e');
+      debugPrint('❌ Gmail email service error: $e');
       await _logFailedEmail(toEmail, orderId, customerName);
       return false;
     }
@@ -73,7 +73,7 @@ class EmailService {
     bool skipAdminNotification = false,
   }) async {
     try {
-      print('📤 Sending email via Gmail Firebase Function...');
+      debugPrint('📤 Sending email via Gmail Firebase Function...');
 
       // Prepare data for Gmail Firebase Function
       final functionData = {
@@ -106,27 +106,27 @@ class EmailService {
         'skipAdminNotification': skipAdminNotification,
       };
 
-      print('📋 Gmail function data: ${jsonEncode(functionData)}');
+      debugPrint('📋 Gmail function data: ${jsonEncode(functionData)}');
 
       // Call Gmail Firebase Function
       final HttpsCallable callable = _functions.httpsCallable('sendOrderConfirmationEmail');
       final result = await callable.call(functionData);
 
-      print('📬 Gmail Firebase Function response: ${result.data}');
+      debugPrint('📬 Gmail Firebase Function response: ${result.data}');
 
       if (result.data != null && result.data['success'] == true) {
-        print('✅ Email sent via Gmail Firebase Function');
-        print('📧 Message ID: ${result.data['messageId'] ?? 'No message ID'}');
-        print('📧 Order ID: ${result.data['orderId']}');
+        debugPrint('✅ Email sent via Gmail Firebase Function');
+        debugPrint('📧 Message ID: ${result.data['messageId'] ?? 'No message ID'}');
+        debugPrint('📧 Order ID: ${result.data['orderId']}');
         return true;
       } else {
-        print('❌ Gmail Firebase Function failed');
-        print('📄 Response data: ${result.data}');
+        debugPrint('❌ Gmail Firebase Function failed');
+        debugPrint('📄 Response data: ${result.data}');
         return false;
       }
     } catch (e) {
-      print('❌ Gmail Firebase Function error: $e');
-      print('💡 Make sure your Gmail Firebase Function is deployed');
+      debugPrint('❌ Gmail Firebase Function error: $e');
+      debugPrint('💡 Make sure your Gmail Firebase Function is deployed');
       return false;
     }
   }
@@ -140,7 +140,7 @@ class EmailService {
     required Map<String, dynamic> orderDetails,
   }) async {
     try {
-      print('📧 Sending admin payment notification for order: $orderId');
+      debugPrint('📧 Sending admin payment notification for order: $orderId');
 
       final paymentMethodNames = {
         PaymentMethod.gcash: 'GCash',
@@ -160,22 +160,22 @@ class EmailService {
         'type': 'admin_payment_notification',
       };
 
-      print('📋 Admin notification data: ${jsonEncode(functionData)}');
+      debugPrint('📋 Admin notification data: ${jsonEncode(functionData)}');
 
       final HttpsCallable callable = _functions.httpsCallable('sendAdminPaymentNotification');
       final result = await callable.call(functionData);
 
-      print('📬 Admin notification response: ${result.data}');
+      debugPrint('📬 Admin notification response: ${result.data}');
 
       if (result.data != null && result.data['success'] == true) {
-        print('✅ Admin payment notification sent successfully');
+        debugPrint('✅ Admin payment notification sent successfully');
         return true;
       } else {
-        print('❌ Failed to send admin payment notification');
+        debugPrint('❌ Failed to send admin payment notification');
         return false;
       }
     } catch (e) {
-      print('❌ Admin payment notification error: $e');
+      debugPrint('❌ Admin payment notification error: $e');
       return false;
     }
   }
@@ -189,10 +189,10 @@ class EmailService {
     required String paymentMethod,
   }) async {
     try {
-      print('📧 Sending customer payment confirmation for order: $orderId');
+      debugPrint('📧 Sending customer payment confirmation for order: $orderId');
 
       if (!_isValidEmail(customerEmail)) {
-        print('❌ Invalid customer email: $customerEmail');
+        debugPrint('❌ Invalid customer email: $customerEmail');
         return false;
       }
 
@@ -206,22 +206,22 @@ class EmailService {
         'type': 'customer_payment_confirmation',
       };
 
-      print('📋 Customer confirmation data: ${jsonEncode(functionData)}');
+      debugPrint('📋 Customer confirmation data: ${jsonEncode(functionData)}');
 
       final HttpsCallable callable = _functions.httpsCallable('sendCustomerPaymentConfirmation');
       final result = await callable.call(functionData);
 
-      print('📬 Customer confirmation response: ${result.data}');
+      debugPrint('📬 Customer confirmation response: ${result.data}');
 
       if (result.data != null && result.data['success'] == true) {
-        print('✅ Customer payment confirmation sent successfully');
+        debugPrint('✅ Customer payment confirmation sent successfully');
         return true;
       } else {
-        print('❌ Failed to send customer payment confirmation');
+        debugPrint('❌ Failed to send customer payment confirmation');
         return false;
       }
     } catch (e) {
-      print('❌ Customer payment confirmation error: $e');
+      debugPrint('❌ Customer payment confirmation error: $e');
       return false;
     }
   }
@@ -235,26 +235,26 @@ class EmailService {
     required String courier,
   }) async {
     try {
-      print('📦 Gmail shipping notification to: $toEmail');
+      debugPrint('📦 Gmail shipping notification to: $toEmail');
 
       if (!_isValidEmail(toEmail)) {
-        print('❌ Invalid recipient email: $toEmail');
+        debugPrint('❌ Invalid recipient email: $toEmail');
         return false;
       }
 
       // For now, log the shipping notification
       // You can create a separate Firebase Function for shipping notifications
-      print('📦 Shipping notification details:');
-      print('  - Order: $orderId');
-      print('  - Customer: $customerName');
-      print('  - Tracking: $trackingNumber');
-      print('  - Courier: $courier');
+      debugPrint('📦 Shipping notification details:');
+      debugPrint('  - Order: $orderId');
+      debugPrint('  - Customer: $customerName');
+      debugPrint('  - Tracking: $trackingNumber');
+      debugPrint('  - Courier: $courier');
       
       // TODO: Implement shipping notification Firebase Function for Gmail
-      print('💡 Shipping notifications via Gmail Firebase Function not implemented yet');
+      debugPrint('💡 Shipping notifications via Gmail Firebase Function not implemented yet');
       return true;
     } catch (e) {
-      print('❌ Gmail shipping notification error: $e');
+      debugPrint('❌ Gmail shipping notification error: $e');
       return false;
     }
   }
@@ -262,12 +262,12 @@ class EmailService {
   /// Test Gmail email configuration
   static Future<bool> testEmailConfiguration() async {
     try {
-      print('🧪 Testing Gmail email configuration...');
-      print('Platform: ${kIsWeb ? "Web" : "Mobile"}');
+      debugPrint('🧪 Testing Gmail email configuration...');
+      debugPrint('Platform: ${kIsWeb ? "Web" : "Mobile"}');
 
       return await _testGmailFirebaseFunction();
     } catch (e) {
-      print('❌ Gmail test failed: $e');
+      debugPrint('❌ Gmail test failed: $e');
       return false;
     }
   }
@@ -275,29 +275,29 @@ class EmailService {
   /// Test Gmail Firebase Function
   static Future<bool> _testGmailFirebaseFunction() async {
     try {
-      print('🧪 Testing Gmail Firebase Function...');
+      debugPrint('🧪 Testing Gmail Firebase Function...');
 
       // Call the test function
       final HttpsCallable callable = _functions.httpsCallable('testGmailEmail');
       final result = await callable.call({});
 
-      print('📊 Gmail test result: ${result.data}');
+      debugPrint('📊 Gmail test result: ${result.data}');
 
       if (result.data != null && result.data['success'] == true) {
-        print('✅ Gmail Firebase Function test successful');
-        print('📧 Test email sent with message ID: ${result.data['messageId']}');
+        debugPrint('✅ Gmail Firebase Function test successful');
+        debugPrint('📧 Test email sent with message ID: ${result.data['messageId']}');
         return true;
       } else {
-        print('❌ Gmail Firebase Function test failed');
-        print('📄 Response: ${result.data}');
+        debugPrint('❌ Gmail Firebase Function test failed');
+        debugPrint('📄 Response: ${result.data}');
         return false;
       }
     } catch (e) {
-      print('❌ Gmail Firebase Function test error: $e');
-      print('💡 Possible issues:');
-      print('   - Gmail Firebase Function not deployed');
-      print('   - Gmail credentials incorrect');
-      print('   - Network/authentication issues');
+      debugPrint('❌ Gmail Firebase Function test error: $e');
+      debugPrint('💡 Possible issues:');
+      debugPrint('   - Gmail Firebase Function not deployed');
+      debugPrint('   - Gmail credentials incorrect');
+      debugPrint('   - Network/authentication issues');
       return false;
     }
   }
@@ -308,7 +308,7 @@ class EmailService {
     required String customerName,
   }) async {
     try {
-      print('🧪 Sending Gmail test order email...');
+      debugPrint('🧪 Sending Gmail test order email...');
 
       // Create test order data
       final testOrderItems = [
@@ -345,7 +345,7 @@ class EmailService {
         estimatedDelivery: DateTime.now().add(const Duration(days: 3)),
       );
     } catch (e) {
-      print('❌ Gmail test order email error: $e');
+      debugPrint('❌ Gmail test order email error: $e');
       return false;
     }
   }
@@ -405,6 +405,58 @@ class EmailService {
     return diagnostics;
   }
 
+  /// Send contact form submission to admin
+  static Future<bool> sendContactFormSubmission({
+    required String firstName,
+    required String lastName,
+    required String phoneNumber,
+    required String email,
+    required String message,
+  }) async {
+    try {
+      debugPrint('📧 Sending contact form submission via dedicated Firebase Function...');
+
+      // Validate input email
+      if (!_isValidEmail(email)) {
+        debugPrint('❌ Invalid sender email: $email');
+        return false;
+      }
+
+      // Prepare data for dedicated contact form Firebase Function
+      final functionData = {
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+        'phoneNumber': phoneNumber.trim(),
+        'email': email.trim(),
+        'message': message.trim(),
+        'adminEmail': 'annedfinds@gmail.com',
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      debugPrint('📋 Contact form data: ${jsonEncode(functionData)}');
+
+      // Call dedicated Firebase Function for contact form
+      final HttpsCallable callable = _functions.httpsCallable('sendContactFormEmail');
+      final result = await callable.call(functionData);
+
+      debugPrint('📬 Contact form response: ${result.data}');
+
+      if (result.data != null && result.data['success'] == true) {
+        debugPrint('✅ Contact form submission sent successfully via dedicated function');
+        debugPrint('📧 Message ID: ${result.data['messageId'] ?? 'No message ID'}');
+        return true;
+      } else {
+        debugPrint('❌ Failed to send contact form submission');
+        debugPrint('📄 Response data: ${result.data}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ Contact form submission error: $e');
+      debugPrint('💡 Make sure the sendContactFormEmail Firebase Function is deployed');
+      return false;
+    }
+  }
+
   /// Get detailed debug information
   static Map<String, dynamic> getDebugInfo() {
     return {
@@ -432,13 +484,13 @@ class EmailService {
   /// Log failed email attempts
   static Future<void> _logFailedEmail(String toEmail, String orderId, String customerName) async {
     try {
-      print('📧 FAILED GMAIL EMAIL LOG:');
-      print('To: $toEmail');
-      print('Order: $orderId');
-      print('Customer: $customerName');
-      print('Platform: ${kIsWeb ? "Web" : "Mobile"}');
-      print('Service: Gmail SMTP via Firebase Functions');
-      print('Time: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}');
+      debugPrint('📧 FAILED GMAIL EMAIL LOG:');
+      debugPrint('To: $toEmail');
+      debugPrint('Order: $orderId');
+      debugPrint('Customer: $customerName');
+      debugPrint('Platform: ${kIsWeb ? "Web" : "Mobile"}');
+      debugPrint('Service: Gmail SMTP via Firebase Functions');
+      debugPrint('Time: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}');
       
       // TODO: You can log this to Firestore if needed
       /*
@@ -453,7 +505,7 @@ class EmailService {
       });
       */
     } catch (e) {
-      print('Failed to log Gmail email failure: $e');
+      debugPrint('Failed to log Gmail email failure: $e');
     }
   }
 

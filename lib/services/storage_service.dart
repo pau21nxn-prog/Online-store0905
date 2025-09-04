@@ -13,7 +13,7 @@ class StorageService {
     required List<String> fileNames,
     Function(double)? onProgress,
   }) async {
-    print('🚀 StorageService: Starting upload for ${imageFiles.length} files');
+    debugPrint('🚀 StorageService: Starting upload for ${imageFiles.length} files');
     final List<Map<String, String>> imageVariants = [];
     
     for (int i = 0; i < imageFiles.length; i++) {
@@ -21,21 +21,21 @@ class StorageService {
         final imageData = imageFiles[i];
         final fileName = fileNames[i];
         
-        print('📁 StorageService: Processing file $i: $fileName (${imageData.length} bytes)');
+        debugPrint('📁 StorageService: Processing file $i: $fileName (${imageData.length} bytes)');
         
         // Generate unique image ID
         final imageId = '${DateTime.now().millisecondsSinceEpoch}_$i';
         final extension = fileName.split('.').last.toLowerCase();
         
-        print('🔧 StorageService: Generated imageId: $imageId, extension: $extension');
+        debugPrint('🔧 StorageService: Generated imageId: $imageId, extension: $extension');
         
         // Optimize image
-        print('🖼️ StorageService: Starting image optimization...');
+        debugPrint('🖼️ StorageService: Starting image optimization...');
         final optimizedImages = await _optimizeImage(imageData, extension);
-        print('✅ StorageService: Image optimization complete. Variants: ${optimizedImages.keys}');
+        debugPrint('✅ StorageService: Image optimization complete. Variants: ${optimizedImages.keys}');
         
         // Upload original and optimized versions
-        print('☁️ StorageService: Starting Firebase upload...');
+        debugPrint('☁️ StorageService: Starting Firebase upload...');
         final urls = await _uploadImageVariants(
           productId: productId,
           imageId: imageId,
@@ -45,19 +45,19 @@ class StorageService {
           onProgress: onProgress,
         );
         
-        print('✅ StorageService: Upload complete. URLs: $urls');
+        debugPrint('✅ StorageService: Upload complete. URLs: $urls');
         
         // Add all variants to the list
         imageVariants.add(urls);
         
       } catch (e) {
-        print('❌ StorageService: Error uploading image $i: $e');
-        print('❌ StorageService: Error details: ${e.toString()}');
+        debugPrint('❌ StorageService: Error uploading image $i: $e');
+        debugPrint('❌ StorageService: Error details: ${e.toString()}');
         rethrow;
       }
     }
     
-    print('🎉 StorageService: All uploads complete. Total variants: ${imageVariants.length}');
+    debugPrint('🎉 StorageService: All uploads complete. Total variants: ${imageVariants.length}');
     return imageVariants;
   }
   
@@ -108,11 +108,11 @@ class StorageService {
     required Map<String, Uint8List> optimizedImages,
     Function(double)? onProgress,
   }) async {
-    print('🔥 Firebase: Starting upload to Firebase Storage');
-    print('🔥 Firebase: Product ID: $productId');
-    print('🔥 Firebase: Image ID: $imageId');
-    print('🔥 Firebase: Extension: $extension');
-    print('🔥 Firebase: Variants to upload: ${optimizedImages.keys}');
+    debugPrint('🔥 Firebase: Starting upload to Firebase Storage');
+    debugPrint('🔥 Firebase: Product ID: $productId');
+    debugPrint('🔥 Firebase: Image ID: $imageId');
+    debugPrint('🔥 Firebase: Extension: $extension');
+    debugPrint('🔥 Firebase: Variants to upload: ${optimizedImages.keys}');
     
     final Map<String, String> urls = {};
     
@@ -122,7 +122,7 @@ class StorageService {
       final data = entry.value;
       
       final path = 'products/$productId/${imageId}_$size.$extension';
-      print('🔥 Firebase: Uploading $size variant to path: $path (${data.length} bytes)');
+      debugPrint('🔥 Firebase: Uploading $size variant to path: $path (${data.length} bytes)');
       
       try {
         final ref = _storage.ref().child(path);
@@ -146,24 +146,24 @@ class StorageService {
             final progress = snapshot.bytesTransferred / snapshot.totalBytes;
             onProgress(progress);
           }
-          print('🔥 Firebase: Upload progress for $size: ${(snapshot.bytesTransferred / snapshot.totalBytes * 100).toStringAsFixed(1)}%');
+          debugPrint('🔥 Firebase: Upload progress for $size: ${(snapshot.bytesTransferred / snapshot.totalBytes * 100).toStringAsFixed(1)}%');
         });
         
         final snapshot = await uploadTask;
         final downloadUrl = await snapshot.ref.getDownloadURL();
         urls[size] = downloadUrl;
         
-        print('✅ Firebase: Successfully uploaded $size variant');
-        print('✅ Firebase: Download URL: $downloadUrl');
+        debugPrint('✅ Firebase: Successfully uploaded $size variant');
+        debugPrint('✅ Firebase: Download URL: $downloadUrl');
         
       } catch (e) {
-        print('❌ Firebase: Error uploading $size variant: $e');
-        print('❌ Firebase: Error type: ${e.runtimeType}');
+        debugPrint('❌ Firebase: Error uploading $size variant: $e');
+        debugPrint('❌ Firebase: Error type: ${e.runtimeType}');
         rethrow;
       }
     }
     
-    print('🎉 Firebase: All variants uploaded successfully');
+    debugPrint('🎉 Firebase: All variants uploaded successfully');
     return urls;
   }
   
@@ -220,7 +220,7 @@ class StorageService {
           }
         }
       } catch (e) {
-        print('Error deleting image: $e');
+        debugPrint('Error deleting image: $e');
       }
     }
   }

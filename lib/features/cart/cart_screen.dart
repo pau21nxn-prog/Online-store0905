@@ -7,7 +7,6 @@ import '../../common/theme.dart';
 import '../../common/mobile_layout_utils.dart';
 import '../auth/checkout_auth_modal.dart';
 import '../checkout/checkout_screen.dart';
-import '../checkout/guest_checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -433,7 +432,7 @@ class CartScreen extends StatelessWidget {
           BoxShadow(
             color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.black26
-                : Colors.grey.withOpacity(0.2),
+                : Colors.grey.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),

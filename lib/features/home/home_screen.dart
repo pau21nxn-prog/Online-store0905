@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _categoriesLoading = true;
   
   // Banner carousel state
-  PageController _bannerPageController = PageController();
+  final PageController _bannerPageController = PageController();
   Timer? _bannerTimer;
   int _currentBannerIndex = 0;
   List<banner_model.Banner> _banners = [];
@@ -61,9 +61,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   
   Future<void> _loadBanners() async {
     try {
-      print('HomeScreen: Starting banner loading...');
+      debugPrint('HomeScreen: Starting banner loading...');
       final banners = await BannerService.getBanners();
-      print('HomeScreen: Loaded ${banners.length} banners');
+      debugPrint('HomeScreen: Loaded ${banners.length} banners');
       
       setState(() {
         _banners = banners;
@@ -72,14 +72,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       
       // Start auto-cycling if banners are available
       if (_banners.isNotEmpty) {
-        print('HomeScreen: Starting banner autoplay with ${_banners.length} banners');
+        debugPrint('HomeScreen: Starting banner autoplay with ${_banners.length} banners');
         _startBannerAutoplay();
       } else {
-        print('HomeScreen: No banners available, showing empty state');
+        debugPrint('HomeScreen: No banners available, showing empty state');
       }
     } catch (e) {
-      print('HomeScreen: Error loading banners: $e');
-      print('HomeScreen: Error type: ${e.runtimeType}');
+      debugPrint('HomeScreen: Error loading banners: $e');
+      debugPrint('HomeScreen: Error type: ${e.runtimeType}');
       setState(() {
         _bannersLoading = false;
       });
@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(10), // Slightly smaller
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 1),
                       ),
@@ -291,10 +291,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       // Loading shimmer effect
       return Container(
         height: 180, // 2/3 of typical product card height
-        margin: const EdgeInsets.all(16),
+        width: double.infinity,
         decoration: BoxDecoration(
           color: AppTheme.surfaceColor(context),
-          borderRadius: BorderRadius.circular(12),
         ),
         child: const Center(
           child: CircularProgressIndicator(),
@@ -306,12 +305,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       // Empty state with colored background
       return Container(
         height: 180,
-        margin: const EdgeInsets.all(16),
+        width: double.infinity,
         decoration: BoxDecoration(
           color: AppTheme.surfaceColor(context),
-          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppTheme.primaryOrange.withOpacity(0.2),
+            color: AppTheme.primaryOrange.withValues(alpha: 0.2),
             width: 2,
           ),
         ),
@@ -322,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Icon(
                 Icons.image_outlined,
                 size: 48,
-                color: AppTheme.primaryOrange.withOpacity(0.5),
+                color: AppTheme.primaryOrange.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 8),
               Text(
@@ -340,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     return Container(
       height: 180,
-      margin: const EdgeInsets.all(16),
+      width: double.infinity,
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -360,17 +358,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               return Container(
                 margin: const EdgeInsets.only(bottom: 20), // Space for dots
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
                   child: Image.network(
                     banner.imageUrl,
                     width: double.infinity,
@@ -431,8 +427,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     decoration: BoxDecoration(
                       color: _currentBannerIndex == index
                           ? AppTheme.primaryOrange
-                          : AppTheme.primaryOrange.withOpacity(
-                              MobileLayoutUtils.shouldUseViewportWrapper(context) ? 0.5 : 0.3
+                          : AppTheme.primaryOrange.withValues(
+                              alpha: MobileLayoutUtils.shouldUseViewportWrapper(context) ? 0.5 : 0.3
                             ),
                       borderRadius: BorderRadius.circular(4),
                     ),
@@ -512,9 +508,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // "Check mo to Mhie" Featured Section - Mobile Grid Layout
   Widget _buildCheckMoToMhieSection() {
-    // Get current user to determine if admin
-    final currentUser = AuthService.currentUser;
-    final isAdmin = currentUser?.canAccessAdmin ?? false;
     
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -532,10 +525,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           );
         }
-
-        final products = snapshot.data!.docs
-            .map((doc) => Product.fromFirestore(doc.id, doc.data() as Map<String, dynamic>))
-            .toList();
 
         return SliverList(
           delegate: SliverChildListDelegate([
@@ -641,13 +630,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppTheme.primaryOrange.withOpacity(0.1),
-              AppTheme.secondaryPink.withOpacity(0.1),
+              AppTheme.primaryOrange.withValues(alpha: 0.1),
+              AppTheme.secondaryPink.withValues(alpha: 0.1),
             ],
           ),
           border: Border(
             top: BorderSide(
-              color: AppTheme.primaryOrange.withOpacity(0.3),
+              color: AppTheme.primaryOrange.withValues(alpha: 0.3),
             ),
           ),
         ),
@@ -729,7 +718,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: AppTheme.primaryOrange.withOpacity(0.3),
+          color: AppTheme.primaryOrange.withValues(alpha: 0.3),
         ),
       ),
       child: Row(

@@ -46,7 +46,7 @@ class AddressService {
           .map((doc) => Address.fromFirestore(doc.id, doc.data()))
           .toList();
     } catch (e) {
-      print('Error getting addresses: $e');
+      debugPrint('Error getting addresses: $e');
       return [];
     }
   }
@@ -71,7 +71,7 @@ class AddressService {
       }
       return null;
     } catch (e) {
-      print('Error getting default address: $e');
+      debugPrint('Error getting default address: $e');
       return null;
     }
   }
@@ -102,10 +102,10 @@ class AddressService {
           .collection('addresses')
           .add(addressData);
 
-      print('Address added successfully with ID: ${docRef.id}');
+      debugPrint('Address added successfully with ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
-      print('Error adding address: $e');
+      debugPrint('Error adding address: $e');
       rethrow;
     }
   }
@@ -132,9 +132,9 @@ class AddressService {
           .doc(addressId)
           .update(addressData);
 
-      print('Address updated successfully');
+      debugPrint('Address updated successfully');
     } catch (e) {
-      print('Error updating address: $e');
+      debugPrint('Error updating address: $e');
       rethrow;
     }
   }
@@ -152,9 +152,9 @@ class AddressService {
           .doc(addressId)
           .delete();
 
-      print('Address deleted successfully');
+      debugPrint('Address deleted successfully');
     } catch (e) {
-      print('Error deleting address: $e');
+      debugPrint('Error deleting address: $e');
       rethrow;
     }
   }
@@ -179,9 +179,9 @@ class AddressService {
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
 
-      print('Default address set successfully');
+      debugPrint('Default address set successfully');
     } catch (e) {
-      print('Error setting default address: $e');
+      debugPrint('Error setting default address: $e');
       rethrow;
     }
   }
@@ -205,7 +205,7 @@ class AddressService {
       }
       await batch.commit();
     } catch (e) {
-      print('Error clearing default addresses: $e');
+      debugPrint('Error clearing default addresses: $e');
     }
   }
 

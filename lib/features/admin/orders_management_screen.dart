@@ -60,7 +60,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius8),
-                borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius8),
@@ -111,7 +111,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                color: Theme.of(context).shadowColor.withOpacity(0.1),
+                color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -215,7 +215,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
       decoration: BoxDecoration(
         color: backgroundColor,
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.5)),
+          bottom: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
         ),
       ),
       child: Padding(
@@ -450,7 +450,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -713,7 +713,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                         icon: const Icon(Icons.clear_all, size: 16),
                         label: const Text('Clear Filters'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                           foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),

@@ -755,3 +755,144 @@ export const verifyAdminClaim = onCall(async (request) => {
     );
   }
 });
+
+// Contact form email function
+export const sendContactFormEmail = onCall(async (request) => {
+  const data = request.data;
+  try {
+    console.log("📧 Received contact form email request:", data);
+
+    const {
+      firstName,
+      lastName,
+      phoneNumber,
+      email,
+      message,
+      adminEmail,
+      timestamp
+    } = data;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !message) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Missing required fields: firstName, lastName, email, or message"
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Invalid email format"
+      );
+    }
+
+    // Create email content
+    const subject = `New Contact Form Submission from ${firstName} ${lastName}`;
+    
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <h2 style="color: #ff6b35; margin-bottom: 20px; text-align: center;">New Contact Form Submission</h2>
+          
+          <div style="background-color: #f8f8f8; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0;">Contact Information</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #555; width: 120px;">Name:</td>
+                <td style="padding: 8px 0; color: #333;">${firstName} ${lastName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #555;">Email:</td>
+                <td style="padding: 8px 0; color: #333;"><a href="mailto:${email}" style="color: #ff6b35; text-decoration: none;">${email}</a></td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #555;">Phone:</td>
+                <td style="padding: 8px 0; color: #333;"><a href="tel:${phoneNumber}" style="color: #ff6b35; text-decoration: none;">${phoneNumber}</a></td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #555;">Date:</td>
+                <td style="padding: 8px 0; color: #333;">${new Date(timestamp).toLocaleString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background-color: #f0f7ff; padding: 20px; border-radius: 6px; border-left: 4px solid #ff6b35;">
+            <h3 style="color: #333; margin-top: 0;">Message</h3>
+            <p style="color: #333; line-height: 1.6; margin: 0; white-space: pre-wrap;">${message}</p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #888; font-size: 14px; margin: 0;">
+              This email was sent from the AnnedFinds contact form.<br>
+              Please respond directly to the customer at <a href="mailto:${email}" style="color: #ff6b35; text-decoration: none;">${email}</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const textContent = `
+New Contact Form Submission
+
+Contact Information:
+Name: ${firstName} ${lastName}
+Email: ${email}
+Phone: ${phoneNumber}
+Date: ${new Date(timestamp).toLocaleString()}
+
+Message:
+${message}
+
+---
+This email was sent from the AnnedFinds contact form.
+Please respond directly to the customer at ${email}
+    `;
+
+    // Email configuration
+    const mailOptions = {
+      from: `"AnnedFinds Contact Form" <annedfinds@gmail.com>`,
+      to: adminEmail || 'annedfinds@gmail.com',
+      replyTo: email,
+      subject: subject,
+      html: htmlContent,
+      text: textContent
+    };
+
+    console.log("📤 Sending contact form email via Gmail...");
+    
+    // Send email using Gmail
+    const info = await gmailTransporter.sendMail(mailOptions);
+    
+    console.log("✅ Contact form email sent successfully:", info.messageId);
+
+    return {
+      success: true,
+      messageId: info.messageId,
+      customerEmail: email,
+      customerName: `${firstName} ${lastName}`,
+      timestamp: timestamp
+    };
+
+  } catch (error: any) {
+    console.error("❌ Contact form email error:", error);
+    
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    
+    throw new HttpsError(
+      'internal',
+      `Failed to send contact form email: ${error.message || String(error)}`
+    );
+  }
+});

@@ -98,7 +98,7 @@ class _EnhancedSearchBarState extends State<EnhancedSearchBar>
             color: Colors.white,
             border: Border.all(
               color: _controller.text.isNotEmpty 
-                  ? AppTheme.primaryOrange.withOpacity(0.3)
+                  ? AppTheme.primaryOrange.withValues(alpha: 0.3)
                   : Colors.grey.shade300,
             ),
           ),

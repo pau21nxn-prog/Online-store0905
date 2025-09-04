@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'variant_option.dart';
 
 enum ProductStatus { draft, review, approved, published, archived }

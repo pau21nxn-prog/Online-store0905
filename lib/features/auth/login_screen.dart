@@ -324,7 +324,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryOrange.withOpacity(0.1),
+                        color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(
@@ -431,7 +431,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Expanded(
               child: Divider(
-                color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
               ),
             ),
             Padding(
@@ -447,7 +447,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             Expanded(
               child: Divider(
-                color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
               ),
             ),
           ],
@@ -503,12 +503,12 @@ class _LoginScreenState extends State<LoginScreen> {
           border: Border.all(
             color: isPrimary 
                 ? AppTheme.primaryOrange 
-                : AppTheme.textSecondaryColor(context).withOpacity(0.2),
+                : AppTheme.textSecondaryColor(context).withValues(alpha: 0.2),
             width: isPrimary ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
           color: isPrimary 
-              ? AppTheme.primaryOrange.withOpacity(0.05)
+              ? AppTheme.primaryOrange.withValues(alpha: 0.05)
               : Colors.transparent,
         ),
         child: Row(
@@ -517,8 +517,8 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isPrimary 
-                    ? AppTheme.primaryOrange.withOpacity(0.1)
-                    : AppTheme.textSecondaryColor(context).withOpacity(0.1),
+                    ? AppTheme.primaryOrange.withValues(alpha: 0.1)
+                    : AppTheme.textSecondaryColor(context).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -621,7 +621,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                    color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -688,7 +688,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                    color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -803,7 +803,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                    color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -837,7 +837,7 @@ class _LoginScreenState extends State<LoginScreen> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                  color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -878,7 +878,7 @@ class _LoginScreenState extends State<LoginScreen> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                  color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(

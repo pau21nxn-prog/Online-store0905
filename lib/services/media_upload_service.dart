@@ -611,6 +611,6 @@ class MediaUploadService {
 
   // Debug print
   static void debugPrint(String message) {
-    print('[MediaUploadService] $message');
+    debugPrint('[MediaUploadService] $message');
   }
 }

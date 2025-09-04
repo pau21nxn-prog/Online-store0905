@@ -716,7 +716,7 @@ class InventoryManagementService {
 
   // Utility methods
   static void debugPrint(String message) {
-    print('[InventoryManagementService] $message');
+    debugPrint('[InventoryManagementService] $message');
   }
 
   // Dispose resources

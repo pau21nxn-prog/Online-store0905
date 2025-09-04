@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../common/theme.dart';
 import '../../common/mobile_layout_utils.dart';
 import '../../models/product.dart';
@@ -7,7 +6,6 @@ import '../../models/cart_item.dart';
 import '../../models/variant_option.dart';
 import '../../services/cart_service.dart';
 // Wishlist import removed
-import '../auth/checkout_auth_modal.dart';
 import '../checkout/checkout_screen.dart';
 import '../cart/cart_screen.dart';
 
@@ -90,11 +88,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 padding: const EdgeInsets.only(right: 8),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor.withOpacity(0.9),
+                    color: Theme.of(context).cardColor.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).shadowColor.withOpacity(0.1),
+                        color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -132,9 +130,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.image_not_supported, size: 80, color: Theme.of(context).iconTheme.color?.withOpacity(0.5)),
+                                          Icon(Icons.image_not_supported, size: 80, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5)),
                                           const SizedBox(height: 16),
-                                          Text('Image not available', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5))),
+                                          Text('Image not available', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5))),
                                         ],
                                       ),
                                     );
@@ -159,7 +157,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     width: 40,
                                     height: 40,
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.5),
+                                      color: Colors.black.withValues(alpha: 0.5),
                                       shape: BoxShape.circle,
                                     ),
                                     child: IconButton(
@@ -187,7 +185,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     width: 40,
                                     height: 40,
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.5),
+                                      color: Colors.black.withValues(alpha: 0.5),
                                       shape: BoxShape.circle,
                                     ),
                                     child: IconButton(
@@ -224,9 +222,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         shape: BoxShape.circle,
                                         color: _currentImageIndex == index
                                             ? Colors.white
-                                            : Colors.white.withOpacity(0.5),
+                                            : Colors.white.withValues(alpha: 0.5),
                                         border: Border.all(
-                                          color: Colors.black.withOpacity(0.3),
+                                          color: Colors.black.withValues(alpha: 0.3),
                                           width: 0.5,
                                         ),
                                       ),
@@ -243,7 +241,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Text(
@@ -259,7 +257,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                         )
                       : Center(
-                          child: Icon(Icons.shopping_bag, size: 100, color: Theme.of(context).iconTheme.color?.withOpacity(0.5)),
+                          child: Icon(Icons.shopping_bag, size: 100, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5)),
                         ),
                 ),
               ),
@@ -351,13 +349,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         padding: const EdgeInsets.all(AppTheme.spacing12),
                         decoration: BoxDecoration(
                           color: _getAvailableStock() > 0 
-                              ? AppTheme.successGreen.withOpacity(0.1)
-                              : AppTheme.errorRed.withOpacity(0.1),
+                              ? AppTheme.successGreen.withValues(alpha: 0.1)
+                              : AppTheme.errorRed.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radius8),
                           border: Border.all(
                             color: _getAvailableStock() > 0 
-                                ? AppTheme.successGreen.withOpacity(0.3)
-                                : AppTheme.errorRed.withOpacity(0.3),
+                                ? AppTheme.successGreen.withValues(alpha: 0.3)
+                                : AppTheme.errorRed.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
@@ -440,10 +438,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(AppTheme.spacing12),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryOrange.withOpacity(0.1),
+                            color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(AppTheme.radius8),
                             border: Border.all(
-                              color: AppTheme.primaryOrange.withOpacity(0.3),
+                              color: AppTheme.primaryOrange.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Row(
@@ -512,7 +510,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           color: Theme.of(context).bottomNavigationBarTheme.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).shadowColor.withOpacity(0.2),
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.2),
               spreadRadius: 1,
               blurRadius: 5,
               offset: const Offset(0, -2),
@@ -882,10 +880,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.primaryOrange.withOpacity(0.1),
+            color: AppTheme.primaryOrange.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radius8),
             border: Border.all(
-              color: AppTheme.primaryOrange.withOpacity(0.3),
+              color: AppTheme.primaryOrange.withValues(alpha: 0.3),
             ),
           ),
           child: Column(
@@ -941,8 +939,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: _selectedVariantConfiguration!.isInStock
-                          ? AppTheme.successGreen.withOpacity(0.1)
-                          : AppTheme.errorRed.withOpacity(0.1),
+                          ? AppTheme.successGreen.withValues(alpha: 0.1)
+                          : AppTheme.errorRed.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -1002,7 +1000,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: AppTheme.primaryOrange.withOpacity(0.3),
+                        color: AppTheme.primaryOrange.withValues(alpha: 0.3),
                         blurRadius: 8,
                         spreadRadius: 1,
                       ),

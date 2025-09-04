@@ -412,6 +412,6 @@ class ProductLockService {
 
   // For debugging
   static void debugPrint(String message) {
-    print('[ProductLockService] $message');
+    debugPrint('[ProductLockService] $message');
   }
 }

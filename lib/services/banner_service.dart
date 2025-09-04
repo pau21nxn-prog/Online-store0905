@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/banner.dart';
-import 'storage_service.dart';
 
 class BannerService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -13,21 +12,21 @@ class BannerService {
   /// Get all active banners ordered by their sequence
   static Future<List<Banner>> getBanners() async {
     try {
-      print('BannerService: Fetching active banners...');
+      debugPrint('BannerService: Fetching active banners...');
       final querySnapshot = await _firestore
           .collection(_collection)
           .where('isActive', isEqualTo: true)
           .orderBy('order')
           .get();
 
-      print('BannerService: Found ${querySnapshot.docs.length} active banners');
+      debugPrint('BannerService: Found ${querySnapshot.docs.length} active banners');
       
       final banners = querySnapshot.docs
           .map((doc) {
             try {
               return Banner.fromFirestore(doc.id, doc.data());
             } catch (e) {
-              print('BannerService: Error parsing banner ${doc.id}: $e');
+              debugPrint('BannerService: Error parsing banner ${doc.id}: $e');
               return null;
             }
           })
@@ -35,13 +34,13 @@ class BannerService {
           .cast<Banner>()
           .toList();
 
-      print('BannerService: Successfully parsed ${banners.length} banners');
+      debugPrint('BannerService: Successfully parsed ${banners.length} banners');
       return banners;
     } catch (e) {
-      print('BannerService: Error fetching banners: $e');
-      print('BannerService: Error type: ${e.runtimeType}');
+      debugPrint('BannerService: Error fetching banners: $e');
+      debugPrint('BannerService: Error type: ${e.runtimeType}');
       if (e.toString().contains('index')) {
-        print('BannerService: This may be due to missing Firestore index. Check Firebase console.');
+        debugPrint('BannerService: This may be due to missing Firestore index. Check Firebase console.');
       }
       return [];
     }
@@ -59,7 +58,7 @@ class BannerService {
           .map((doc) => Banner.fromFirestore(doc.id, doc.data()))
           .toList();
     } catch (e) {
-      print('Error fetching all banners: $e');
+      debugPrint('Error fetching all banners: $e');
       return [];
     }
   }
@@ -117,10 +116,10 @@ class BannerService {
           .doc(bannerId)
           .set(banner.toFirestore());
 
-      print('Banner uploaded successfully: $bannerId');
+      debugPrint('Banner uploaded successfully: $bannerId');
       return bannerId;
     } catch (e) {
-      print('Error uploading banner: $e');
+      debugPrint('Error uploading banner: $e');
       return null;
     }
   }
@@ -143,10 +142,10 @@ class BannerService {
           .doc(bannerId)
           .update(updates);
 
-      print('Banner updated successfully: $bannerId');
+      debugPrint('Banner updated successfully: $bannerId');
       return true;
     } catch (e) {
-      print('Error updating banner: $e');
+      debugPrint('Error updating banner: $e');
       return false;
     }
   }
@@ -165,21 +164,21 @@ class BannerService {
           final ref = _storage.refFromURL(banner.imageUrl);
           await ref.delete();
         } catch (e) {
-          print('Error deleting banner image from storage: $e');
+          debugPrint('Error deleting banner image from storage: $e');
           // Continue with Firestore deletion even if storage deletion fails
         }
         
         // Delete from Firestore
         await _firestore.collection(_collection).doc(bannerId).delete();
         
-        print('Banner deleted successfully: $bannerId');
+        debugPrint('Banner deleted successfully: $bannerId');
         return true;
       } else {
-        print('Banner not found: $bannerId');
+        debugPrint('Banner not found: $bannerId');
         return false;
       }
     } catch (e) {
-      print('Error deleting banner: $e');
+      debugPrint('Error deleting banner: $e');
       return false;
     }
   }
@@ -198,10 +197,10 @@ class BannerService {
       }
       
       await batch.commit();
-      print('Banners reordered successfully');
+      debugPrint('Banners reordered successfully');
       return true;
     } catch (e) {
-      print('Error reordering banners: $e');
+      debugPrint('Error reordering banners: $e');
       return false;
     }
   }
@@ -222,7 +221,7 @@ class BannerService {
         return 1;
       }
     } catch (e) {
-      print('Error getting next order: $e');
+      debugPrint('Error getting next order: $e');
       return 1;
     }
   }
@@ -242,7 +241,7 @@ class BannerService {
       
       return querySnapshot.docs.length;
     } catch (e) {
-      print('Error getting banner count: $e');
+      debugPrint('Error getting banner count: $e');
       return 0;
     }
   }

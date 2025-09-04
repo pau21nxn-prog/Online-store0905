@@ -133,7 +133,7 @@ class _SearchFiltersWidgetState extends State<SearchFiltersWidget> {
                 label: Text(_getFilterDisplayText(filter)),
                 onDeleted: () => _removeFilter(filter),
                 deleteIcon: const Icon(Icons.close, size: 16),
-                backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 labelStyle: TextStyle(
                   color: Theme.of(context).primaryColor,
                   fontSize: 12,

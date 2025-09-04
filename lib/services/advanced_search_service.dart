@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../models/product.dart';
-import '../models/category.dart';
 
 enum SearchType { products, suggestions, autocomplete }
 enum SortOption { relevance, priceAsc, priceDesc, rating, newest, popularity, name }
@@ -802,7 +801,7 @@ class AdvancedSearchService {
 
   // Utility methods
   static void debugPrint(String message) {
-    print('[AdvancedSearchService] $message');
+    debugPrint('[AdvancedSearchService] $message');
   }
 
   // Dispose resources

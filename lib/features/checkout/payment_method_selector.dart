@@ -174,7 +174,7 @@ class _PaymentMethodSelectorState extends State<PaymentMethodSelector> {
         ),
         boxShadow: isSelected ? [
           BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.1),
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -199,7 +199,7 @@ class _PaymentMethodSelectorState extends State<PaymentMethodSelector> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
+                    color: iconColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -272,7 +272,7 @@ class _PaymentMethodSelectorState extends State<PaymentMethodSelector> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: badgeColor?.withOpacity(0.1) ?? Colors.grey.withOpacity(0.1),
+                          color: badgeColor?.withValues(alpha: 0.1) ?? Colors.grey.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(

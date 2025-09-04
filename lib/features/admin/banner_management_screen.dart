@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:typed_data';
 import '../../common/theme.dart';
 import '../../models/banner.dart' as banner_model;
 import '../../services/banner_service.dart';
@@ -176,7 +175,7 @@ class _BannerManagementScreenState extends State<BannerManagementScreen> {
               color: AppTheme.surfaceColor(context),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -274,7 +273,7 @@ class _BannerManagementScreenState extends State<BannerManagementScreen> {
           Icon(
             Icons.image_outlined,
             size: 80,
-            color: AppTheme.primaryOrange.withOpacity(0.5),
+            color: AppTheme.primaryOrange.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 24),
           Text(

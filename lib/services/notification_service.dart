@@ -1,9 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import '../models/notification_model.dart';
-import '../models/product.dart';
-import '../models/order.dart';
 
 class NotificationService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -36,9 +33,9 @@ class NotificationService {
           .collection('notifications')
           .add(notification.toFirestore());
 
-      print('Notification sent to user $userId: $title');
+      debugPrint('Notification sent to user $userId: $title');
     } catch (e) {
-      print('Error sending notification: $e');
+      debugPrint('Error sending notification: $e');
     }
   }
 
@@ -73,9 +70,9 @@ class NotificationService {
       }
 
       await batch.commit();
-      print('Bulk notification sent to ${userIds.length} users');
+      debugPrint('Bulk notification sent to ${userIds.length} users');
     } catch (e) {
-      print('Error sending bulk notification: $e');
+      debugPrint('Error sending bulk notification: $e');
     }
   }
 
@@ -116,7 +113,7 @@ class NotificationService {
           .doc(notificationId)
           .update({'isRead': true});
     } catch (e) {
-      print('Error marking notification as read: $e');
+      debugPrint('Error marking notification as read: $e');
     }
   }
 
@@ -139,7 +136,7 @@ class NotificationService {
 
       await batch.commit();
     } catch (e) {
-      print('Error marking all notifications as read: $e');
+      debugPrint('Error marking all notifications as read: $e');
     }
   }
 
@@ -151,7 +148,7 @@ class NotificationService {
           .doc(notificationId)
           .delete();
     } catch (e) {
-      print('Error deleting notification: $e');
+      debugPrint('Error deleting notification: $e');
     }
   }
 
@@ -173,7 +170,7 @@ class NotificationService {
 
       await batch.commit();
     } catch (e) {
-      print('Error clearing all notifications: $e');
+      debugPrint('Error clearing all notifications: $e');
     }
   }
 
@@ -432,7 +429,7 @@ class NotificationService {
 
       return adminUsers;
     } catch (e) {
-      print('Error getting admin users: $e');
+      debugPrint('Error getting admin users: $e');
       return [];
     }
   }
@@ -453,9 +450,9 @@ class NotificationService {
       }
 
       await batch.commit();
-      print('Cleaned up ${oldNotifications.docs.length} old notifications');
+      debugPrint('Cleaned up ${oldNotifications.docs.length} old notifications');
     } catch (e) {
-      print('Error cleaning up old notifications: $e');
+      debugPrint('Error cleaning up old notifications: $e');
     }
   }
 }

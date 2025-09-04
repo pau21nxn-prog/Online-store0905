@@ -99,8 +99,8 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppTheme.primaryOrange.withOpacity(0.1),
-                        AppTheme.secondaryOrange.withOpacity(0.05),
+                        AppTheme.primaryOrange.withValues(alpha: 0.1),
+                        AppTheme.secondaryOrange.withValues(alpha: 0.05),
                       ],
                     ),
                   ),
@@ -191,7 +191,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                 child: Container(
                   height: 56,
                   decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.primaryOrange.withOpacity(0.1) : null,
+                    color: isSelected ? AppTheme.primaryOrange.withValues(alpha: 0.1) : null,
                     borderRadius: BorderRadius.circular(AppTheme.radius8),
                   ),
                   child: Center(
@@ -217,7 +217,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                 ),
               ),
               selected: isSelected,
-              selectedTileColor: AppTheme.primaryOrange.withOpacity(0.1),
+              selectedTileColor: AppTheme.primaryOrange.withValues(alpha: 0.1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius8),
               ),

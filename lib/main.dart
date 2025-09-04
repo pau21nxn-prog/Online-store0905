@@ -23,7 +23,6 @@ import 'features/profile/profile_screen.dart';
 import 'features/profile/orders_screen.dart'; // Updated import path
 import 'features/admin/admin_main_screen.dart';
 // Removed unused imports: simple_payment_demo.dart
-import 'common/mobile_layout_utils.dart';
 import 'common/mobile_viewport_wrapper.dart';
 
 void main() async {
@@ -154,7 +153,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             BoxShadow(
               color: Theme.of(context).brightness == Brightness.dark 
                 ? Colors.black26 
-                : Colors.grey.withOpacity(0.2),
+                : Colors.grey.withValues(alpha: 0.2),
               spreadRadius: 1,
               blurRadius: 8,
               offset: const Offset(0, -2),

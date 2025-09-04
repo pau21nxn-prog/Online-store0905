@@ -82,7 +82,7 @@ class AuthService {
       _userController.add(userModel);
       
     } catch (e) {
-      print('Error handling auth state change: $e');
+      debugPrint('Error handling auth state change: $e');
       _currentUser = null;
       _userController.add(null);
     }
@@ -114,12 +114,12 @@ class AuthService {
         
         await _createUserDocument(userModel);
         
-        print('Created anonymous user after payment: ${credential.user!.uid}');
+        debugPrint('Created anonymous user after payment: ${credential.user!.uid}');
         return userModel;
       }
       return null;
     } catch (e) {
-      print('Error creating anonymous user after payment: $e');
+      debugPrint('Error creating anonymous user after payment: $e');
       throw Exception('Failed to create guest account: $e');
     }
   }
@@ -140,7 +140,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error signing in anonymously: $e');
+      debugPrint('Error signing in anonymously: $e');
       throw Exception('Failed to sign in as guest: $e');
     }
   }
@@ -186,7 +186,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error signing in with email: $e');
+      debugPrint('Error signing in with email: $e');
       rethrow;
     }
   }
@@ -249,7 +249,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error signing in with Google: $e');
+      debugPrint('Error signing in with Google: $e');
       rethrow;
     }
   }
@@ -351,7 +351,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error verifying phone code: $e');
+      debugPrint('Error verifying phone code: $e');
       rethrow;
     }
   }
@@ -431,7 +431,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error creating account: $e');
+      debugPrint('Error creating account: $e');
       rethrow;
     }
   }
@@ -484,7 +484,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error linking anonymous account: $e');
+      debugPrint('Error linking anonymous account: $e');
       rethrow;
     }
   }
@@ -498,7 +498,7 @@ class AuthService {
       // DON'T automatically sign in anonymously after sign out
       // Let users browse without creating anonymous accounts
     } catch (e) {
-      print('Error signing out: $e');
+      debugPrint('Error signing out: $e');
       rethrow;
     }
   }
@@ -522,7 +522,7 @@ class AuthService {
     try {
       return await hasAdminClaim();
     } catch (e) {
-      print('❌ Admin verification failed: $e');
+      debugPrint('❌ Admin verification failed: $e');
       return false;
     }
   }
@@ -538,7 +538,7 @@ class AuthService {
     try {
       await _firestore.collection('users').doc(user.id).set(user.toFirestore());
     } catch (e) {
-      print('Error creating user document: $e');
+      debugPrint('Error creating user document: $e');
       rethrow;
     }
   }
@@ -550,7 +550,7 @@ class AuthService {
         'lastSignIn': DateTime.now(),
       });
     } catch (e) {
-      print('Error updating last sign-in: $e');
+      debugPrint('Error updating last sign-in: $e');
       // Don't rethrow - this is not critical
     }
   }
@@ -574,7 +574,7 @@ class AuthService {
         await _firestore.collection('users').doc(user.id).update(updates);
       }
     } catch (e) {
-      print('Error updating user profile: $e');
+      debugPrint('Error updating user profile: $e');
       rethrow;
     }
   }
@@ -582,7 +582,7 @@ class AuthService {
   // Set user as admin using Firebase Functions (with custom claims)
   static Future<void> setAdminStatus(String userId, bool isAdmin) async {
     try {
-      print('🔑 Setting admin status for $userId: $isAdmin');
+      debugPrint('🔑 Setting admin status for $userId: $isAdmin');
       
       // Call Firebase Function to set custom claims
       final callable = _functions.httpsCallable('setUserAdminClaim');
@@ -591,18 +591,18 @@ class AuthService {
         'isAdmin': isAdmin,
       });
       
-      print('✅ Admin status set successfully: ${result.data}');
+      debugPrint('✅ Admin status set successfully: ${result.data}');
       
       // Force refresh current user's token if it's the same user
       if (_auth.currentUser != null && _auth.currentUser!.uid == userId) {
-        print('🔄 Refreshing current user token...');
+        debugPrint('🔄 Refreshing current user token...');
         await _auth.currentUser!.getIdToken(true); // Force refresh
         await reloadUserData(); // Reload user data from Firestore
-        print('✅ Current user token refreshed');
+        debugPrint('✅ Current user token refreshed');
       }
       
     } catch (e) {
-      print('❌ Error setting admin status: $e');
+      debugPrint('❌ Error setting admin status: $e');
       rethrow;
     }
   }
@@ -614,7 +614,7 @@ class AuthService {
       final result = await callable.call();
       return result.data as Map<String, dynamic>;
     } catch (e) {
-      print('❌ Error verifying admin claim: $e');
+      debugPrint('❌ Error verifying admin claim: $e');
       rethrow;
     }
   }
@@ -629,7 +629,7 @@ class AuthService {
       final claims = idTokenResult.claims;
       return claims?['admin'] == true;
     } catch (e) {
-      print('❌ Error checking admin claim: $e');
+      debugPrint('❌ Error checking admin claim: $e');
       return false;
     }
   }
@@ -639,7 +639,7 @@ class AuthService {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
-      print('Error sending password reset email: $e');
+      debugPrint('Error sending password reset email: $e');
       rethrow;
     }
   }

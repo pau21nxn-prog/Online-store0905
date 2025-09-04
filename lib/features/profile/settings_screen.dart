@@ -176,7 +176,7 @@ class SettingsScreen extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isSelected 
-                    ? AppTheme.primaryOrange.withOpacity(0.1)
+                    ? AppTheme.primaryOrange.withValues(alpha: 0.1)
                     : AppTheme.surfaceGrayColor(context),
                 borderRadius: BorderRadius.circular(8),
               ),

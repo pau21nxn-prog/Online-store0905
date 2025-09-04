@@ -203,7 +203,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
         return;
       }
 
-      print('Formatted phone number: $phoneNumber'); // Debug log
+      debugPrint('Formatted phone number: $phoneNumber'); // Debug log
 
       await AuthService.signInWithPhone(
         phoneNumber,
@@ -394,7 +394,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -408,7 +408,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
@@ -419,7 +419,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryOrange.withOpacity(0.2),
+                        color: AppTheme.primaryOrange.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -544,7 +544,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                         children: [
                           Expanded(
                             child: Divider(
-                              color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                              color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                             ),
                           ),
                           Padding(
@@ -560,7 +560,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                           ),
                           Expanded(
                             child: Divider(
-                              color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                              color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                             ),
                           ),
                         ],
@@ -606,7 +606,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                         children: [
                           Expanded(
                             child: Divider(
-                              color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                              color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                             ),
                           ),
                           Padding(
@@ -622,7 +622,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                           ),
                           Expanded(
                             child: Divider(
-                              color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                              color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                             ),
                           ),
                         ],
@@ -746,7 +746,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                  color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -828,7 +828,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                  color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -925,12 +925,12 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
           border: Border.all(
             color: isPrimary 
                 ? AppTheme.primaryOrange 
-                : AppTheme.textSecondaryColor(context).withOpacity(0.2),
+                : AppTheme.textSecondaryColor(context).withValues(alpha: 0.2),
             width: isPrimary ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
           color: isPrimary 
-              ? AppTheme.primaryOrange.withOpacity(0.05)
+              ? AppTheme.primaryOrange.withValues(alpha: 0.05)
               : Colors.transparent,
         ),
         child: Row(
@@ -939,8 +939,8 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isPrimary 
-                    ? AppTheme.primaryOrange.withOpacity(0.1)
-                    : AppTheme.textSecondaryColor(context).withOpacity(0.1),
+                    ? AppTheme.primaryOrange.withValues(alpha: 0.1)
+                    : AppTheme.textSecondaryColor(context).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -1002,7 +1002,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           border: Border.all(
-            color: AppTheme.textSecondaryColor(context).withOpacity(0.2),
+            color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.2),
           ),
           borderRadius: BorderRadius.circular(8),
         ),
@@ -1068,7 +1068,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                    color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -1103,7 +1103,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                  color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -1142,7 +1142,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                  color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -1179,7 +1179,7 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
                 color: AppTheme.backgroundColor(context),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppTheme.textSecondaryColor(context).withOpacity(0.2),
+                  color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.2),
                 ),
               ),
               child: Column(

@@ -30,20 +30,15 @@ class _SearchScreenState extends State<SearchScreen> {
   
   SearchFilter _filter = const SearchFilter();
   List<Product> _searchResults = [];
-  List<String> _searchSuggestions = [];
-  List<String> _searchHistory = [];
   Map<String, dynamic> _filterOptions = {};
   
   bool _isLoading = false;
-  bool _isLoadingSuggestions = false;
-  bool _showSuggestions = false;
   String _lastQuery = '';
 
   @override
   void initState() {
     super.initState();
     _initializeSearch();
-    _loadSearchHistory();
     _loadFilterOptions();
   }
 
@@ -65,12 +60,6 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  Future<void> _loadSearchHistory() async {
-    final history = await SearchService.getSearchHistory();
-    setState(() {
-      _searchHistory = history;
-    });
-  }
 
   Future<void> _loadFilterOptions() async {
     final options = await SearchService.getFilterOptions();
@@ -147,25 +136,21 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       body: Column(
         children: [
-          // Search suggestions or history
-          if (_showSuggestions && _searchController.text.isNotEmpty)
-            _buildSuggestions()
-          else if (_showSuggestions && _searchController.text.isEmpty)
-            _buildSearchHistory(),
+          // Search instruction when no query
+          if (_searchController.text.isEmpty && _searchResults.isEmpty)
+            _buildSearchInstruction(),
           
           // Active filters summary
-          if (_filter.hasActiveFilters && !_showSuggestions)
+          if (_filter.hasActiveFilters)
             _buildActiveFilters(),
           
           // Sort options
-          if (!_showSuggestions && _searchResults.isNotEmpty)
+          if (_searchResults.isNotEmpty)
             _buildSortOptions(),
           
           // Search results
           Expanded(
-            child: _showSuggestions
-                ? Container()
-                : _buildSearchResults(),
+            child: _buildSearchResults(),
           ),
         ],
       ),
@@ -179,7 +164,7 @@ class _SearchScreenState extends State<SearchScreen> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: 'Search products...',
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
         border: InputBorder.none,
         suffixIcon: _searchController.text.isNotEmpty
             ? IconButton(
@@ -187,106 +172,41 @@ class _SearchScreenState extends State<SearchScreen> {
                 onPressed: () {
                   _searchController.clear();
                   setState(() {
-                    _showSuggestions = true;
-                    _searchSuggestions.clear();
+                    _searchResults.clear();
+                    _lastQuery = '';
                   });
                 },
               )
             : null,
       ),
-      onChanged: _onSearchChanged,
       onSubmitted: _onSearchSubmitted,
-      onTap: () {
-        setState(() {
-          _showSuggestions = true;
-        });
-      },
     );
   }
 
-  Widget _buildSuggestions() {
-    if (_isLoadingSuggestions) {
-      return const SizedBox(
-        height: 100,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
+  Widget _buildSearchInstruction() {
     return Container(
-      constraints: const BoxConstraints(maxHeight: 200),
-      child: ListView.builder(
-        shrinkWrap: true,
-        itemCount: _searchSuggestions.length,
-        itemBuilder: (context, index) {
-          final suggestion = _searchSuggestions[index];
-          return ListTile(
-            leading: const Icon(Icons.search, color: Colors.grey),
-            title: Text(suggestion),
-            onTap: () => _selectSuggestion(suggestion),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSearchHistory() {
-    if (_searchHistory.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(Icons.search, size: 48, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Start typing to search products',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 200),
+      padding: const EdgeInsets.all(32),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Recent Searches',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                TextButton(
-                  onPressed: _clearSearchHistory,
-                  child: const Text('Clear'),
-                ),
-              ],
+          Icon(Icons.search, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'Search Products',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _searchHistory.length,
-              itemBuilder: (context, index) {
-                final query = _searchHistory[index];
-                return ListTile(
-                  leading: const Icon(Icons.history, color: Colors.grey),
-                  title: Text(query),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.close, size: 20),
-                    onPressed: () => _removeFromHistory(query),
-                  ),
-                  onTap: () => _selectSuggestion(query),
-                );
-              },
+          const SizedBox(height: 8),
+          Text(
+            'Enter keywords to find products',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -579,7 +499,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
+                                  color: Colors.green.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
@@ -595,7 +515,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
+                                  color: Colors.red.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
@@ -625,11 +545,11 @@ class _SearchScreenState extends State<SearchScreen> {
           right: 8,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -643,51 +563,12 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
 
-  void _onSearchChanged(String value) {
-    setState(() {
-      _showSuggestions = true;
-    });
-
-    if (value.trim().isNotEmpty && value != _lastQuery) {
-      _getSuggestions(value);
-    } else {
-      setState(() {
-        _searchSuggestions.clear();
-      });
-    }
-  }
-
   void _onSearchSubmitted(String value) {
     if (value.trim().isNotEmpty) {
-      _selectSuggestion(value);
-    }
-  }
-
-  void _selectSuggestion(String suggestion) {
-    _searchController.text = suggestion;
-    setState(() {
-      _showSuggestions = false;
-      _filter = _filter.copyWith(query: suggestion);
-    });
-    SearchService.saveSearchQuery(suggestion);
-    _performSearch();
-  }
-
-  Future<void> _getSuggestions(String query) async {
-    setState(() {
-      _isLoadingSuggestions = true;
-    });
-
-    try {
-      final suggestions = await SearchService.getSearchSuggestions(query);
       setState(() {
-        _searchSuggestions = suggestions;
-        _isLoadingSuggestions = false;
+        _filter = _filter.copyWith(query: value.trim());
       });
-    } catch (e) {
-      setState(() {
-        _isLoadingSuggestions = false;
-      });
+      _performSearch();
     }
   }
 
@@ -757,18 +638,6 @@ class _SearchScreenState extends State<SearchScreen> {
     _performSearch();
   }
 
-  Future<void> _clearSearchHistory() async {
-    await SearchService.clearSearchHistory();
-    setState(() {
-      _searchHistory.clear();
-    });
-  }
-
-  void _removeFromHistory(String query) {
-    setState(() {
-      _searchHistory.remove(query);
-    });
-  }
 
   @override
   void dispose() {
