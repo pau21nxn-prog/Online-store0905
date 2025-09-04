@@ -289,22 +289,6 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
 
-    if (_filter.minRating != null) {
-      chips.add(
-        FilterChip(
-          label: Text('${_filter.minRating!.toStringAsFixed(1)}+ stars'),
-          selected: true,
-          onSelected: (bool value) {},
-          onDeleted: () {
-            setState(() {
-              _filter = _filter.clearRating();
-            });
-            _performSearch();
-          },
-          deleteIcon: const Icon(Icons.close, size: 16),
-        ),
-      );
-    }
 
     if (_filter.inStockOnly) {
       chips.add(
@@ -564,7 +548,6 @@ class _SearchScreenState extends State<SearchScreen> {
         categoryId: _filter.categoryId,
         minPrice: _filter.minPrice,
         maxPrice: _filter.maxPrice,
-        minRating: _filter.minRating,
         inStockOnly: _filter.inStockOnly,
         sortBy: _filter.sortBy,
       );
@@ -610,7 +593,6 @@ class _SearchScreenState extends State<SearchScreen> {
         categoryName: null,
         minPrice: null,
         maxPrice: null,
-        minRating: null,
         inStockOnly: false,
         selectedBrands: [],
       );
@@ -646,20 +628,18 @@ class FilterBottomSheet extends StatefulWidget {
 
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late SearchFilter _tempFilter;
-  late RangeValues _priceRange;
-  late double _minRating;
+  final TextEditingController _minPriceController = TextEditingController();
+  final TextEditingController _maxPriceController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _tempFilter = widget.filter;
     
-    final priceOptions = widget.filterOptions['priceRange'] ?? {'min': 0, 'max': 100000};
-    final minPrice = _tempFilter.minPrice ?? priceOptions['min'].toDouble();
-    final maxPrice = _tempFilter.maxPrice ?? priceOptions['max'].toDouble();
-    _priceRange = RangeValues(minPrice, maxPrice);
+    // Initialize price text controllers with current filter values
+    _minPriceController.text = _tempFilter.minPrice?.toStringAsFixed(0) ?? '';
+    _maxPriceController.text = _tempFilter.maxPrice?.toStringAsFixed(0) ?? '';
     
-    _minRating = _tempFilter.minRating ?? 0.0;
   }
 
   @override
@@ -687,11 +667,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     onPressed: () {
                       setState(() {
                         _tempFilter = const SearchFilter();
-                        _priceRange = RangeValues(
-                          widget.filterOptions['priceRange']['min'].toDouble(),
-                          widget.filterOptions['priceRange']['max'].toDouble(),
-                        );
-                        _minRating = 0.0;
+                        _minPriceController.clear();
+                        _maxPriceController.clear();
                       });
                     },
                     child: const Text('Clear All'),
@@ -709,8 +686,6 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     _buildCategoryFilter(),
                     const SizedBox(height: 24),
                     _buildPriceFilter(),
-                    const SizedBox(height: 24),
-                    _buildRatingFilter(),
                     const SizedBox(height: 24),
                     _buildStockFilter(),
                     const SizedBox(height: 40),
@@ -795,10 +770,6 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   }
 
   Widget _buildPriceFilter() {
-    final priceOptions = widget.filterOptions['priceRange'] ?? {'min': 0, 'max': 100000};
-    final minPrice = priceOptions['min'].toDouble();
-    final maxPrice = priceOptions['max'].toDouble();
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -807,90 +778,83 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        RangeSlider(
-          values: _priceRange,
-          min: minPrice,
-          max: maxPrice,
-          divisions: 20,
-          labels: RangeLabels(
-            '₱${_priceRange.start.toStringAsFixed(0)}',
-            '₱${_priceRange.end.toStringAsFixed(0)}',
-          ),
-          onChanged: (values) {
-            setState(() {
-              _priceRange = values;
-              _tempFilter = _tempFilter.copyWith(
-                minPrice: values.start == minPrice ? null : values.start,
-                maxPrice: values.end == maxPrice ? null : values.end,
-              );
-            });
-          },
-        ),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('₱${_priceRange.start.toStringAsFixed(0)}'),
-            Text('₱${_priceRange.end.toStringAsFixed(0)}'),
+            // Min Price Input
+            Expanded(
+              child: TextFormField(
+                controller: _minPriceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Min Price',
+                  prefixText: '₱',
+                  border: OutlineInputBorder(),
+                  hintText: '0',
+                ),
+                onChanged: (value) {
+                  _updatePriceFilter();
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Max Price Input
+            Expanded(
+              child: TextFormField(
+                controller: _maxPriceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Max Price',
+                  prefixText: '₱',
+                  border: OutlineInputBorder(),
+                  hintText: 'No limit',
+                ),
+                onChanged: (value) {
+                  _updatePriceFilter();
+                },
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildRatingFilter() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Minimum Rating',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: [
-            FilterChip(
-              label: const Text('Any Rating'),
-              selected: _minRating == 0.0,
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    _minRating = 0.0;
-                    _tempFilter = _tempFilter.clearRating();
-                  });
-                }
-              },
-            ),
-            ...List.generate(4, (index) {
-              final rating = (index + 2).toDouble();
-              return FilterChip(
-                label: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('${rating.toStringAsFixed(0)}+'),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.star, size: 16, color: Colors.amber),
-                  ],
-                ),
-                selected: _minRating == rating,
-                onSelected: (selected) {
-                  setState(() {
-                    if (selected) {
-                      _minRating = rating;
-                      _tempFilter = _tempFilter.copyWith(minRating: rating);
-                    } else {
-                      _minRating = 0.0;
-                      _tempFilter = _tempFilter.clearRating();
-                    }
-                  });
-                },
-              );
-            }),
-          ],
-        ),
-      ],
-    );
+  void _updatePriceFilter() {
+    setState(() {
+      final minPriceText = _minPriceController.text.trim();
+      final maxPriceText = _maxPriceController.text.trim();
+      
+      double? minPrice;
+      double? maxPrice;
+      
+      // Parse min price
+      if (minPriceText.isNotEmpty) {
+        minPrice = double.tryParse(minPriceText);
+        if (minPrice != null && minPrice < 0) {
+          minPrice = 0; // Ensure non-negative
+        }
+      }
+      
+      // Parse max price
+      if (maxPriceText.isNotEmpty) {
+        maxPrice = double.tryParse(maxPriceText);
+        if (maxPrice != null && maxPrice < 0) {
+          maxPrice = null; // Invalid max price
+        }
+      }
+      
+      // Validate that max >= min
+      if (minPrice != null && maxPrice != null && maxPrice < minPrice) {
+        maxPrice = minPrice; // Adjust max to be at least min
+      }
+      
+      _tempFilter = _tempFilter.copyWith(
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+      );
+    });
   }
+
 
   Widget _buildStockFilter() {
     return Column(
@@ -913,5 +877,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
+    super.dispose();
   }
 }

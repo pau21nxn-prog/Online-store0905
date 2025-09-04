@@ -4,7 +4,6 @@ class SearchFilter {
   final String? categoryName;
   final double? minPrice;
   final double? maxPrice;
-  final double? minRating;
   final bool inStockOnly;
   final String sortBy;
   final List<String> selectedBrands;
@@ -15,34 +14,34 @@ class SearchFilter {
     this.categoryName,
     this.minPrice,
     this.maxPrice,
-    this.minRating,
     this.inStockOnly = false,
     this.sortBy = 'relevance',
     this.selectedBrands = const [],
   });
 
   // Copy with method for immutable updates
+  // Using Object as sentinel value to distinguish between null and not provided
+  static const Object _notProvided = Object();
+  
   SearchFilter copyWith({
-    String? query,
-    String? categoryId,
-    String? categoryName,
-    double? minPrice,
-    double? maxPrice,
-    double? minRating,
-    bool? inStockOnly,
-    String? sortBy,
-    List<String>? selectedBrands,
+    Object? query = _notProvided,
+    Object? categoryId = _notProvided,
+    Object? categoryName = _notProvided,
+    Object? minPrice = _notProvided,
+    Object? maxPrice = _notProvided,
+    Object? inStockOnly = _notProvided,
+    Object? sortBy = _notProvided,
+    Object? selectedBrands = _notProvided,
   }) {
     return SearchFilter(
-      query: query ?? this.query,
-      categoryId: categoryId ?? this.categoryId,
-      categoryName: categoryName ?? this.categoryName,
-      minPrice: minPrice ?? this.minPrice,
-      maxPrice: maxPrice ?? this.maxPrice,
-      minRating: minRating ?? this.minRating,
-      inStockOnly: inStockOnly ?? this.inStockOnly,
-      sortBy: sortBy ?? this.sortBy,
-      selectedBrands: selectedBrands ?? this.selectedBrands,
+      query: query == _notProvided ? this.query : query as String?,
+      categoryId: categoryId == _notProvided ? this.categoryId : categoryId as String?,
+      categoryName: categoryName == _notProvided ? this.categoryName : categoryName as String?,
+      minPrice: minPrice == _notProvided ? this.minPrice : minPrice as double?,
+      maxPrice: maxPrice == _notProvided ? this.maxPrice : maxPrice as double?,
+      inStockOnly: inStockOnly == _notProvided ? this.inStockOnly : inStockOnly as bool,
+      sortBy: sortBy == _notProvided ? this.sortBy : sortBy as String,
+      selectedBrands: selectedBrands == _notProvided ? this.selectedBrands : selectedBrands as List<String>,
     );
   }
 
@@ -51,18 +50,33 @@ class SearchFilter {
     return const SearchFilter();
   }
 
-  // Clear specific filter
+  // Clear specific filters - using a cleaner approach
   SearchFilter clearCategory() {
-    return copyWith(categoryId: null, categoryName: null);
+    return SearchFilter(
+      query: this.query,
+      categoryId: null,
+      categoryName: null,
+      minPrice: this.minPrice,
+      maxPrice: this.maxPrice,
+      inStockOnly: this.inStockOnly,
+      sortBy: this.sortBy,
+      selectedBrands: this.selectedBrands,
+    );
   }
 
   SearchFilter clearPrice() {
-    return copyWith(minPrice: null, maxPrice: null);
+    return SearchFilter(
+      query: this.query,
+      categoryId: this.categoryId,
+      categoryName: this.categoryName,
+      minPrice: null,
+      maxPrice: null,
+      inStockOnly: this.inStockOnly,
+      sortBy: this.sortBy,
+      selectedBrands: this.selectedBrands,
+    );
   }
 
-  SearchFilter clearRating() {
-    return copyWith(minRating: null);
-  }
 
   SearchFilter clearStock() {
     return copyWith(inStockOnly: false);
@@ -77,7 +91,6 @@ class SearchFilter {
     return categoryId != null ||
            minPrice != null ||
            maxPrice != null ||
-           minRating != null ||
            inStockOnly ||
            selectedBrands.isNotEmpty;
   }
@@ -87,7 +100,6 @@ class SearchFilter {
     int count = 0;
     if (categoryId != null) count++;
     if (minPrice != null || maxPrice != null) count++;
-    if (minRating != null) count++;
     if (inStockOnly) count++;
     if (selectedBrands.isNotEmpty) count++;
     return count;
@@ -111,9 +123,6 @@ class SearchFilter {
       }
     }
     
-    if (minRating != null) {
-      filters.add('${minRating!.toStringAsFixed(1)}+ stars');
-    }
     
     if (inStockOnly) {
       filters.add('In stock');
@@ -155,7 +164,6 @@ class SearchFilter {
       'categoryId': categoryId,
       'minPrice': minPrice,
       'maxPrice': maxPrice,
-      'minRating': minRating,
       'inStockOnly': inStockOnly,
       'sortBy': sortBy,
       'selectedBrands': selectedBrands,
@@ -164,7 +172,7 @@ class SearchFilter {
 
   @override
   String toString() {
-    return 'SearchFilter{query: $query, categoryId: $categoryId, minPrice: $minPrice, maxPrice: $maxPrice, minRating: $minRating, inStockOnly: $inStockOnly, sortBy: $sortBy, selectedBrands: $selectedBrands}';
+    return 'SearchFilter{query: $query, categoryId: $categoryId, minPrice: $minPrice, maxPrice: $maxPrice, inStockOnly: $inStockOnly, sortBy: $sortBy, selectedBrands: $selectedBrands}';
   }
 
   @override
@@ -176,7 +184,6 @@ class SearchFilter {
       other.categoryId == categoryId &&
       other.minPrice == minPrice &&
       other.maxPrice == maxPrice &&
-      other.minRating == minRating &&
       other.inStockOnly == inStockOnly &&
       other.sortBy == sortBy &&
       _listEquals(other.selectedBrands, selectedBrands);
@@ -188,7 +195,6 @@ class SearchFilter {
       categoryId.hashCode ^
       minPrice.hashCode ^
       maxPrice.hashCode ^
-      minRating.hashCode ^
       inStockOnly.hashCode ^
       sortBy.hashCode ^
       selectedBrands.hashCode;
