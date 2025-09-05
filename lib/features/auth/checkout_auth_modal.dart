@@ -312,6 +312,13 @@ class _CheckoutAuthModalState extends State<CheckoutAuthModal> {
               quantity: item['quantity'] ?? 1,
               imageUrl: item['imageUrl'] ?? '',
               addedAt: DateTime.now(),
+              // Add missing variant fields:
+              selectedVariantId: item['selectedVariantId'],
+              selectedOptions: item['selectedOptions'] != null 
+                  ? Map<String, String>.from(item['selectedOptions'])
+                  : null,
+              variantSku: item['variantSku'],
+              variantDisplayName: item['variantDisplayName'],
             )).toList(),
             subtotal: widget.totalAmount,
             shipping: 0.0,

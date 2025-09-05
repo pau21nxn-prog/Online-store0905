@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import '../../common/theme.dart';
 import '../../models/order.dart';
 
@@ -132,13 +133,15 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
-                      Expanded(flex: 2, child: Text('Order No.', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
-                      Expanded(flex: 3, child: Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
-                      Expanded(flex: 3, child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 3, child: Text('Order No.', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 3, child: Text('Date/Time', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 2, child: Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 2, child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
                       Expanded(flex: 2, child: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
-                      Expanded(flex: 4, child: Text('Item', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
-                      Expanded(flex: 1, child: Text('Quantity', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 5, child: Text('Item', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 1, child: Text('Qty.', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
                       Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
+                      Expanded(flex: 3, child: Text('Status', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer))),
                       Expanded(flex: 2, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer), textAlign: TextAlign.center)),
                     ],
                   ),
@@ -201,15 +204,39 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         ? AppTheme.surfaceGrayColor(context)
         : AppTheme.surfaceColor(context);
     
-    // Get user email from order (need to fetch from users collection or use a different approach)
-    String userEmail = 'N/A'; // Placeholder since order doesn't directly store email
+    // DEBUG: Log complete shippingAddress contents for this order
+    debugPrint('🔍 DEBUG - EMAIL TRACKING: Order ${order.id} shippingAddress inspection:');
+    debugPrint('  - shippingAddress type: ${order.shippingAddress.runtimeType}');
+    debugPrint('  - Keys available: ${order.shippingAddress.keys.toList()}');
+    debugPrint('  - Complete shippingAddress map: ${order.shippingAddress}');
+    debugPrint('  - Direct email access: "${order.shippingAddress['email']}"');
+    debugPrint('  - Email key exists: ${order.shippingAddress.containsKey('email')}');
     
-    // Create a summary of items
-    final itemsSummary = order.items.length == 1 
-        ? order.items.first.productName
-        : '${order.items.first.productName} + ${order.items.length - 1} more';
+    // Get user email from order's shipping address with enhanced fallback logic
+    String userEmail = order.shippingAddress['email'] ?? 'N/A';
+    
+    // Handle legacy orders without email field
+    if (userEmail == 'N/A' || userEmail.isEmpty) {
+      // Try alternative email storage locations (if any)
+      userEmail = order.shippingAddress['customerEmail'] ?? 
+                 order.shippingAddress['userEmail'] ?? 
+                 'Email not available';
+      
+      // DEBUG: Log fallback attempt
+      debugPrint('  - Email fallback result: "$userEmail"');
+      debugPrint('  - This appears to be a legacy order without email field');
+    }
+    
+    // DEBUG: Log final email result
+    debugPrint('  - Final userEmail result: "$userEmail"');
+    
+    // Create detailed items display
+    final itemsDisplay = _buildItemsDisplay(order.items);
     
     final totalQuantity = order.items.fold<int>(0, (sum, item) => sum + item.quantity);
+    
+    // Format order date and time
+    final formattedDateTime = _formatDateTime(order.createdAt);
     
     return Container(
       decoration: BoxDecoration(
@@ -223,21 +250,30 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         child: Row(
           children: [
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Text(
-                '#${order.id.substring(0, 8).toUpperCase()}',
+                order.id,
                 style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             Expanded(
               flex: 3,
+              child: Text(
+                formattedDateTime,
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
               child: Text(
                 order.shippingAddress['fullName'] ?? 'N/A',
                 style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
               ),
             ),
             Expanded(
-              flex: 3,
+              flex: 2,
               child: Text(
                 userEmail,
                 style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
@@ -251,12 +287,14 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               ),
             ),
             Expanded(
-              flex: 4,
-              child: Text(
-                itemsSummary,
-                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              flex: 5,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 50),
+                child: Text(
+                  itemsDisplay,
+                  style: TextStyle(fontSize: 12, color: AppTheme.textPrimary(context)),
+                  maxLines: null,
+                ),
               ),
             ),
             Expanded(
@@ -273,6 +311,14 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                 order.formattedTotal,
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary(context)),
                 textAlign: TextAlign.right,
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(
+                '${order.statusDisplayName.toUpperCase()} • ${_formatDateTime(_getStatusTimestamp(order))}',
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
+                textAlign: TextAlign.center,
               ),
             ),
             Expanded(
@@ -350,7 +396,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Order #${order.id.substring(0, 8).toUpperCase()}'),
+            Text('Order ${order.id}', style: TextStyle(fontSize: 12)),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: order.status.name,
@@ -399,7 +445,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel Order'),
-        content: Text('Are you sure you want to cancel Order #${order.id.substring(0, 8).toUpperCase()}?'),
+        content: Text('Are you sure you want to cancel Order ${order.id}?', style: TextStyle(fontSize: 12)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -838,5 +884,63 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         duration: const Duration(seconds: 4),
       ),
     );
+  }
+
+  // Get the appropriate timestamp based on order status
+  DateTime _getStatusTimestamp(UserOrder order) {
+    switch (order.status) {
+      case OrderStatus.pending:
+        return order.createdAt;
+      case OrderStatus.confirmed:
+        return order.confirmedAt ?? order.updatedAt ?? order.createdAt;
+      case OrderStatus.processing:
+        return order.processingAt ?? order.updatedAt ?? order.createdAt;
+      case OrderStatus.shipped:
+        return order.shippedAt ?? order.updatedAt ?? order.createdAt;
+      case OrderStatus.delivered:
+        return order.deliveredAt ?? order.updatedAt ?? order.createdAt;
+      case OrderStatus.cancelled:
+        return order.cancelledAt ?? order.updatedAt ?? order.createdAt;
+      case OrderStatus.refunded:
+        return order.updatedAt ?? order.createdAt;
+    }
+  }
+
+  // Helper method to format DateTime (already in Philippine timezone from Firestore)
+  String _formatDateTime(DateTime dateTime) {
+    // Firestore already stores in Philippine timezone (UTC+8), no conversion needed
+    
+    // Format as yyyy-mm-dd hh:mm am/pm
+    final dateFormatter = DateFormat('yyyy-MM-dd');
+    final timeFormatter = DateFormat('h:mm a');
+    
+    final dateStr = dateFormatter.format(dateTime);
+    final timeStr = timeFormatter.format(dateTime).toLowerCase();
+    
+    return '$dateStr $timeStr';
+  }
+
+  // Helper method to build multi-line items display (matching admin email format)
+  String _buildItemsDisplay(List<OrderItem> items) {
+    final List<String> itemDisplays = [];
+    
+    for (final item in items) {
+      // Start with product name
+      String productDisplay = item.productName;
+      
+      // Add variant information if available (format: Product - Variant)
+      if (item.variantDisplayName != null && item.variantDisplayName!.isNotEmpty) {
+        productDisplay += ' - ${item.variantDisplayName!}';
+      }
+      
+      // Add SKU if available (format: Product - Variant (SKU: XXX))
+      if (item.variantSku != null && item.variantSku!.isNotEmpty) {
+        productDisplay += ' (SKU: ${item.variantSku!})';
+      }
+      
+      itemDisplays.add(productDisplay);
+    }
+    
+    return itemDisplays.join('\n');
   }
 }

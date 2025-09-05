@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:html' as html;
 import '../../common/theme.dart';
@@ -8,6 +12,9 @@ import '../../common/mobile_layout_utils.dart';
 import '../../services/email_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/cart_service.dart';
+import '../../services/payment_service.dart';
+import '../../models/order.dart';
+import '../../models/payment.dart';
 
 enum PaymentMethod { gcash, gotyme, metrobank, bpi }
 
@@ -599,12 +606,69 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
       isProcessing = true;
     });
 
+    bool orderCreated = false;
+    bool emailSent = false;
+    bool cartCleared = false;
+
     try {
-      // Here we would send email notification to admin
-      await _sendAdminNotification();
+      debugPrint('🚀 Starting payment confirmation process for order: ${widget.orderId}');
       
-      // Clear the cart after successful payment notification
-      await CartService.clearCart();
+      // Step 1: Create order from stored checkout data
+      debugPrint('📝 Step 1: Creating order...');
+      await _createOrderFromCheckoutData();
+      orderCreated = true;
+      debugPrint('✅ Order created successfully');
+      
+      // Step 2: Send email notification to admin
+      debugPrint('📧 Step 2: Sending email notifications...');
+      await _sendAdminNotification();
+      emailSent = true;
+      debugPrint('✅ Email notifications sent successfully');
+      
+      // Step 3: Clear only selected items from cart
+      debugPrint('🗑️ Step 3: Clearing selected items from cart...');
+      try {
+        await _clearSelectedItemsFromCart();
+        cartCleared = true;
+        debugPrint('✅ Cart clearing completed successfully');
+        
+        // Step 4: Clear saved cart selections only if cart clearing succeeded
+        debugPrint('🧹 Step 4: Clearing saved cart selections...');
+        await _clearSavedCartSelections();
+        debugPrint('✅ Cart selections cleared successfully');
+        
+      } catch (cartError) {
+        debugPrint('❌ Cart clearing failed: $cartError');
+        
+        // Preserve unselected items for user recovery
+        await _preserveUnselectedItemsInCart();
+        
+        // Show specific error message about cart clearing
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('⚠️ Order created successfully but cart clearing failed'),
+                  Text('You may need to manually remove items from your cart'),
+                  Text('Order ID: ${widget.orderId}'),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 8),
+              action: SnackBarAction(
+                label: 'OK',
+                textColor: Colors.white,
+                onPressed: () {},
+              ),
+            ),
+          );
+        }
+      }
+      
+      debugPrint('🎉 Payment confirmation process completed');
+      debugPrint('📊 Status - Order: $orderCreated, Email: $emailSent, Cart: $cartCleared');
       
       // Navigate to confirmation page
       if (mounted) {
@@ -619,11 +683,33 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
         );
       }
     } catch (e) {
+      debugPrint('❌ CRITICAL ERROR in payment confirmation: $e');
+      
+      String errorMessage;
+      Color backgroundColor;
+      
+      if (!orderCreated) {
+        errorMessage = 'Order creation failed: $e';
+        backgroundColor = Colors.red;
+      } else if (!emailSent) {
+        errorMessage = 'Order created but email notification failed: $e';
+        backgroundColor = Colors.orange;
+      } else {
+        errorMessage = 'Error in payment processing: $e';
+        backgroundColor = Colors.red;
+      }
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error processing payment: $e'),
-            backgroundColor: Colors.red,
+            content: Text(errorMessage),
+            backgroundColor: backgroundColor,
+            duration: Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'Dismiss',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
           ),
         );
       }
@@ -633,6 +719,260 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
           isProcessing = false;
         });
       }
+    }
+  }
+
+  Future<void> _createOrderFromCheckoutData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final checkoutDataJson = prefs.getString('checkout_data_${widget.orderId}');
+      
+      if (checkoutDataJson == null) {
+        throw Exception('Checkout data not found for order ${widget.orderId}');
+      }
+      
+      final checkoutData = jsonDecode(checkoutDataJson) as Map<String, dynamic>;
+      
+      // Convert stored cart items back to OrderItem objects
+      final orderItems = (checkoutData['cartItems'] as List<dynamic>).map((item) => OrderItem(
+        productId: item['productId'] ?? '',
+        productName: item['productName'] ?? '',
+        productImage: item['productImage'] ?? '',
+        price: (item['price'] ?? 0).toDouble(),
+        quantity: item['quantity'] ?? 0,
+        selectedVariantId: item['selectedVariantId'],
+        selectedOptions: item['selectedOptions'] != null 
+            ? Map<String, String>.from(item['selectedOptions']) 
+            : null,
+        variantSku: item['variantSku'],
+        variantDisplayName: item['variantDisplayName'],
+      )).toList();
+      
+      // Create UserOrder from stored data
+      final order = UserOrder(
+        id: checkoutData['orderId'],
+        userId: checkoutData['userId'],
+        items: orderItems,
+        subtotal: (checkoutData['subtotal'] ?? 0).toDouble(),
+        shippingFee: (checkoutData['shippingFee'] ?? 0).toDouble(),
+        total: (checkoutData['total'] ?? 0).toDouble(),
+        status: OrderStatus.pending,
+        paymentMethod: _getPaymentMethodString(selectedPaymentMethod!),
+        shippingAddress: Map<String, dynamic>.from(checkoutData['shippingAddress']),
+        createdAt: DateTime.parse(checkoutData['createdAt']),
+      );
+      
+      // Save order to Firestore
+      debugPrint('🔍 Creating order ${order.id} in Firestore...');
+      await FirebaseFirestore.instance
+          .collection('orders')
+          .doc(order.id)
+          .set(order.toFirestore());
+      
+      // Create payment record
+      await PaymentService.createPayment(
+        orderId: order.id,
+        amount: order.total,
+        method: _getPaymentMethodType(selectedPaymentMethod!),
+      );
+      
+      // Clean up stored checkout data
+      await prefs.remove('checkout_data_${widget.orderId}');
+      
+      debugPrint('✅ Order ${order.id} created successfully');
+    } catch (e) {
+      debugPrint('❌ Error creating order from checkout data: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _clearSelectedItemsFromCart() async {
+    debugPrint('🚀 Starting cart clearing process for order: ${widget.orderId}');
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Try primary checkout data first
+      String? checkoutDataJson = prefs.getString('checkout_data_${widget.orderId}');
+      String dataSource = 'primary';
+      
+      // Try backup data if primary is missing
+      if (checkoutDataJson == null) {
+        debugPrint('⚠️ Primary checkout data not found, trying backup...');
+        checkoutDataJson = prefs.getString('checkout_backup_${widget.orderId}');
+        dataSource = 'backup';
+      }
+      
+      // If still no data, try to create fallback from order details
+      if (checkoutDataJson == null) {
+        debugPrint('⚠️ Backup checkout data not found, attempting fallback cart clearing...');
+        await _fallbackCartClearingFromOrderDetails();
+        return;
+      }
+
+      debugPrint('✅ Found checkout data from $dataSource source');
+      
+      final checkoutData = jsonDecode(checkoutDataJson) as Map<String, dynamic>;
+      final cartItems = checkoutData['cartItems'] as List<dynamic>;
+      
+      debugPrint('🛒 Found ${cartItems.length} items to remove from cart');
+      debugPrint('📊 Checkout data timestamp: ${checkoutData['storageTimestamp'] ?? 'unknown'}');
+      
+      // Collect all cart keys to remove
+      List<String> cartKeysToRemove = [];
+      for (int i = 0; i < cartItems.length; i++) {
+        final item = cartItems[i];
+        
+        // Use stored cart key if available, otherwise generate it
+        String cartKey;
+        if (item['cartKey'] != null && item['cartKey'].isNotEmpty) {
+          cartKey = item['cartKey'];
+          debugPrint('🔍 [$i] Using stored cart key: $cartKey');
+        } else {
+          // Fallback to generating cart key (for backwards compatibility)
+          final productId = item['productId'];
+          final variantId = item['selectedVariantId'];
+          cartKey = variantId != null && variantId.isNotEmpty 
+              ? '${productId}_$variantId' 
+              : productId;
+          debugPrint('🔍 [$i] Generated cart key (fallback): $cartKey');
+        }
+        
+        cartKeysToRemove.add(cartKey);
+        debugPrint('📝 [$i] Added to removal list: ${item['productName']} (key: $cartKey)');
+      }
+      
+      // Use the optimized cart clearing method that handles both auth states
+      debugPrint('🗑️ Removing ${cartKeysToRemove.length} items using optimized cart clearing...');
+      await CartService.clearSelectedItemsAfterCheckout(cartKeysToRemove);
+      
+      // Clean up stored checkout data after successful clearing
+      await _cleanupCheckoutData();
+      
+      debugPrint('🎉 All selected items successfully cleared from cart');
+      
+    } catch (e) {
+      debugPrint('❌ CRITICAL ERROR in cart clearing process: $e');
+      // Try alternative clearing methods before giving up
+      await _emergencyCartClearingFallback();
+    }
+  }
+
+  Future<void> _fallbackCartClearingFromOrderDetails() async {
+    debugPrint('🆘 Attempting fallback cart clearing using order details...');
+    
+    // This is a fallback method that tries to clear cart based on what we know
+    // about the order that was just created. This should only be used when 
+    // checkout data is completely missing.
+    
+    // For now, we'll create a user notification that manual cart clearing may be needed
+    debugPrint('⚠️ Fallback cart clearing not yet implemented - user may need to manually clear cart');
+    
+    // TODO: Implement fallback logic based on order details stored elsewhere
+    // This could involve querying the created order from Firestore and using that data
+  }
+
+  Future<void> _emergencyCartClearingFallback() async {
+    debugPrint('🚨 Emergency cart clearing fallback triggered');
+    
+    // This is a last resort - we'll show an error to the user and provide
+    // guidance on manual cart management
+    debugPrint('🚨 Cart clearing failed completely - user notification required');
+    
+    // Set a flag that can be used to show user notification
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('cart_clearing_failed_${widget.orderId}', true);
+    
+    throw Exception('Cart clearing failed - order created successfully but cart items may need to be manually removed');
+  }
+
+  Future<void> _cleanupCheckoutData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('checkout_data_${widget.orderId}');
+      await prefs.remove('checkout_backup_${widget.orderId}');
+      debugPrint('🧹 Cleanup: Removed checkout data for order ${widget.orderId}');
+    } catch (e) {
+      debugPrint('⚠️ Error cleaning up checkout data: $e');
+      // Not critical - data will eventually be cleaned up
+    }
+  }
+
+  Future<void> _clearSavedCartSelections() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // IMPORTANT: Only clear selections if cart clearing was successful
+      // Check if there's a cart clearing failure flag first
+      final cartClearingFailed = prefs.getBool('cart_clearing_failed_${widget.orderId}') ?? false;
+      
+      if (cartClearingFailed) {
+        debugPrint('⚠️ Cart clearing failed - preserving selection state for user recovery');
+        return;
+      }
+      
+      await prefs.remove('cart_selections');
+      debugPrint('✅ Saved cart selections cleared after successful cart clearing');
+    } catch (e) {
+      debugPrint('❌ Error clearing saved cart selections: $e');
+      // Don't rethrow - this failure shouldn't stop the order process
+    }
+  }
+
+  Future<void> _preserveUnselectedItemsInCart() async {
+    debugPrint('🔄 Preserving unselected items in cart after partial checkout');
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Get the original cart selections
+      final savedSelectionsJson = prefs.getString('cart_selections');
+      if (savedSelectionsJson == null) {
+        debugPrint('⚠️ No saved selections found - cannot preserve unselected items');
+        return;
+      }
+      
+      final originalSelections = jsonDecode(savedSelectionsJson) as List<dynamic>;
+      final selectedItems = originalSelections.cast<String>().toSet();
+      
+      debugPrint('📋 Original selections: ${selectedItems.toList()}');
+      
+      // Get current cart items to determine what should remain unselected
+      // This would require accessing the cart service to get current items
+      // and then updating the selection state to preserve unselected items
+      
+      // For now, we'll store the information that selections should be restored
+      await prefs.setString('preserve_cart_selections_${widget.orderId}', savedSelectionsJson);
+      debugPrint('💾 Stored cart selections for preservation after failed clearing');
+      
+    } catch (e) {
+      debugPrint('❌ Error preserving unselected items: $e');
+    }
+  }
+
+  String _getPaymentMethodString(PaymentMethod method) {
+    switch (method) {
+      case PaymentMethod.gcash:
+        return 'gcash';
+      case PaymentMethod.gotyme:
+        return 'gotyme';
+      case PaymentMethod.metrobank:
+        return 'metrobank';
+      case PaymentMethod.bpi:
+        return 'bpi';
+    }
+  }
+
+  PaymentMethodType _getPaymentMethodType(PaymentMethod method) {
+    switch (method) {
+      case PaymentMethod.gcash:
+        return PaymentMethodType.gcash;
+      case PaymentMethod.gotyme:
+        return PaymentMethodType.gotyme;
+      case PaymentMethod.metrobank:
+        return PaymentMethodType.metrobank;
+      case PaymentMethod.bpi:
+        return PaymentMethodType.bpi;
     }
   }
 

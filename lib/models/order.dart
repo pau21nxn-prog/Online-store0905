@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 enum OrderStatus {
   pending,
@@ -59,7 +60,25 @@ class UserOrder {
   });
 
   factory UserOrder.fromFirestore(String id, Map<String, dynamic> data) {
-    return UserOrder(
+    // DEBUG: Log UserOrder deserialization from Firestore
+    debugPrint('🔍 DEBUG - EMAIL TRACKING: UserOrder.fromFirestore() called for order: $id');
+    debugPrint('  - Firestore data keys: ${data.keys.toList()}');
+    debugPrint('  - Contains shippingAddress: ${data.containsKey('shippingAddress')}');
+    
+    // DEBUG: Inspect shippingAddress field specifically
+    if (data['shippingAddress'] != null) {
+      final shippingAddressData = data['shippingAddress'] as Map<String, dynamic>;
+      debugPrint('  - ShippingAddress data type: ${shippingAddressData.runtimeType}');
+      debugPrint('  - ShippingAddress keys: ${shippingAddressData.keys.toList()}');
+      debugPrint('  - ShippingAddress contains email: ${shippingAddressData.containsKey('email')}');
+      debugPrint('  - ShippingAddress email value: "${shippingAddressData['email']}"');
+    } else {
+      debugPrint('  - ShippingAddress is null in Firestore data!');
+    }
+
+    final shippingAddressMap = Map<String, dynamic>.from(data['shippingAddress'] ?? {});
+    
+    final order = UserOrder(
       id: id,
       userId: data['userId'] ?? '',
       items: (data['items'] as List<dynamic>?)
@@ -75,7 +94,7 @@ class UserOrder {
       ),
       paymentMethod: data['paymentMethod'] ?? 'cod',
       isPaid: data['isPaid'] ?? false,
-      shippingAddress: Map<String, dynamic>.from(data['shippingAddress'] ?? {}),
+      shippingAddress: shippingAddressMap,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
       confirmedAt: (data['confirmedAt'] as Timestamp?)?.toDate(),
@@ -86,6 +105,12 @@ class UserOrder {
       trackingNumber: data['trackingNumber'],
       notes: data['notes'],
     );
+    
+    // DEBUG: Log the final UserOrder shippingAddress
+    debugPrint('  - Final UserOrder shippingAddress keys: ${order.shippingAddress.keys.toList()}');
+    debugPrint('  - Final UserOrder email: "${order.shippingAddress['email']}"');
+    
+    return order;
   }
 
   Map<String, dynamic> toFirestore() {

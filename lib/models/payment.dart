@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum PaymentMethodType {
@@ -131,6 +132,7 @@ class Payment {
 
 class ShippingAddress {
   final String fullName;
+  final String email;
   final String phoneNumber;
   final String addressLine1;
   final String addressLine2;
@@ -143,6 +145,7 @@ class ShippingAddress {
 
   ShippingAddress({
     required this.fullName,
+    required this.email,
     required this.phoneNumber,
     required this.addressLine1,
     this.addressLine2 = '',
@@ -155,8 +158,16 @@ class ShippingAddress {
   });
 
   factory ShippingAddress.fromMap(Map<String, dynamic> data) {
-    return ShippingAddress(
+    // DEBUG: Log what data is being received for deserialization
+    debugPrint('🔍 DEBUG - EMAIL TRACKING: ShippingAddress.fromMap() called');
+    debugPrint('  - Input data keys: ${data.keys.toList()}');
+    debugPrint('  - Input data contains email: ${data.containsKey('email')}');
+    debugPrint('  - Input email value: "${data['email']}"');
+    debugPrint('  - Complete input data: $data');
+    
+    final shippingAddress = ShippingAddress(
       fullName: data['fullName'] ?? '',
+      email: data['email'] ?? '',
       phoneNumber: data['phoneNumber'] ?? '',
       addressLine1: data['addressLine1'] ?? '',
       addressLine2: data['addressLine2'] ?? '',
@@ -167,11 +178,23 @@ class ShippingAddress {
       deliveryInstructions: data['deliveryInstructions'] ?? '',
       isDefault: data['isDefault'] ?? false,
     );
+    
+    // DEBUG: Log the resulting ShippingAddress object
+    debugPrint('  - Created ShippingAddress with email: "${shippingAddress.email}"');
+    
+    return shippingAddress;
   }
 
   Map<String, dynamic> toMap() {
-    return {
+    // DEBUG: Validate email field before serialization
+    debugPrint('🔍 DEBUG - EMAIL TRACKING: ShippingAddress.toMap() called');
+    debugPrint('  - Email field value: "$email"');
+    debugPrint('  - Email is empty: ${email.isEmpty}');
+    debugPrint('  - Email is null: ${email == null}');
+    
+    final map = {
       'fullName': fullName,
+      'email': email,
       'phoneNumber': phoneNumber,
       'addressLine1': addressLine1,
       'addressLine2': addressLine2,
@@ -182,6 +205,18 @@ class ShippingAddress {
       'deliveryInstructions': deliveryInstructions,
       'isDefault': isDefault,
     };
+    
+    // DEBUG: Verify email is included in the result map
+    debugPrint('  - Map contains email key: ${map.containsKey('email')}');
+    debugPrint('  - Map email value: "${map['email']}"');
+    debugPrint('  - Complete map keys: ${map.keys.toList()}');
+    
+    // Additional validation: Ensure email is not empty when creating shipping address
+    if (email.isEmpty) {
+      debugPrint('⚠️ WARNING - EMAIL TRACKING: Email is empty in ShippingAddress.toMap()!');
+    }
+    
+    return map;
   }
 
   String get formattedAddress {

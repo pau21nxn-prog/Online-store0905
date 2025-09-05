@@ -66,7 +66,7 @@ class MobileProductCard extends StatelessWidget {
             child: product.imageUrls.isNotEmpty
                 ? Image.network(
                     product.imageUrls.first,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
@@ -421,7 +421,7 @@ class MobileProductListTile extends StatelessWidget {
                   child: product.imageUrls.isNotEmpty
                       ? Image.network(
                           product.imageUrls.first,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
                         )
                       : _buildImagePlaceholder(),

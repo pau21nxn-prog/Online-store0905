@@ -297,9 +297,9 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context); // Exit admin panel
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog first
+              await _performLogout();
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
             child: const Text('Logout'),
@@ -307,6 +307,49 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Logging out...'),
+            ],
+          ),
+        ),
+      );
+
+      // Sign out from Firebase
+      await FirebaseAuth.instance.signOut();
+
+      if (mounted) {
+        // Close loading dialog
+        Navigator.pop(context);
+        // Navigate back to main app (pop all admin screens)
+        Navigator.popUntil(context, (route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        // Close loading dialog if still showing
+        Navigator.pop(context);
+        
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error logging out: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
   }
 }
 

@@ -191,9 +191,72 @@ class CartService {
 
   // Remove item from cart
   static Future<void> removeFromCart(String cartKey) async {
-    _memoryCart.remove(cartKey);
+    debugPrint('🔍 CartService.removeFromCart called with key: $cartKey');
+    debugPrint('📋 Current cart keys before removal: ${_memoryCart.keys.toList()}');
+    
+    if (_memoryCart.containsKey(cartKey)) {
+      final removedItem = _memoryCart.remove(cartKey);
+      debugPrint('✅ Successfully removed item: ${removedItem?.productName} (key: $cartKey)');
+    } else {
+      debugPrint('⚠️ Cart key not found in memory cart: $cartKey');
+      debugPrint('📋 Available keys: ${_memoryCart.keys.toList()}');
+      throw Exception('Cart key not found: $cartKey');
+    }
+    
     _cartController.add(_memoryCart.values.toList());
-    _syncCartToFirebase();
+    debugPrint('📋 Cart updated, remaining items: ${_memoryCart.length}');
+    
+    // CRITICAL: Wait for Firebase sync to complete
+    final user = _auth.currentUser;
+    if (user != null && !user.isAnonymous) {
+      debugPrint('🔄 Starting Firebase sync for authenticated user cart removal...');
+      await _syncCartToFirebase();
+      debugPrint('✅ Firebase sync completed for cart removal');
+    } else {
+      debugPrint('⚠️ Skipping Firebase sync - user is anonymous or null');
+      // For anonymous users, ensure the memory cart change is immediately reflected
+      await Future.delayed(Duration(milliseconds: 100)); // Small delay to ensure stream is updated
+      debugPrint('✅ Memory cart updated for anonymous user');
+    }
+  }
+
+  // Special method for clearing cart after checkout - handles both authenticated and anonymous users
+  static Future<void> clearSelectedItemsAfterCheckout(List<String> cartKeysToRemove) async {
+    debugPrint('🛒 Starting clearSelectedItemsAfterCheckout with ${cartKeysToRemove.length} keys');
+    
+    final user = _auth.currentUser;
+    final isAuthenticated = user != null && !user.isAnonymous;
+    
+    debugPrint('👤 User authentication status: ${isAuthenticated ? 'Authenticated' : 'Anonymous/None'}');
+    
+    // Remove items from memory cart
+    int removedCount = 0;
+    for (final cartKey in cartKeysToRemove) {
+      if (_memoryCart.containsKey(cartKey)) {
+        final removedItem = _memoryCart.remove(cartKey);
+        removedCount++;
+        debugPrint('✅ Removed from memory: ${removedItem?.productName} (key: $cartKey)');
+      } else {
+        debugPrint('⚠️ Key not found in memory cart: $cartKey');
+      }
+    }
+    
+    // Update the stream immediately
+    _cartController.add(_memoryCart.values.toList());
+    debugPrint('📋 Memory cart updated: removed $removedCount items, ${_memoryCart.length} remaining');
+    
+    // Handle Firebase sync for authenticated users
+    if (isAuthenticated) {
+      debugPrint('🔄 Syncing authenticated user cart to Firebase...');
+      await _syncCartToFirebase();
+      debugPrint('✅ Firebase sync completed');
+    } else {
+      debugPrint('⚠️ Anonymous user - skipping Firebase sync');
+      // For anonymous users, add extra delay to ensure UI updates
+      await Future.delayed(Duration(milliseconds: 200));
+    }
+    
+    debugPrint('🎉 clearSelectedItemsAfterCheckout completed successfully');
   }
 
   // Clear entire cart
@@ -229,29 +292,47 @@ class CartService {
   // Sync memory cart to Firebase for authenticated users (for persistence across sessions)
   static Future<void> _syncCartToFirebase() async {
     final user = _auth.currentUser;
-    if (user == null || user.isAnonymous) return;
+    debugPrint('🔄 _syncCartToFirebase called - User: ${user?.uid ?? 'null'}, Anonymous: ${user?.isAnonymous ?? true}');
+    
+    if (user == null) {
+      debugPrint('⚠️ No user found - cart sync skipped');
+      return;
+    }
+    
+    if (user.isAnonymous) {
+      debugPrint('⚠️ Anonymous user - cart sync skipped');
+      return;
+    }
 
     try {
+      debugPrint('🔄 Starting Firebase cart sync for user: ${user.uid}');
       final batch = _firestore.batch();
       final userCartRef = _firestore.collection('carts').doc(user.uid);
       
       // First, delete all existing items to ensure clean sync
+      debugPrint('🗑️ Clearing existing Firebase cart items...');
       final existingItems = await userCartRef.collection('items').get();
       for (final doc in existingItems.docs) {
         batch.delete(doc.reference);
       }
+      debugPrint('🗑️ Scheduled deletion of ${existingItems.docs.length} existing items');
       
       // Add all current memory cart items
+      debugPrint('📦 Adding ${_memoryCart.length} memory cart items to Firebase...');
       for (final entry in _memoryCart.entries) {
         final cartKey = entry.key;
         final cartItem = entry.value;
         final itemRef = userCartRef.collection('items').doc(cartKey);
         batch.set(itemRef, cartItem.toFirestore());
+        debugPrint('📦 Scheduled add: ${cartItem.productName} (key: $cartKey)');
       }
 
+      debugPrint('💾 Committing Firebase cart sync batch...');
       await batch.commit();
+      debugPrint('✅ Firebase cart sync completed successfully');
     } catch (e) {
-      debugPrint('Error syncing cart to Firebase: $e');
+      debugPrint('❌ CRITICAL ERROR syncing cart to Firebase: $e');
+      rethrow; // Don't swallow errors - let the caller handle them
     }
   }
 

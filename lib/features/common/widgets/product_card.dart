@@ -34,7 +34,7 @@ class ProductCard extends StatelessWidget {
                   child: product.imageUrls.isNotEmpty
                       ? Image.network(
                           product.imageUrls.first,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return Icon(
                               Icons.image_not_supported,

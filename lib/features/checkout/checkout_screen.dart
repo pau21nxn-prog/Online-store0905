@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../models/cart_item.dart';
 import '../../models/payment.dart';
-import '../../models/order.dart';
 import '../../models/address.dart' as addr;
 import '../../services/payment_service.dart';
 // Notification service import removed
@@ -670,9 +670,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         throw Exception('User not authenticated. Please sign in or refresh the page.');
       }
       
+      // DEBUG: Log email from form controller
+      debugPrint('🔍 DEBUG - EMAIL TRACKING: Email from form controller: "${_emailController.text.trim()}"');
+      
       // Create shipping address
       final shippingAddress = ShippingAddress(
         fullName: _fullNameController.text.trim(),
+        email: _emailController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         addressLine1: _addressLine1Controller.text.trim(),
         addressLine2: _addressLine2Controller.text.trim(),
@@ -681,42 +685,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         postalCode: _postalCodeController.text.trim(),
         deliveryInstructions: _deliveryInstructionsController.text.trim(),
       );
+      
+      // DEBUG: Log ShippingAddress object
+      debugPrint('🔍 DEBUG - EMAIL TRACKING: ShippingAddress created with email: "${shippingAddress.email}"');
+      
+      // DEBUG: Log shippingAddress.toMap() output
+      final shippingAddressMap = shippingAddress.toMap();
+      debugPrint('🔍 DEBUG - EMAIL TRACKING: shippingAddress.toMap() contains:');
+      debugPrint('  - Keys: ${shippingAddressMap.keys.toList()}');
+      debugPrint('  - Email value: "${shippingAddressMap['email']}"');
+      debugPrint('  - Full map: $shippingAddressMap');
 
-      // Create order
-      final orderId = 'ORD_${DateTime.now().millisecondsSinceEpoch}';
-      final order = UserOrder(
-        id: orderId,
-        userId: user.uid,
-        items: widget.cartItems.map((item) => OrderItem(
-          productId: item.productId,
-          productName: item.productName,
-          productImage: item.imageUrl,
-          price: item.price,
-          quantity: item.quantity,
-        )).toList(),
-        subtotal: widget.subtotal,
-        shippingFee: widget.shipping,
-        total: widget.total,
-        status: OrderStatus.pending,
-        paymentMethod: 'qr_payment', // Default to QR payment
-        shippingAddress: shippingAddress.toMap(),
-        createdAt: DateTime.now(),
-      );
-
-      // Save order
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .doc(orderId)
-          .set(order.toFirestore());
-
-      // Notification service removed
-
-      // Create payment with default QR method
-      final paymentId = await PaymentService.createPayment(
-        orderId: orderId,
-        amount: widget.total,
-        method: PaymentMethodType.gcash, // Default to GCash QR
-      );
+      // Generate temporary order ID for reference
+      final tempOrderId = 'ORD_${DateTime.now().millisecondsSinceEpoch}';
+      
+      // Store checkout data for order creation after payment
+      await _storeCheckoutData(tempOrderId, shippingAddress, user.uid);
 
       // All payment methods redirect to QR checkout for manual processing
       if (mounted) {
@@ -724,7 +708,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           MaterialPageRoute(
             builder: (context) => QRPaymentCheckout(
               totalAmount: widget.total,
-              orderId: orderId, // Use the actual order ID we created
+              orderId: tempOrderId, // Use the temporary order ID
               orderDetails: {
                 'items': () {
                   // DEBUG: Log cart items data before mapping
@@ -952,6 +936,84 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isValidPhilippinePostalCode(String postalCode) {
     // Philippine postal codes are 4 digits
     return RegExp(r'^\d{4}$').hasMatch(postalCode);
+  }
+
+  Future<void> _storeCheckoutData(String orderId, ShippingAddress shippingAddress, String userId) async {
+    debugPrint('🚀 Starting checkout data storage for order: $orderId');
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Store checkout data for order creation after payment
+      final checkoutData = {
+        'orderId': orderId,
+        'userId': userId,
+        'cartItems': widget.cartItems.map((item) => {
+          'productId': item.productId,
+          'productName': item.productName,
+          'productImage': item.imageUrl,
+          'price': item.price,
+          'quantity': item.quantity,
+          'selectedVariantId': item.selectedVariantId,
+          'selectedOptions': item.selectedOptions,
+          'variantSku': item.variantSku,
+          'variantDisplayName': item.variantDisplayName,
+          // Add cart key for precise removal matching
+          'cartKey': item.getCartKey(),
+        }).toList(),
+        'subtotal': widget.subtotal,
+        'shippingFee': widget.shipping,
+        'total': widget.total,
+        'shippingAddress': shippingAddress.toMap(),
+        'createdAt': DateTime.now().toIso8601String(),
+        'storageTimestamp': DateTime.now().millisecondsSinceEpoch, // Add timestamp for debugging
+      };
+      
+      final dataKey = 'checkout_data_$orderId';
+      final jsonString = jsonEncode(checkoutData);
+      
+      debugPrint('🔍 Storing data with key: $dataKey');
+      debugPrint('📦 Data size: ${jsonString.length} characters');
+      
+      await prefs.setString(dataKey, jsonString);
+      
+      // Immediately verify data was stored correctly
+      final verifyData = prefs.getString(dataKey);
+      if (verifyData == null) {
+        throw Exception('Checkout data storage verification failed - data not found after storage');
+      }
+      
+      if (verifyData != jsonString) {
+        throw Exception('Checkout data storage verification failed - data corruption detected');
+      }
+      
+      // Enhanced debugging
+      debugPrint('✅ Checkout data stored and verified for order: $orderId');
+      debugPrint('🔍 DEBUG - Stored ${widget.cartItems.length} selected items for removal:');
+      for (int i = 0; i < widget.cartItems.length; i++) {
+        final item = widget.cartItems[i];
+        debugPrint('  Item $i: ${item.productName} (Key: ${item.getCartKey()})');
+      }
+      
+      // Store additional backup with timestamp for troubleshooting
+      await prefs.setString('checkout_backup_$orderId', jsonString);
+      debugPrint('💾 Backup checkout data also stored');
+      
+    } catch (e) {
+      debugPrint('❌ CRITICAL ERROR storing checkout data: $e');
+      debugPrint('📊 SharedPreferences status: ${await _checkSharedPreferencesStatus()}');
+      rethrow;
+    }
+  }
+
+  Future<String> _checkSharedPreferencesStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      return 'Available keys: ${keys.length}, Keys: ${keys.toList()}';
+    } catch (e) {
+      return 'SharedPreferences error: $e';
+    }
   }
 
   Widget _buildOrderItem(CartItem item) {
