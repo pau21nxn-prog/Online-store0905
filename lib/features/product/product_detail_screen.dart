@@ -695,8 +695,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         variantDisplayName = _selectedVariantConfiguration!.displayName;
       }
       
-      await CartService.addToCart(
-        widget.product, 
+      await CartService.addToCartWithParams(
+        productId: widget.product.id,
+        productName: widget.product.name,
+        price: _getCurrentPrice(), // Use the correct variant price
+        imageUrl: widget.product.imageUrls.isNotEmpty ? widget.product.imageUrls[0] : '',
         quantity: _quantity,
         selectedVariantId: selectedVariantId,
         selectedOptions: selectedOptions,
@@ -760,8 +763,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         variantDisplayName = _selectedVariantConfiguration!.displayName;
       }
       
-      await CartService.addToCart(
-        widget.product, 
+      await CartService.addToCartWithParams(
+        productId: widget.product.id,
+        productName: widget.product.name,
+        price: _getCurrentPrice(), // Use the correct variant price
+        imageUrl: widget.product.imageUrls.isNotEmpty ? widget.product.imageUrls[0] : '',
         quantity: _quantity,
         selectedVariantId: selectedVariantId,
         selectedOptions: selectedOptions,
