@@ -5,16 +5,13 @@ import 'dart:async';
 import '../../common/theme.dart';
 import '../../common/mobile_layout_utils.dart';
 import '../../models/product.dart';
-import '../../models/category.dart';
 import '../../models/banner.dart' as banner_model;
 import '../../services/cart_service.dart';
 import '../../services/theme_service.dart';
-import '../../services/category_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/banner_service.dart';
 import '../common/widgets/product_card.dart';
 import '../product/product_detail_screen.dart';
-import '../categories/category_list_screen.dart';
 import '../search/search_screen.dart';
 import '../cart/cart_screen.dart';
 
@@ -28,8 +25,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  List<Category> _categories = [];
-  bool _categoriesLoading = true;
   
   // Banner carousel state
   final PageController _bannerPageController = PageController();
@@ -41,22 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _loadCategories();
     _loadBanners();
-  }
-
-  Future<void> _loadCategories() async {
-    try {
-      final categories = await CategoryService.getTopLevelCategories();
-      setState(() {
-        _categories = categories;
-        _categoriesLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _categoriesLoading = false;
-      });
-    }
   }
   
   Future<void> _loadBanners() async {
@@ -136,7 +116,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       key: _scaffoldKey,
       backgroundColor: AppTheme.backgroundColor(context),
       appBar: _buildEnhancedAppBar(context),
-      drawer: _buildCategoryDrawer(context),
       body: CustomScrollView(
         slivers: [
           // Banner carousel - now scrollable with content
@@ -168,39 +147,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       title: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Logo: "AnneDFinds" text in orange with white rounded rectangle, slightly tilted, 0.8x size
-          // Positioned 2px from left border and clickable to open categories
-          GestureDetector(
-            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+          // Logo: ADF logo image with theme-aware rounded container
+          // Positioned 2px from left border, no click functionality
+          Container(
+            margin: const EdgeInsets.only(left: 2), // 2px from left border
             child: Container(
-              margin: const EdgeInsets.only(left: 2), // 2px from left border
-              child: Transform.rotate(
-                angle: -0.1, // Slight tilt (about 5.7 degrees)
-                child: Container(
-                  height: 40, // Reduced from 50 to 40 (0.8x)
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Compressed padding
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10), // Slightly smaller
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
+              width: 58, // Container slightly larger than image
+              height: 48,
+              padding: const EdgeInsets.all(5), // Padding around image
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.black 
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
-                  child: Center(
-                    child: Text(
-                      'AnneDFinds',
-                      style: TextStyle(
-                        color: AppTheme.primaryOrange,
-                        fontSize: 23, // Reduced from 29 to 23 (0.8x)
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                  ),
+                ],
+              ),
+              child: Center(
+                child: Image.asset(
+                  'images/Logo/48x48.png',
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
@@ -743,98 +716,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Category Drawer
-  Widget _buildCategoryDrawer(BuildContext context) {
-    return Drawer(
-      backgroundColor: AppTheme.backgroundColor(context),
-      child: Column(
-        children: [
-          Container(
-            height: 80, // Reduced height
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppTheme.primaryOrange, AppTheme.secondaryPink],
-              ),
-            ),
-            padding: const EdgeInsets.all(16),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Categories',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: _buildCategoryList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildCategoryList() {
-    if (_categoriesLoading) {
-      return [
-        const ListTile(
-          leading: CircularProgressIndicator(),
-          title: Text('Loading categories...'),
-        ),
-      ];
-    }
-
-    if (_categories.isEmpty) {
-      return [
-        ListTile(
-          leading: Icon(Icons.warning, color: Colors.orange),
-          title: const Text('No categories available'),
-          subtitle: const Text('Categories are being set up'),
-        ),
-      ];
-    }
-
-    return _categories.map((category) => _buildCategoryTile(
-      category.name,
-      category.icon,
-      category.id,
-    )).toList();
-  }
-
-  Widget _buildCategoryTile(String name, IconData icon, String categoryId) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: AppTheme.primaryOrange,
-        size: 20,
-      ),
-      title: Text(
-        name,
-        style: TextStyle(
-          color: AppTheme.textPrimaryColor(context),
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      onTap: () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CategoryListScreen(
-              categoryId: categoryId,
-              categoryName: name,
-            ),
-          ),
-        );
-      },
-      dense: true,
-    );
-  }
 
   // Removed old methods - replaced with comprehensive new design
 }

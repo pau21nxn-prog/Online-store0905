@@ -6,7 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'dart:html' as html;
+// Conditional import for platform-specific download functionality
+import '../../web_utils.dart' if (dart.library.io) '../../mobile_utils.dart';
 import '../../common/theme.dart';
 import '../../common/mobile_layout_utils.dart';
 import '../../services/email_service.dart';
@@ -111,7 +112,7 @@ class _QRPaymentCheckoutState extends State<QRPaymentCheckout> {
     // Extract order items from orderDetails
     final items = widget.orderDetails['items'] as List<dynamic>? ?? [];
     final subtotal = widget.orderDetails['subtotal'] as double? ?? 0.0;
-    final shipping = widget.orderDetails['shipping'] as double? ?? 99.0; // Default shipping
+    final shipping = widget.orderDetails['shipping'] as double? ?? 49.0; // Fallback shipping updated to match your settings
     
     // DEBUG: Log order details to console
     debugPrint('🔍 DEBUG - QR Payment Order Details:');
@@ -1476,15 +1477,20 @@ Please verify payment has been received and confirm with customer! 🎉''',
       // Create filename with branding
       final filename = '${paymentName}_QR_AnnedFinds.${assetInfo['ext']}';
       
-      // Create download for web platform
-      final blob = html.Blob([bytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', filename)
-        ..click();
-      
-      // Clean up the blob URL
-      html.Url.revokeObjectUrl(url);
+      // Create download using platform-specific implementation
+      if (kIsWeb) {
+        downloadFile(bytes, filename);
+      } else {
+        // For mobile platforms, show a message that file download is not supported
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('QR code download is only available on web'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
       
       // Show success feedback
       if (mounted) {
