@@ -490,7 +490,12 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
                                 )
                               : Container(
                                   color: Colors.grey.shade200,
-                                  child: const Icon(Icons.shopping_bag, size: 32),
+                                  child: Image.asset(
+                                    'images/Logo/48x48.png',
+                                    width: 32,
+                                    height: 32,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
                         ),
                       ),

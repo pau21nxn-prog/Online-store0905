@@ -116,37 +116,18 @@ class PaymentService {
             .toList());
   }
 
-  // Calculate shipping fee
+  // DEPRECATED: Use ShippingService.calculateShippingFee() instead
+  // This method uses hardcoded rates and doesn't respect global shipping configuration
+  @Deprecated('Use ShippingService.calculateShippingFee() for configurable shipping rates and free shipping thresholds')
   static double calculateShippingFee({
     required String city,
     required String province,
     required double totalWeight,
   }) {
-    // Basic shipping calculation for Philippines
-    const baseFee = 99.0;
-    
-    // Metro Manila
-    if (province.toLowerCase().contains('metro manila') || 
-        city.toLowerCase().contains('manila') ||
-        city.toLowerCase().contains('quezon') ||
-        city.toLowerCase().contains('makati')) {
-      return baseFee;
-    }
-    
-    // Luzon
-    if (['luzon', 'bulacan', 'cavite', 'laguna', 'rizal', 'batangas'].any(
-        (area) => province.toLowerCase().contains(area))) {
-      return baseFee + 50;
-    }
-    
-    // Visayas
-    if (['cebu', 'bohol', 'negros', 'panay', 'samar', 'leyte'].any(
-        (area) => province.toLowerCase().contains(area))) {
-      return baseFee + 100;
-    }
-    
-    // Mindanao and other islands
-    return baseFee + 150;
+    // This is a deprecated fallback method
+    // For proper shipping calculation with admin-configurable rates,
+    // use ShippingService.calculateShippingFee() instead
+    return 49.0; // Fixed fallback rate updated to match your global settings
   }
 
   // Helper methods

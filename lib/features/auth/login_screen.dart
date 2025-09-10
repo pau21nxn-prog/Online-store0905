@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import '../../common/theme.dart';
 import '../../common/mobile_layout_utils.dart';
 import '../../services/auth_service.dart';
+import '../../services/tab_navigation_service.dart';
 import '../../models/user.dart';
+import '../../main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -227,11 +229,14 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
 
-    // Immediately navigate to home screen after successful authentication
+    // Pop the LoginScreen route first, then switch to Home tab
     // Use WidgetsBinding to ensure the widget tree is built before navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        // Pop the LoginScreen to remove it from the navigation stack
+        Navigator.pop(context);
+        // Switch to Home tab on the underlying MainNavigationScreen
+        TabNavigationService.instance.switchToHome();
       }
     });
   }
@@ -270,7 +275,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _goHome() {
-    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    // Use Navigator.pop() to go back to the previous screen (Profile)
+    // This is more natural for a back button behavior
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      // Fallback to switching to Profile tab if we can't pop
+      TabNavigationService.instance.switchToProfile();
+    }
   }
 
   @override
@@ -291,83 +303,92 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildScaffoldContent(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor(context),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppTheme.textPrimaryColor(context),
+    return PopScope(
+      canPop: false, // Prevent default back button behavior
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (!didPop) {
+          _goHome(); // Use our custom navigation instead
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundColor(context),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back,
+              color: AppTheme.textPrimaryColor(context),
+            ),
+            onPressed: _goHome,
           ),
-          onPressed: _goHome,
         ),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.spacing24),
-            child: Card(
-              elevation: 8,
-              color: AppTheme.surfaceColor(context),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 400),
-                padding: const EdgeInsets.all(AppTheme.spacing24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Logo and title
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryOrange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppTheme.spacing24),
+              child: Card(
+                elevation: 8,
+                color: AppTheme.surfaceColor(context),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  padding: const EdgeInsets.all(AppTheme.spacing24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo and title
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Image.asset(
+                          'images/Logo/512x512.png', // Use highest resolution logo
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.shopping_bag,
-                        size: 64,
-                        color: AppTheme.primaryOrange,
+                      const SizedBox(height: AppTheme.spacing16),
+                      Text(
+                        'AnneDFinds',
+                        style: AppTheme.titleStyle.copyWith(
+                          fontSize: 28,
+                          color: AppTheme.primaryOrange,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppTheme.spacing16),
-                    Text(
-                      'AnneDFinds',
-                      style: AppTheme.titleStyle.copyWith(
-                        fontSize: 28,
-                        color: AppTheme.primaryOrange,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: AppTheme.spacing8),
+                      Text(
+                        _showPhoneAuth 
+                            ? 'Sign in with your phone'
+                            : _showEmailForm 
+                                ? (_isLogin ? 'Welcome back!' : 'Create your account')
+                                : 'Choose how to sign in',
+                        style: AppTheme.bodyStyle.copyWith(
+                          color: AppTheme.textSecondaryColor(context),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppTheme.spacing8),
-                    Text(
-                      _showPhoneAuth 
-                          ? 'Sign in with your phone'
-                          : _showEmailForm 
-                              ? (_isLogin ? 'Welcome back!' : 'Create your account')
-                              : 'Choose how to sign in',
-                      style: AppTheme.bodyStyle.copyWith(
-                        color: AppTheme.textSecondaryColor(context),
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.spacing24),
+                      const SizedBox(height: AppTheme.spacing24),
 
-                    // Phone auth form
-                    if (_showPhoneAuth) ...[
-                      _buildPhoneAuthForm(),
-                    ] 
-                    // Email auth form
-                    else if (_showEmailForm) ...[
-                      _buildEmailAuthForm(),
-                    ] 
-                    // Main authentication options
-                    else ...[
-                      _buildMainAuthOptions(),
+                      // Phone auth form
+                      if (_showPhoneAuth) ...[
+                        _buildPhoneAuthForm(),
+                      ] 
+                      // Email auth form
+                      else if (_showEmailForm) ...[
+                        _buildEmailAuthForm(),
+                      ] 
+                      // Main authentication options
+                      else ...[
+                        _buildMainAuthOptions(),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -861,6 +882,7 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
+            onFieldSubmitted: (_) => _isLoading ? null : _handleEmailAuth(),
             decoration: InputDecoration(
               labelText: 'Password',
               prefixIcon: const Icon(Icons.lock),

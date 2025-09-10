@@ -359,10 +359,13 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.shopping_bag_outlined,
-            size: 80,
+          Image.asset(
+            'images/Logo/96x96.png',
+            width: 80,
+            height: 80,
+            fit: BoxFit.contain,
             color: AppTheme.textSecondaryColor(context),
+            colorBlendMode: BlendMode.srcIn,
           ),
           const SizedBox(height: 16),
           Text(

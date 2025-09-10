@@ -24,6 +24,7 @@ import 'features/profile/orders_screen.dart'; // Updated import path
 import 'features/admin/admin_main_screen.dart';
 // Removed unused imports: simple_payment_demo.dart
 import 'common/mobile_viewport_wrapper.dart';
+import 'services/tab_navigation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,6 +87,8 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
   UserModel? _currentUser;
+  late final ValueNotifier<int> _tabNotifier;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   final List<Widget> _screens = [
     const HomeScreen(),
@@ -104,6 +107,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // Initialize tab notifier
+    _tabNotifier = ValueNotifier<int>(_selectedIndex);
+    
+    // Initialize TabNavigationService
+    TabNavigationService.instance.initialize(_navigatorKey, _tabNotifier);
+    
+    // Listen to tab changes
+    _tabNotifier.addListener(() {
+      if (mounted && _tabNotifier.value != _selectedIndex) {
+        setState(() {
+          _selectedIndex = _tabNotifier.value;
+        });
+      }
+    });
+    
     // Listen to user state changes
     AuthService.userStream.listen((user) {
       if (mounted) {
@@ -117,10 +136,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _currentUser = AuthService.currentUser;
   }
 
+  @override
+  void dispose() {
+    _tabNotifier.dispose();
+    super.dispose();
+  }
+
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    _tabNotifier.value = index;
   }
 
   @override

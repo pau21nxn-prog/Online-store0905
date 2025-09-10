@@ -5,6 +5,9 @@ import 'dart:convert';
 import '../../models/cart_item.dart';
 import '../../services/cart_service.dart';
 import '../../services/payment_service.dart';
+import '../../services/shipping_service.dart';
+import '../../services/address_service.dart';
+import '../../services/tab_navigation_service.dart';
 import '../../common/theme.dart';
 import '../../common/mobile_layout_utils.dart';
 import '../auth/checkout_auth_modal.dart';
@@ -235,12 +238,14 @@ class _CartScreenState extends State<CartScreen> {
       
       debugPrint('✅ Cleared ${failedOrderKeys.length} cart clearing failure flags');
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cart notifications cleared'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Cart notifications cleared'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error clearing cart failure flags: $e');
     }
@@ -346,14 +351,8 @@ class _CartScreenState extends State<CartScreen> {
               onPressed: () {
                 // Dismiss keyboard before navigation to prevent it from appearing on mobile
                 FocusScope.of(context).unfocus();
-                // Navigate to home screen by resetting navigation stack
-                // This ensures we return to MainNavigationScreen with home tab selected (index 0)
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (context) => const MainNavigationScreen(),
-                  ),
-                  (route) => false,
-                );
+                // Switch directly to Home tab without reloading the app
+                TabNavigationService.instance.switchToHome();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryOrange,
@@ -366,7 +365,14 @@ class _CartScreenState extends State<CartScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              icon: const Icon(Icons.shopping_bag),
+              icon: Image.asset(
+                'images/Logo/48x48.png',
+                width: 20,
+                height: 20,
+                fit: BoxFit.contain,
+                color: Colors.white,
+                colorBlendMode: BlendMode.srcIn,
+              ),
               label: const Text(
                 'Start Shopping',
                 style: TextStyle(
@@ -383,7 +389,6 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildCartWithItems(BuildContext context, List<CartItem> cartItems) {
     final selectedCartItems = cartItems.where((item) => selectedItems.contains(item.getCartKey())).toList();
-    final calculations = _calculateTotals(selectedCartItems);
 
     return Column(
       children: [
@@ -400,7 +405,21 @@ class _CartScreenState extends State<CartScreen> {
             },
           ),
         ),
-        _buildCartSummary(context, selectedCartItems, calculations),
+        
+        // Cart Summary with async calculation
+        FutureBuilder<Map<String, double>>(
+          future: _calculateTotals(selectedCartItems),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildCartSummaryLoading(context, selectedCartItems);
+            } else if (snapshot.hasError) {
+              return _buildCartSummaryError(context, selectedCartItems);
+            } else {
+              final calculations = snapshot.data ?? {'subtotal': 0.0, 'shipping': 49.0, 'total': 49.0};
+              return _buildCartSummary(context, selectedCartItems, calculations);
+            }
+          },
+        ),
       ],
     );
   }
@@ -824,8 +843,207 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  Widget _buildCartSummaryLoading(BuildContext context, List<CartItem> cartItems) {
+    final subtotal = cartItems.fold<double>(0, (sum, item) => sum + (item.price * item.quantity));
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black26
+                : Colors.grey.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSummaryRow(context, 'Subtotal (${cartItems.length} items):', subtotal),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  'Shipping Fee:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                    color: AppTheme.textPrimaryColor(context),
+                  ),
+                ),
+                const Spacer(),
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
+                  ),
+                ),
+              ],
+            ),
+            Divider(
+              height: 24,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade600
+                  : Colors.grey.shade300,
+            ),
+            Row(
+              children: [
+                Text(
+                  'Total:',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimaryColor(context),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Calculating...',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryOrange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: null, // Disabled while calculating
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Calculating Total...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCartSummaryError(BuildContext context, List<CartItem> cartItems) {
+    final subtotal = cartItems.fold<double>(0, (sum, item) => sum + (item.price * item.quantity));
+    const fallbackShipping = 49.0; // Updated to match your global settings
+    final total = subtotal + fallbackShipping;
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black26
+                : Colors.grey.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSummaryRow(context, 'Subtotal (${cartItems.length} items):', subtotal),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  'Shipping Fee:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                    color: AppTheme.textPrimaryColor(context),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${PaymentService.formatCurrency(fallbackShipping)} (default)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Unable to calculate custom shipping rates',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.orange,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Divider(
+              height: 20,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade600
+                  : Colors.grey.shade300,
+            ),
+            _buildSummaryRow(context, 'Total:', total, isTotal: true),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: cartItems.isNotEmpty 
+                    ? () => _handleCheckout(context, cartItems, {
+                        'subtotal': subtotal, 
+                        'shipping': fallbackShipping, 
+                        'total': total
+                      })
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: cartItems.isNotEmpty 
+                      ? AppTheme.primaryOrange 
+                      : Colors.grey,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'Proceed to Checkout - ${PaymentService.formatCurrency(total)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Helper method to calculate totals
-  Map<String, double> _calculateTotals(List<CartItem> cartItems) {
+  Future<Map<String, double>> _calculateTotals(List<CartItem> cartItems) async {
     final subtotal = cartItems.fold<double>(
       0, 
       (sum, item) => sum + (item.price * item.quantity),
@@ -836,11 +1054,57 @@ class _CartScreenState extends State<CartScreen> {
       (sum, item) => sum + (item.quantity * 0.5), // Assume 0.5kg per item
     );
     
-    final shipping = PaymentService.calculateShippingFee(
-      city: 'Quezon City',
-      province: 'Metro Manila',
-      totalWeight: totalWeight,
-    );
+    double shipping = 49.0; // Use configured fallback rate to match your global settings
+    
+    try {
+      // Get shipping configuration first to use proper fallback
+      final shippingService = ShippingService();
+      final config = await shippingService.ensureConfigurationExists();
+      shipping = config.fallbackRate; // Use configured fallback rate
+      
+      debugPrint('Cart: Using fallback rate ₱${config.fallbackRate} (threshold: ₱${config.freeShippingThreshold})');
+      
+      // Determine destination based on user login status and saved address
+      String destinationProvince = 'Metro Manila'; // Default fallback location
+      String destinationCity = 'Manila';
+      
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        try {
+          // Get user's default address for shipping calculation
+          final addresses = await AddressService.getAddresses();
+          if (addresses.isNotEmpty) {
+            final defaultAddress = addresses.first; // First address is default (ordered by isDefault)
+            destinationProvince = defaultAddress.province;
+            destinationCity = defaultAddress.city;
+            debugPrint('Cart: Using user address: ${defaultAddress.city}, ${defaultAddress.province}');
+          } else {
+            debugPrint('Cart: User logged in but no saved address, using default location');
+          }
+        } catch (e) {
+          debugPrint('Cart: Error getting user address: $e, using default location');
+        }
+      } else {
+        debugPrint('Cart: Guest user, using default location for estimate');
+      }
+      
+      // Use new ShippingService that respects global configuration
+      final shippingCalculation = await shippingService.calculateShippingFee(
+        subtotal: subtotal,
+        totalWeight: totalWeight,
+        destinationProvince: destinationProvince,
+        destinationCity: destinationCity,
+      );
+      
+      shipping = shippingCalculation.shippingFee;
+      debugPrint('Cart: Calculated shipping ₱${shipping} (${shippingCalculation.calculationMethod}) for ${destinationCity}, ${destinationProvince}');
+      
+    } catch (e, stackTrace) {
+      debugPrint('❌ Cart: Error calculating shipping: $e');
+      debugPrint('❌ Cart: Stack trace: $stackTrace');
+      // shipping already set to configured fallback rate above
+      debugPrint('Cart: Using fallback rate ₱${shipping} due to error');
+    }
     
     final total = subtotal + shipping;
 

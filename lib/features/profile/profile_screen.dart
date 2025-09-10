@@ -425,7 +425,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMenuItem({
-    required IconData icon,
+    IconData? icon,
+    Widget? iconWidget,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
@@ -449,7 +450,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: AppTheme.primaryOrange.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6), // Reduced from 8 to 6
           ),
-          child: Icon(icon, color: AppTheme.primaryOrange, size: 18), // Reduced icon size
+          child: iconWidget ?? Icon(icon, color: AppTheme.primaryOrange, size: 18), // Reduced icon size
         ),
         title: Text(
           title,
@@ -480,7 +481,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Widget> _buildAccountMenuItems() {
     return [
       _buildMenuItem(
-        icon: Icons.shopping_bag,
+        iconWidget: Image.asset(
+          'images/Logo/48x48.png',
+          width: 18,
+          height: 18,
+          fit: BoxFit.contain,
+          color: AppTheme.primaryOrange,
+          colorBlendMode: BlendMode.srcIn,
+        ),
         title: 'My Orders',
         subtitle: 'Track your orders',
         onTap: () => Navigator.push(

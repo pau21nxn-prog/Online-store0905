@@ -86,6 +86,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _bannerTimer?.cancel();
   }
   
+  /// Handles the pull-to-refresh functionality
+  Future<void> _handleRefresh() async {
+    try {
+      debugPrint('HomeScreen: Pull-to-refresh initiated');
+      
+      // Stop current banner autoplay
+      _stopBannerAutoplay();
+      
+      // Reload banners
+      await _loadBanners();
+      
+      // Add a small delay to make the refresh feel more responsive
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      debugPrint('HomeScreen: Pull-to-refresh completed');
+    } catch (e) {
+      debugPrint('HomeScreen: Error during refresh: $e');
+      // Show a snackbar to inform user of refresh failure
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to refresh. Please try again.'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _handleRefresh,
+            ),
+          ),
+        );
+      }
+    }
+  }
+  
   @override
   void dispose() {
     _searchController.dispose();
@@ -116,22 +150,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       key: _scaffoldKey,
       backgroundColor: AppTheme.backgroundColor(context),
       appBar: _buildEnhancedAppBar(context),
-      body: CustomScrollView(
-        slivers: [
-          // Banner carousel - now scrollable with content
-          SliverToBoxAdapter(
-            child: _buildBannerCarousel(context),
-          ),
-          
-          // "Check mo to Mhie" Featured Section Header
-          _buildCheckMoToMhieSection(),
-          
-          // Featured Products Grid (2-column mobile layout)
-          _buildFeaturedProductsGrid(),
-          
-          // Footer Section
-          _buildFooterSection(),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: AppTheme.primaryOrange,
+        backgroundColor: AppTheme.surfaceColor(context),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // Enables pull-to-refresh even when content doesn't fill screen
+          slivers: [
+            // Banner carousel - now scrollable with content
+            SliverToBoxAdapter(
+              child: _buildBannerCarousel(context),
+            ),
+            
+            // "Check mo to Mhie" Featured Section Header
+            _buildCheckMoToMhieSection(),
+            
+            // Featured Products Grid (2-column mobile layout)
+            _buildFeaturedProductsGrid(),
+            
+            // Footer Section
+            _buildFooterSection(),
+          ],
+        ),
       ),
     );
   }
@@ -152,9 +192,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Container(
             margin: const EdgeInsets.only(left: 2), // 2px from left border
             child: Container(
-              width: 58, // Container slightly larger than image
+              width: 52, // Reduced container size for tighter fit
               height: 48,
-              padding: const EdgeInsets.all(5), // Padding around image
+              padding: const EdgeInsets.all(2), // Reduced padding for better fit
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark 
                     ? Colors.black 
@@ -176,6 +216,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   fit: BoxFit.contain,
                 ),
               ),
+            ),
+          ),
+          
+          // AnneDFinds text with sans-serif font and theme-aware color
+          const SizedBox(width: 8), // Small space between logo and text
+          const Text(
+            'AnneDFinds',
+            style: TextStyle(
+              fontFamily: 'sans-serif',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
           

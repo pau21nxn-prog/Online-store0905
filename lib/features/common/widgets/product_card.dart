@@ -49,10 +49,13 @@ class ProductCard extends StatelessWidget {
                             );
                           },
                         )
-                      : Icon(
-                          Icons.shopping_bag,
-                          size: 50,
+                      : Image.asset(
+                          'images/Logo/72x72.png',
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.contain,
                           color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
+                          colorBlendMode: BlendMode.srcIn,
                         ),
                 ),
               ),

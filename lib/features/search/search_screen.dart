@@ -424,8 +424,15 @@ class _SearchScreenState extends State<SearchScreen> {
                               );
                             },
                           )
-                        : const Center(
-                            child: Icon(Icons.shopping_bag, size: 40, color: Colors.grey),
+                        : Center(
+                            child: Image.asset(
+                              'images/Logo/72x72.png',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                              color: Colors.grey,
+                              colorBlendMode: BlendMode.srcIn,
+                            ),
                           ),
                   ),
                 ),

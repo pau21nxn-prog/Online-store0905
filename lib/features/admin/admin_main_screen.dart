@@ -7,7 +7,9 @@ import 'products_management_screen.dart';
 import 'orders_management_screen.dart';
 import 'users_management_screen.dart';
 import 'banner_management_screen.dart';
+import 'shipping_management_screen.dart';
 import '../../scripts/initialize_categories.dart';
+// import '../../debug/system_diagnostic_screen.dart'; // Commented out for production
 
 class AdminMainScreen extends StatefulWidget {
   const AdminMainScreen({super.key});
@@ -26,6 +28,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     const OrdersManagementScreen(),
     const UsersManagementScreen(),
     const BannerManagementScreen(),
+    const ShippingManagementScreen(),
   ];
 
   @override
@@ -144,9 +147,22 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                     padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing8),
                     children: [
                       _buildNavItem(0, Icons.inventory, 'Products'),
-                      _buildNavItem(1, Icons.shopping_bag, 'Orders'),
+                      _buildNavItem(1, null, 'Orders', iconWidget: Builder(
+                        builder: (context) {
+                          final isSelected = _selectedIndex == 1;
+                          return Image.asset(
+                            'images/Logo/48x48.png',
+                            width: 28,
+                            height: 28,
+                            fit: BoxFit.contain,
+                            color: isSelected ? AppTheme.primaryOrange : Colors.grey,
+                            colorBlendMode: BlendMode.srcIn,
+                          );
+                        },
+                      )),
                       _buildNavItem(2, Icons.people, 'Users'),
                       _buildNavItem(3, Icons.image, 'Banners'),
+                      _buildNavItem(4, Icons.local_shipping, 'Shipping'),
                     ],
                   ),
                 ),
@@ -167,7 +183,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String title) {
+  Widget _buildNavItem(int index, IconData? icon, String title, {Widget? iconWidget}) {
     final isSelected = _selectedIndex == index;
     
     return Container(
@@ -195,8 +211,8 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
                     borderRadius: BorderRadius.circular(AppTheme.radius8),
                   ),
                   child: Center(
-                    child: Icon(
-                      icon,
+                    child: iconWidget ?? Icon(
+                      icon!,
                       color: isSelected ? AppTheme.primaryOrange : Colors.grey,
                       size: 28,
                     ),

@@ -240,6 +240,75 @@ service cloud.firestore {
         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
     }
 
+    // Shipping rates collection - admin only
+    match /shipping_rates/{rateId} {
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+      allow create: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)) &&
+        isValidShippingRateData(request.resource.data);
+      allow list: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+    }
+
+    // Shipping configuration collection - admin only
+    match /shipping_config/{configId} {
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+      allow create: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)) &&
+        isValidShippingConfigData(request.resource.data);
+    }
+
+    // Shipping overrides collection - admin only
+    match /shipping_overrides/{overrideId} {
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+      allow create: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)) &&
+        isValidShippingOverrideData(request.resource.data);
+      allow list: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+    }
+
+    // Stock reservations collection - users can manage their own reservations
+    match /stockReservations/{reservationId} {
+      // Read: users can read their own reservations OR admins can read all
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
+      
+      // Create: authenticated users can create their own reservations
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId &&
+        isValidStockReservationData(request.resource.data);
+      
+      // Update: users can update their own reservations OR admins can update all
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
+      
+      // Delete: users can delete their own reservations OR admins can delete all
+      allow delete: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || 
+         exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)));
+      
+      // List: admins can list all reservations for management
+      allow list: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+    }
+
+    // System alerts collection - admin only
+    match /systemAlerts/{alertId} {
+      allow read, write: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+      allow create: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid)) &&
+        isValidSystemAlertData(request.resource.data);
+      allow list: if request.auth != null && 
+        exists(/databases/(default)/documents/adminUsers/$(request.auth.uid));
+    }
+
     // Helper functions (REMOVED COMPLEX isAdmin function)
     function isValidUserData(data) {
       return data.keys().hasAll(['email', 'displayName', 'createdAt'])
@@ -322,6 +391,78 @@ service cloud.firestore {
         && data.method is string
         && data.method in ['gcash', 'gotyme', 'metrobank', 'bpi', 'cod']
         && data.status in ['pending', 'processing', 'completed', 'failed', 'refunded', 'cancelled'];
+    }
+
+    function isValidShippingRateData(data) {
+      return data.keys().hasAll(['fromZone', 'toZone', 'weightTier', 'rate'])
+        && data.fromZone is string
+        && data.fromZone in ['manila', 'luzon', 'visayas', 'mindanao', 'islands']
+        && data.toZone is string
+        && data.toZone in ['manila', 'luzon', 'visayas', 'mindanao', 'islands']
+        && data.weightTier is string
+        && data.weightTier in ['tier0_500g', 'tier500g_1kg', 'tier1_2kg', 'tier2_3kg', 'tier3_4kg', 'tier4_5kg', 'tier5_6kg', 'tierOver6kg']
+        && data.rate is number
+        && data.rate > 0
+        && (!data.keys().hasAll(['isActive']) || data.isActive is bool)
+        && data.keys().hasAll(['createdAt', 'updatedAt'])
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidShippingConfigData(data) {
+      return data.keys().hasAll(['freeShippingThreshold', 'fallbackRate', 'enableFreeShipping'])
+        && data.freeShippingThreshold is number
+        && data.freeShippingThreshold >= 0
+        && data.fallbackRate is number
+        && data.fallbackRate > 0
+        && data.enableFreeShipping is bool
+        && (!data.keys().hasAll(['defaultFromZone']) || 
+            (data.defaultFromZone is string && data.defaultFromZone in ['manila', 'luzon', 'visayas', 'mindanao', 'islands']));
+    }
+
+    function isValidShippingOverrideData(data) {
+      return (!data.keys().hasAll(['customRate']) || (data.customRate is number && data.customRate > 0))
+        && (!data.keys().hasAll(['freeShipping']) || data.freeShipping is bool)
+        && (!data.keys().hasAll(['customWeight']) || (data.customWeight is number && data.customWeight > 0))
+        && (!data.keys().hasAll(['isActive']) || data.isActive is bool)
+        && data.keys().hasAll(['createdAt', 'updatedAt'])
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStockReservationData(data) {
+      return data.keys().hasAll(['userId', 'productId', 'quantity', 'orderId', 'createdAt', 'expiresAt'])
+        && data.userId is string
+        && data.userId.size() > 0
+        && data.productId is string
+        && data.productId.size() > 0
+        && data.quantity is number
+        && data.quantity > 0
+        && data.orderId is string
+        && data.orderId.size() > 0
+        && data.createdAt is timestamp
+        && data.expiresAt is timestamp
+        && data.expiresAt > data.createdAt
+        && (!data.keys().hasAll(['variantId']) || (data.variantId is string && data.variantId.size() > 0))
+        && (!data.keys().hasAll(['isActive']) || data.isActive is bool);
+    }
+
+    function isValidSystemAlertData(data) {
+      return data.keys().hasAll(['type', 'title', 'message', 'priority', 'createdAt'])
+        && data.type is string
+        && data.type.size() > 0
+        && data.title is string
+        && data.title.size() > 0
+        && data.message is string
+        && data.message.size() > 0
+        && data.priority is string
+        && data.priority in ['low', 'medium', 'high', 'critical']
+        && data.createdAt is timestamp
+        && (!data.keys().hasAll(['isActive']) || data.isActive is bool)
+        && (!data.keys().hasAll(['isRead']) || data.isRead is bool)
+        && (!data.keys().hasAll(['orderId']) || data.orderId is string)
+        && (!data.keys().hasAll(['subType']) || data.subType is string)
+        && (!data.keys().hasAll(['requiresManualIntervention']) || data.requiresManualIntervention is bool);
     }
   }
 }

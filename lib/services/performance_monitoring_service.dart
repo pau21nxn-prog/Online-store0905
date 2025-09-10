@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' show Platform;
 
 enum PerformanceMetricType {
   pageLoad,
@@ -48,7 +48,7 @@ class PerformanceMetric {
       'metadata': metadata,
       'userId': userId,
       'sessionId': sessionId,
-      'platform': Platform.operatingSystem,
+      'platform': kIsWeb ? 'web' : Platform.operatingSystem,
       'isDebug': kDebugMode,
     };
   }
@@ -599,7 +599,7 @@ class PerformanceMonitoringService {
 
   static Map<String, dynamic> _getDeviceInfo() {
     return {
-      'platform': Platform.operatingSystem,
+      'platform': kIsWeb ? 'web' : Platform.operatingSystem,
       'isDebugMode': kDebugMode,
       'timestamp': DateTime.now().toIso8601String(),
     };

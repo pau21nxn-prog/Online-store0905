@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as nodemailer from "nodemailer";
+import * as path from "path";
 
 admin.initializeApp();
 
@@ -79,17 +80,12 @@ export const sendOrderConfirmationEmail = onCall(async (request) => {
     </head>
     <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
-            <!-- Header -->
+            <!-- Header with Updated Logo -->
             <div style="background: linear-gradient(135deg, #FF6B35 0%, #FF8A5B 100%); padding: 40px 20px; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">🛍️ AnneDFinds</h1>
-                <p style="color: #FFF3E0; margin: 10px 0 0 0; font-size: 16px;">Your trusted online store</p>
-            </div>
-
-            <!-- Success Badge -->
-            <div style="text-align: center; margin: -20px 0 0 0;">
-                <div style="display: inline-block; background-color: #4CAF50; color: white; padding: 12px 24px; border-radius: 25px; font-weight: bold;">
-                    ✅ Order Confirmed
+                <div style="background: white; display: inline-block; padding: 2px; border-radius: 8px; margin-bottom: 10px;">
+                    <img src="cid:annedfinds-logo@annedfinds.com" alt="AnneDFinds" style="height: 40px; width: auto; display: block;">
                 </div>
+                <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">AnneDFinds</h1>
             </div>
 
             <!-- Main Content -->
@@ -97,7 +93,7 @@ export const sendOrderConfirmationEmail = onCall(async (request) => {
                 <h2 style="color: #FF6B35; margin: 0 0 20px 0;">Thank you for your order, ${customerName}! 🎉</h2>
                 
                 <p style="font-size: 16px; margin: 0 0 30px 0;">
-                    We're excited to let you know that we've received your order and are preparing it for shipment.
+                    We're excited to let you know that we've received your order. You can view the updates in My Orders section on your Profile.
                 </p>
 
                 <!-- Order Details -->
@@ -200,8 +196,8 @@ export const sendOrderConfirmationEmail = onCall(async (request) => {
                 <div style="text-align: center; margin: 40px 0 20px 0; padding: 20px; background-color: #F8F9FA; border-radius: 8px;">
                     <h3 style="color: #FF6B35; margin: 0 0 15px 0;">Need Help? 🤝</h3>
                     <p style="margin: 0 0 10px 0;">📧 <a href="mailto:annedfinds@gmail.com" style="color: #FF6B35; text-decoration: none;">annedfinds@gmail.com</a></p>
-                    <p style="margin: 0 0 10px 0;">📞 Viber: (+63) 977-325-7043</p>
-                    <p style="margin: 0;">🌐 <a href="https://www.annedfinds.web.app" style="color: #FF6B35; text-decoration: none;">www.annedfinds.web.app</a></p>
+                    <p style="margin: 0 0 10px 0;">📞 09773257043</p>
+                    <p style="margin: 0;">🌐 <a href="https://www.annedfinds.com" style="color: #FF6B35; text-decoration: none;">www.annedfinds.com</a></p>
                 </div>
 
                 <div style="text-align: center; margin: 30px 0;">
@@ -256,8 +252,8 @@ Delivery Instructions: ${deliveryAddress.deliveryInstructions}` : ""}
 NEED HELP?
 ═══════════════════════════════════════════════════════════════════════════
 📧 annedfinds@gmail.com
-📞 Viber: (+63) 977-325-7043
-🌐 www.annedfinds.web.app
+📞 09773257043
+🌐 www.annedfinds.com
 
 Thank you for choosing AnneDFinds! 🧡
 We appreciate your trust in us.
@@ -277,7 +273,12 @@ We appreciate your trust in us.
       },
       subject: `Order Confirmation - ${orderId} | AnneDFinds 🛍️`,
       text: textContent,
-      html: htmlContent
+      html: htmlContent,
+      attachments: [{
+        filename: 'logo.png',
+        path: path.join(__dirname, '../images/Logo/logo.png'),
+        cid: 'annedfinds-logo@annedfinds.com'
+      }]
     };
 
     console.log(`📤 Sending email via Gmail SMTP to: ${toEmail}`);
@@ -552,29 +553,33 @@ export const testGmailEmail = onCall(async (request) => {
         name: "Test Recipient",
         address: "annedfinds@gmail.com" // Send to yourself
       },
-      subject: `🧪 Gmail Test Email - ${new Date().toLocaleString()}`,
+      subject: `🧪 Gmail Test Email with Embedded Logo - ${new Date().toLocaleString()}`,
       text: `
-This is a test email from AnneDFinds Gmail SMTP service.
+This is a test email from AnneDFinds Gmail SMTP service with embedded logo.
 
 Test Details:
 - Service: Gmail SMTP via Firebase Function
 - Time: ${new Date().toLocaleString()}
-- Status: Gmail SMTP is working correctly!
+- Status: Gmail SMTP with embedded logo is working correctly!
+- Logo: Embedded using CID attachment
 
-If you received this email, your Gmail configuration is successful.
+If you received this email and can see the logo, your Gmail configuration is successful.
 
 AnneDFinds Email Service
       `,
       html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #FF6B35, #FF8A5B); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
-    <h2 style="margin: 0;">🧪 Gmail SMTP Test</h2>
+    <div style="background: white; display: inline-block; padding: 2px; border-radius: 8px; margin-bottom: 10px;">
+      <img src="cid:annedfinds-logo@annedfinds.com" alt="AnneDFinds" style="height: 40px; width: auto; display: block;">
+    </div>
+    <h2 style="margin: 0;">🧪 Gmail SMTP Test with Embedded Logo</h2>
     <p style="margin: 5px 0 0 0;">AnneDFinds Email Service</p>
   </div>
   
   <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 20px 0;">
     <h3 style="color: #155724; margin-top: 0;">✅ Test Successful!</h3>
-    <p style="color: #155724; margin: 0;">Your Gmail SMTP configuration is working correctly.</p>
+    <p style="color: #155724; margin: 0;">Your Gmail SMTP configuration with embedded logo is working correctly.</p>
   </div>
   
   <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px;">
@@ -584,14 +589,20 @@ AnneDFinds Email Service
       <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
       <li><strong>Email:</strong> annedfinds@gmail.com</li>
       <li><strong>App Password:</strong> Configured ✅</li>
+      <li><strong>Logo:</strong> Embedded using CID attachment</li>
     </ul>
   </div>
   
   <p style="margin-top: 20px; color: #666;">
-    <em>This test email confirms that your AnneDFinds Gmail email service is ready for production use.</em>
+    <em>This test email confirms that your AnneDFinds Gmail email service with embedded images is ready for production use.</em>
   </p>
 </div>
-      `
+      `,
+      attachments: [{
+        filename: 'logo.png',
+        path: path.join(__dirname, '../images/Logo/logo.png'),
+        cid: 'annedfinds-logo@annedfinds.com'
+      }]
     };
 
     const testResult = await gmailTransporter.sendMail(testMailOptions);
@@ -621,18 +632,18 @@ export const setUserAdminClaim = onCall(async (request) => {
     const { uid, isAdmin } = request.data;
     
     // Validate input
-    if (!uid || typeof uid !== 'string') {
-      throw new HttpsError('invalid-argument', 'Valid uid is required');
+    if (!uid || typeof uid !== "string") {
+      throw new HttpsError("invalid-argument", "Valid uid is required");
     }
     
-    if (typeof isAdmin !== 'boolean') {
-      throw new HttpsError('invalid-argument', 'isAdmin must be a boolean');
+    if (typeof isAdmin !== "boolean") {
+      throw new HttpsError("invalid-argument", "isAdmin must be a boolean");
     }
     
     // Verify caller is authenticated
     const caller = request.auth;
     if (!caller) {
-      throw new HttpsError('unauthenticated', 'Must be authenticated');
+      throw new HttpsError("unauthenticated", "Must be authenticated");
     }
     
     // Verify caller has admin privileges (check existing custom claims)
@@ -641,8 +652,8 @@ export const setUserAdminClaim = onCall(async (request) => {
     
     if (!callerClaims.admin && caller.uid !== uid) {
       throw new HttpsError(
-        'permission-denied', 
-        'Only admins can modify admin status of other users'
+        "permission-denied", 
+        "Only admins can modify admin status of other users"
       );
     }
     
@@ -657,44 +668,44 @@ export const setUserAdminClaim = onCall(async (request) => {
     // Update Firestore user document
     const userUpdate: { [key: string]: any } = {
       isAdmin: isAdmin,
-      userType: isAdmin ? 'admin' : 'buyer',
+      userType: isAdmin ? "admin" : "buyer",
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
-    await admin.firestore().collection('users').doc(uid).update(userUpdate);
+    await admin.firestore().collection("users").doc(uid).update(userUpdate);
     console.log(`✅ Firestore user document updated for ${uid}`);
     
     // Manage adminUsers collection
     if (isAdmin) {
-      await admin.firestore().collection('adminUsers').doc(uid).set({
-        role: 'admin',
+      await admin.firestore().collection("adminUsers").doc(uid).set({
+        role: "admin",
         isActive: true,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         grantedBy: caller.uid,
-        grantedByEmail: caller.token?.email || 'unknown',
+        grantedByEmail: caller.token?.email || "unknown",
       });
       console.log(`✅ Added to adminUsers collection: ${uid}`);
     } else {
-      await admin.firestore().collection('adminUsers').doc(uid).delete();
+      await admin.firestore().collection("adminUsers").doc(uid).delete();
       console.log(`✅ Removed from adminUsers collection: ${uid}`);
     }
     
     // Log audit trail
-    await admin.firestore().collection('auditLogs').add({
-      action: isAdmin ? 'GRANT_ADMIN_ACCESS' : 'REVOKE_ADMIN_ACCESS',
+    await admin.firestore().collection("auditLogs").add({
+      action: isAdmin ? "GRANT_ADMIN_ACCESS" : "REVOKE_ADMIN_ACCESS",
       targetUserId: uid,
       performedBy: caller.uid,
-      performedByEmail: caller.token?.email || 'unknown',
+      performedByEmail: caller.token?.email || "unknown",
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       details: {
         isAdmin: isAdmin,
-        method: 'setUserAdminClaim',
+        method: "setUserAdminClaim",
       },
     });
     
     return {
       success: true,
-      message: `User ${uid} admin status ${isAdmin ? 'granted' : 'revoked'} successfully`,
+      message: `User ${uid} admin status ${isAdmin ? "granted" : "revoked"} successfully`,
       customClaims: customClaims,
     };
     
@@ -704,11 +715,11 @@ export const setUserAdminClaim = onCall(async (request) => {
     // Log error for audit
     try {
       if (request.auth) {
-        await admin.firestore().collection('auditLogs').add({
-          action: 'ADMIN_CLAIM_ERROR',
-          targetUserId: request.data?.uid || 'unknown',
+        await admin.firestore().collection("auditLogs").add({
+          action: "ADMIN_CLAIM_ERROR",
+          targetUserId: request.data?.uid || "unknown",
           performedBy: request.auth.uid,
-          performedByEmail: request.auth.token?.email || 'unknown',
+          performedByEmail: request.auth.token?.email || "unknown",
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
           error: error.message || String(error),
         });
@@ -723,7 +734,7 @@ export const setUserAdminClaim = onCall(async (request) => {
     }
     
     throw new HttpsError(
-      'internal',
+      "internal",
       `Failed to set admin claim: ${error.message || String(error)}`
     );
   }
@@ -734,7 +745,7 @@ export const verifyAdminClaim = onCall(async (request) => {
   try {
     const caller = request.auth;
     if (!caller) {
-      throw new HttpsError('unauthenticated', 'Must be authenticated');
+      throw new HttpsError("unauthenticated", "Must be authenticated");
     }
     
     const userRecord = await admin.auth().getUser(caller.uid);
@@ -750,7 +761,7 @@ export const verifyAdminClaim = onCall(async (request) => {
   } catch (error: any) {
     console.error("❌ Error verifying admin claim:", error);
     throw new HttpsError(
-      'internal',
+      "internal",
       `Failed to verify admin claim: ${error.message || String(error)}`
     );
   }
@@ -814,13 +825,13 @@ export const sendContactFormEmail = onCall(async (request) => {
               </tr>
               <tr>
                 <td style="padding: 8px 0; font-weight: bold; color: #555;">Date:</td>
-                <td style="padding: 8px 0; color: #333;">${new Date(timestamp).toLocaleString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
+                <td style="padding: 8px 0; color: #333;">${new Date(timestamp).toLocaleString("en-US", { 
+                  weekday: "long", 
+                  year: "numeric", 
+                  month: "long", 
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit"
                 })}</td>
               </tr>
             </table>
@@ -860,8 +871,8 @@ Please respond directly to the customer at ${email}
 
     // Email configuration
     const mailOptions = {
-      from: `"AnnedFinds Contact Form" <annedfinds@gmail.com>`,
-      to: adminEmail || 'annedfinds@gmail.com',
+      from: "\"AnnedFinds Contact Form\" <annedfinds@gmail.com>",
+      to: adminEmail || "annedfinds@gmail.com",
       replyTo: email,
       subject: subject,
       html: htmlContent,
@@ -891,7 +902,7 @@ Please respond directly to the customer at ${email}
     }
     
     throw new HttpsError(
-      'internal',
+      "internal",
       `Failed to send contact form email: ${error.message || String(error)}`
     );
   }

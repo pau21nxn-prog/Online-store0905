@@ -200,6 +200,18 @@
         "value": "false"
       },
       "description": "A/B test for AI-powered product recommendations"
+    },
+    "recaptcha_v3_site_key": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Google reCAPTCHA v3 Site Key for Firebase App Check (client-side)"
+    },
+    "recaptcha_v3_secret_key": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Google reCAPTCHA v3 Secret Key for server-side verification"
     }
   },
   "version": {

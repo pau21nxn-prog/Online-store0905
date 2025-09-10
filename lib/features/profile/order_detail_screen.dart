@@ -1234,7 +1234,12 @@ class _OrderItemTile extends StatelessWidget {
               )
             : Container(
                 color: Colors.grey.shade200,
-                child: const Icon(Icons.shopping_bag),
+                child: Image.asset(
+                  'images/Logo/48x48.png',
+                  width: 24,
+                  height: 24,
+                  fit: BoxFit.contain,
+                ),
               ),
       ),
     );

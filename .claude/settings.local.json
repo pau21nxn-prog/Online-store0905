@@ -123,7 +123,15 @@
       "Read(/C:\\Users\\pau\\anned_finds\\lib\\models/**)",
       "Read(/C:\\Users\\pau\\anned_finds\\lib\\models/**)",
       "Read(/C:\\Users\\pau\\anned_finds\\lib\\models/**)",
-      "Read(/C:\\Users\\pau\\anned_finds\\lib\\features\\admin/**)"
+      "Read(/C:\\Users\\pau\\anned_finds\\lib\\features\\admin/**)",
+      "Bash(dir:*)",
+      "Bash(firebase functions:*)",
+      "Bash(firebase auth:list:*)",
+      "Bash(npm run lint)",
+      "Bash(firebase remoteconfig:set:*)",
+      "Bash(firebase auth:export:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(nc localhost 8083)"
     ],
     "defaultMode": "acceptEdits"
   }

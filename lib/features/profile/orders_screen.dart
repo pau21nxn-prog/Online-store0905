@@ -255,7 +255,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               )
                             : Container(
                                 color: Colors.grey.shade200,
-                                child: const Icon(Icons.shopping_bag, size: 20),
+                                child: Image.asset(
+                                  'images/Logo/48x48.png',
+                                  width: 20,
+                                  height: 20,
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                       ),
                     ),
@@ -485,10 +490,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.shopping_bag_outlined,
-            size: 80,
+          Image.asset(
+            'images/Logo/96x96.png',
+            width: 80,
+            height: 80,
+            fit: BoxFit.contain,
             color: Colors.grey.shade400,
+            colorBlendMode: BlendMode.srcIn,
           ),
           const SizedBox(height: 16),
           Text(

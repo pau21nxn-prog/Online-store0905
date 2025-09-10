@@ -257,7 +257,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                         )
                       : Center(
-                          child: Icon(Icons.shopping_bag, size: 100, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5)),
+                          child: Image.asset(
+                            'images/Logo/144x144.png',
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.contain,
+                            color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
+                            colorBlendMode: BlendMode.srcIn,
+                          ),
                         ),
                 ),
               ),
@@ -817,7 +824,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       0.0,
       (sum, item) => sum + (item.price * item.quantity),
     );
-    final shipping = subtotal >= 500.0 ? 0.0 : 99.0; // Free shipping over ₱500
+    
+    // Calculate shipping dynamically
+    double shipping = 0.0;
+    if (subtotal < 3000.0) { // Updated to match your global settings
+      // Use fallback for now - will be replaced with dynamic calculation in cart/checkout
+      shipping = 49.0; // Updated to match your global settings
+    }
+    
     final total = subtotal + shipping;
     
     return {

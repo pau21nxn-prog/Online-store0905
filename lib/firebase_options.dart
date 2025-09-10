@@ -46,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '48916413018',
     projectId: 'annedfinds',
     authDomain: 'annedfinds.firebaseapp.com',
+    databaseURL: 'https://annedfinds-default-rtdb.firebaseio.com',
     storageBucket: 'annedfinds.firebasestorage.app',
   );
 
@@ -54,6 +55,7 @@ class DefaultFirebaseOptions {
     appId: '1:48916413018:android:7d68edd26925ca4af93663',
     messagingSenderId: '48916413018',
     projectId: 'annedfinds',
+    databaseURL: 'https://annedfinds-default-rtdb.firebaseio.com',
     storageBucket: 'annedfinds.firebasestorage.app',
   );
 
@@ -62,8 +64,9 @@ class DefaultFirebaseOptions {
     appId: '1:48916413018:ios:YOUR_IOS_APP_ID_HERE',
     messagingSenderId: '48916413018',
     projectId: 'annedfinds',
+    databaseURL: 'https://annedfinds-default-rtdb.firebaseio.com',
     storageBucket: 'annedfinds.firebasestorage.app',
-    iosBundleId: 'com.example.annedfinds',
+    iosBundleId: 'com.annedfinds.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -71,8 +74,9 @@ class DefaultFirebaseOptions {
     appId: '1:48916413018:ios:YOUR_MACOS_APP_ID_HERE',
     messagingSenderId: '48916413018',
     projectId: 'annedfinds',
+    databaseURL: 'https://annedfinds-default-rtdb.firebaseio.com',
     storageBucket: 'annedfinds.firebasestorage.app',
-    iosBundleId: 'com.example.annedfinds',
+    iosBundleId: 'com.annedfinds.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -81,6 +85,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '48916413018',
     projectId: 'annedfinds',
     authDomain: 'annedfinds.firebaseapp.com',
+    databaseURL: 'https://annedfinds-default-rtdb.firebaseio.com',
     storageBucket: 'annedfinds.firebasestorage.app',
   );
 }

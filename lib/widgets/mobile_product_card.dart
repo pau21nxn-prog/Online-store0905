@@ -89,11 +89,14 @@ class MobileProductCard extends StatelessWidget {
   Widget _buildImagePlaceholder() {
     return Container(
       color: Colors.grey.shade200,
-      child: const Center(
-        child: Icon(
-          Icons.shopping_bag_outlined,
-          size: 48,
+      child: Center(
+        child: Image.asset(
+          'images/Logo/72x72.png',
+          width: 48,
+          height: 48,
+          fit: BoxFit.contain,
           color: Colors.grey,
+          colorBlendMode: BlendMode.srcIn,
         ),
       ),
     );
@@ -516,11 +519,14 @@ class MobileProductListTile extends StatelessWidget {
   Widget _buildImagePlaceholder() {
     return Container(
       color: Colors.grey.shade200,
-      child: const Center(
-        child: Icon(
-          Icons.shopping_bag_outlined,
-          size: 32,
+      child: Center(
+        child: Image.asset(
+          'images/Logo/48x48.png',
+          width: 32,
+          height: 32,
+          fit: BoxFit.contain,
           color: Colors.grey,
+          colorBlendMode: BlendMode.srcIn,
         ),
       ),
     );
